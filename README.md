@@ -1,2 +1,2 @@
 # chef-analyze
-CLI to make upgrades of Chef Tools easier
+CLI to analyze your Chef Inventory
