@@ -1,0 +1,10 @@
+# vim
+*.swp
+*.swo
+
+# Habitat
+results/
+
+# mac
+.DS_Store
+
