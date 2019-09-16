@@ -8,3 +8,5 @@ results/
 # mac
 .DS_Store
 
+# all arch binaries
+bin/

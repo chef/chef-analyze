@@ -9,22 +9,19 @@ import (
 	"github.com/go-chef/chef"
 )
 
-// TODO @afiune migrate these flags to use viper since it is our standard @Chef
-var (
-	clientName    string
-	clientKey     string
-	chefServerUrl string
-)
-
 func main() {
 	// TODO @afiune migrate these flags to use viper since it is our standard @Chef
+	var (
+		clientName    string
+		clientKey     string
+		chefServerUrl string
+	)
 	flag.StringVar(&clientName, "user", "", "Chef Infra Server API client username.")
 	flag.StringVar(&clientKey, "key", "", "Chef Infra Server API client key.")
 	flag.StringVar(&chefServerUrl, "chef_server_url", "", "Chef Infra Server URL.")
 	flag.Parse()
-
 	if clientName == "" || clientKey == "" || chefServerUrl == "" {
-		fmt.Println("One or more parameters missing. Required: -user USER -key KEY -chef_server_url URL")
+		fmt.Println("One or more parameters missing.\n\nRequired:\n\t-user USER\n\t-key KEY\n\t-chef_server_url URL")
 		os.Exit(1)
 	}
 
