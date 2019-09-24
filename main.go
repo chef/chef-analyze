@@ -40,6 +40,7 @@ func main() {
 	})
 	if err != nil {
 		fmt.Println("Unable setup Chef client:", err)
+		os.Exit(1)
 	}
 
 	// List Nodes
@@ -51,16 +52,35 @@ func main() {
 
 	// Print out the list
 	fmt.Println("Nodes:")
-	fmt.Println(nodesList)
+	for nodeName, _ := range nodesList {
+		fmt.Println(nodeName)
+	}
 
 	// List Cookbooks
-	cookList, err := client.Cookbooks.List()
+	cookbookList, err := client.Cookbooks.List()
 	if err != nil {
 		fmt.Println("Unable to list cookbooks:", err)
 		os.Exit(1)
 	}
 
 	// Print out the list
-	fmt.Println("Cookbooks:")
-	fmt.Println(cookList)
+	fmt.Println("\nCookbooks:")
+	for cookbookName, cookbookVersions := range cookbookList {
+		versionsArray := cookbookVersionsAsArrayStrings(&cookbookVersions)
+		fmt.Printf("%s %v\n", cookbookName, versionsArray)
+	}
+}
+
+// TODO @afiune contribute back to the community repo, propose to add a function to the struct
+// that automatically extracts these values for convenience at:
+//
+// https://github.com/go-chef/chef/blob/master/cookbook.go#L28
+func cookbookVersionsAsArrayStrings(cookbookVersions *chef.CookbookVersions) []string {
+	rawVersions := make([]string, len(cookbookVersions.Versions))
+
+	for x, cookbookVersion := range cookbookVersions.Versions {
+		rawVersions[x] = cookbookVersion.Version
+	}
+
+	return rawVersions
 }
