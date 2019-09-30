@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 
 	"github.com/go-chef/chef"
@@ -38,29 +39,25 @@ func main() {
 		Key:     string(key),
 		BaseURL: chefServerUrl,
 	})
+
 	if err != nil {
 		fmt.Println("Unable setup Chef client:", err)
 	}
 
-	// List Nodes
-	nodesList, err := client.Nodes.List()
+	query := make(map[string]interface{})
+	query["name"] = []string{"name"}
+	query["chef_version"] = []string{"chef_packages", "chef", "version"}
+	query["os"] = []string{"platform"}
+	query["os_version"] = []string{"platform_version"}
+	pres, err := client.Search.PartialExec("node", "*:*", query)
 	if err != nil {
-		fmt.Println("Unable to list nodes:", err)
-		os.Exit(1)
+		log.Fatal("Error running Search.PartialExec()", err)
 	}
-
-	// Print out the list
-	fmt.Println("Nodes:")
-	fmt.Println(nodesList)
-
-	// List Cookbooks
-	cookList, err := client.Cookbooks.List()
-	if err != nil {
-		fmt.Println("Unable to list cookbooks:", err)
-		os.Exit(1)
+	// using 'v' not 's' because not all fields will have values.
+	formatString := "%30s   %-12v   %-15v   %-10v\n"
+	fmt.Printf(formatString, "Node Name", "Chef Version", "OS", "OS Version")
+	for _, element := range pres.Rows {
+		v := element.(map[string]interface{})["data"].(map[string]interface{})
+		fmt.Printf(formatString, v["name"], v["chef_version"], v["os"], v["os_version"])
 	}
-
-	// Print out the list
-	fmt.Println("Cookbooks:")
-	fmt.Println(cookList)
 }
