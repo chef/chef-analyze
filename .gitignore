@@ -1,0 +1,12 @@
+# vim
+*.swp
+*.swo
+
+# Habitat
+results/
+
+# mac
+.DS_Store
+
+# all arch binaries
+bin/
