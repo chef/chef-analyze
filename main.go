@@ -4,10 +4,10 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 
 	"github.com/go-chef/chef"
+	log "github.com/sirupsen/logrus"
 )
 
 func main() {
