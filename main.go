@@ -53,11 +53,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	query := make(map[string]interface{})
-	query["name"] = []string{"name"}
-	query["chef_version"] = []string{"chef_packages", "chef", "version"}
-	query["os"] = []string{"platform"}
-	query["os_version"] = []string{"platform_version"}
+	query := map[string]interface{}{
+		"name":         []string{"name"},
+		"chef_version": []string{"chef_packages", "chef", "version"},
+		"os":           []string{"platform"},
+		"os_version":   []string{"platform_version"}}
+
 	pres, err := client.Search.PartialExec("node", "*:*", query)
 	if err != nil {
 		log.Fatal("Error running Search.PartialExec()", err)
