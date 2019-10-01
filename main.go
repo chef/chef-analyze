@@ -16,12 +16,20 @@ func main() {
 		clientKey     string
 		chefServerUrl string
 	)
+
 	flag.StringVar(&clientName, "user", "", "Chef Infra Server API client username.")
 	flag.StringVar(&clientKey, "key", "", "Chef Infra Server API client key.")
 	flag.StringVar(&chefServerUrl, "chef_server_url", "", "Chef Infra Server URL.")
 	flag.Parse()
+
+	if len(os.Args) > 1 && os.Args[1] == "help" {
+		flag.Usage()
+		os.Exit(0)
+	}
+
 	if clientName == "" || clientKey == "" || chefServerUrl == "" {
-		fmt.Println("One or more parameters missing.\n\nRequired:\n\t-user USER\n\t-key KEY\n\t-chef_server_url URL")
+		fmt.Println("One or more required parameters missing:")
+		flag.PrintDefaults()
 		os.Exit(1)
 	}
 
