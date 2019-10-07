@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/go-chef/chef"
+	log "github.com/sirupsen/logrus"
 )
 
 func main() {
@@ -46,49 +47,28 @@ func main() {
 		Key:     string(key),
 		BaseURL: chefServerUrl,
 	})
+
 	if err != nil {
 		fmt.Println("Unable setup Chef client:", err)
 		os.Exit(1)
 	}
 
-	// List Nodes
-	nodesList, err := client.Nodes.List()
+	query := map[string]interface{}{
+		"name":         []string{"name"},
+		"chef_version": []string{"chef_packages", "chef", "version"},
+		"os":           []string{"platform"},
+		"os_version":   []string{"platform_version"}}
+
+	pres, err := client.Search.PartialExec("node", "*:*", query)
 	if err != nil {
-		fmt.Println("Unable to list nodes:", err)
-		os.Exit(1)
+		log.Fatal("Unable to collect nodes information", err)
 	}
 
-	// Print out the list
-	fmt.Println("Nodes:")
-	for nodeName, _ := range nodesList {
-		fmt.Println(nodeName)
+	// using 'v' not 's' because not all fields will have values.
+	formatString := "%30s   %-12v   %-15v   %-10v\n"
+	fmt.Printf(formatString, "Node Name", "Chef Version", "OS", "OS Version")
+	for _, element := range pres.Rows {
+		v := element.(map[string]interface{})["data"].(map[string]interface{})
+		fmt.Printf(formatString, v["name"], v["chef_version"], v["os"], v["os_version"])
 	}
-
-	// List Cookbooks
-	cookbookList, err := client.Cookbooks.List()
-	if err != nil {
-		fmt.Println("Unable to list cookbooks:", err)
-		os.Exit(1)
-	}
-
-	// Print out the list
-	fmt.Println("\nCookbooks:")
-	for cookbookName, cookbookVersions := range cookbookList {
-		versionsArray := cookbookVersionsAsArrayStrings(&cookbookVersions)
-		fmt.Printf("%s %v\n", cookbookName, versionsArray)
-	}
-}
-
-// TODO @afiune contribute back to the community repo, propose to add a function to the struct
-// that automatically extracts these values for convenience at:
-//
-// https://github.com/go-chef/chef/blob/master/cookbook.go#L28
-func cookbookVersionsAsArrayStrings(cookbookVersions *chef.CookbookVersions) []string {
-	rawVersions := make([]string, len(cookbookVersions.Versions))
-
-	for x, cookbookVersion := range cookbookVersions.Versions {
-		rawVersions[x] = cookbookVersion.Version
-	}
-
-	return rawVersions
 }
