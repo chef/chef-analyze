@@ -61,7 +61,7 @@ func main() {
 
 	pres, err := client.Search.PartialExec("node", "*:*", query)
 	if err != nil {
-		log.Fatal("Error running Search.PartialExec()", err)
+		log.Fatal("Unable to collect nodes information", err)
 	}
 
 	// using 'v' not 's' because not all fields will have values.
