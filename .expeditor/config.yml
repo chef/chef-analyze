@@ -1,0 +1,13 @@
+# Documentation available at https://expeditor.chef.io/docs/getting-started/
+---
+# The name we use for this project when interacting with Expeditor Slack App
+project:
+  alias: chef-analyze
+
+# Slack channel in Chef Software slack to send notifications about build failure
+slack:
+  notify_channel: chef-ws-notify
+
+github:
+  # This deletes the GitHub PR branch after successfully merged into the release
+  delete_branch_on_merge: true
