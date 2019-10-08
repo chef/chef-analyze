@@ -1,2 +1,2 @@
-[chef-infra-client]
+[chef-analyze]
 build_targets = [ "x86_64-linux" ]
