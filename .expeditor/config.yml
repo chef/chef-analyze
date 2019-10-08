@@ -40,6 +40,6 @@ promote:
     - stable
 
 subscriptions:
-  - workloads: project_promoted:{{agent_id}}:*
+  - workload: project_promoted:{{agent_id}}:*
     actions:
       - built_in:promote_habitat_packages
