@@ -11,44 +11,10 @@ slack:
 github:
   # This deletes the GitHub PR branch after successfully merged into the release
   delete_branch_on_merge: true
-  # allow bumping the minor release via label
-  minor_bump_labels:
-    - "Expeditor: Bump Version Minor"
-  # allow bumping the major release via label
-  major_bump_labels:
-    - "Expeditor: Bump Version Major"
 
 merge_actions:
   - built_in:bump_version:
-      ignore_labels:
-        - "Expeditor: Skip Version Bump"
-        - "Expeditor: Skip All"
-  - built_in:update_changelog:
-      ignore_labels:
-        - "Expeditor: Skip Changelog"
-        - "Expeditor: Skip All"
-  - trigger_pipeline:habitat/build:
-      ignore_labels:
-        - "Expeditor: Skip Habitat"
-        - "Expeditor: Skip All"
-      only_if:
-        - built_in:bump_version
 
 pipelines:
   - verify:
       description: Pull Request validation tests
-  - habitat/build
-
-promote:
-  channels:
-    - unstable
-    - dev
-    - stable
-
-subscriptions:
-  - workload: pull_request_merged:{{agent_id}}:*
-    actions:
-      - trigger_pipeline:habitat/build
-  - workloads: project_promoted:{{agent_id}}:*
-    actions:
-      - built_in:promote_habitat_packages
