@@ -31,7 +31,8 @@ merge_actions:
       ignore_labels:
         - "Expeditor: Skip Habitat"
         - "Expeditor: Skip All"
-      only_if: built_in:bump_version
+      only_if:
+        - built_in:bump_version
 
 pipelines:
   - verify:
