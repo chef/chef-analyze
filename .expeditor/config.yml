@@ -13,7 +13,10 @@ github:
   delete_branch_on_merge: true
 
 merge_actions:
-  - built_in:bump_version
+  - built_in:bump_version:
+      ignore_labels:
+        - "Expeditor: Skip Version Bump"
+        - "Expeditor: Skip All"
 
 pipelines:
   - verify:
