@@ -4,12 +4,12 @@
 project:
   alias: chef-analyze
 
-# Slack channel in Chef Software slack to send notifications about build failures, etc
+# Slack channel in Chef Software slack to send notifications about build failure
 slack:
   notify_channel: chef-ws-notify
 
 github:
-  # This deletes the GitHub PR branch after successfully merged into the release branch
+  # This deletes the GitHub PR branch after successfully merged into the release
   delete_branch_on_merge: true
   # allow bumping the minor release via label
   minor_bump_labels:
