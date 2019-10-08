@@ -11,6 +11,12 @@ slack:
 github:
   # This deletes the GitHub PR branch after successfully merged into the release
   delete_branch_on_merge: true
+  # allow bumping the minor release via label
+  minor_bump_labels:
+    - "Expeditor: Bump Version Minor"
+  # allow bumping the major release via label
+  major_bump_labels:
+    - "Expeditor: Bump Version Major"
 
 merge_actions:
   - built_in:bump_version:
