@@ -1,3 +1,4 @@
+---
 steps:
   - label: ":linux: :darwin: :windows: top-level chef cmd"
     command:
