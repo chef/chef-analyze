@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 
 	chef "github.com/afiune/go-chef"
 	log "github.com/sirupsen/logrus"
@@ -55,6 +56,27 @@ func main() {
 		os.Exit(1)
 	}
 
+	if err := nodesReport(client); err != nil {
+		log.Fatal("Unable to collect nodes information", err)
+	}
+
+	// Separator
+	fmt.Println("\n")
+
+	if err := cookbooksReport(client); err != nil {
+		log.Fatal("Unable to collect cookbooks information", err)
+	}
+
+	if downloadCookbookName != "" {
+		fmt.Println("\n * Flag -download_cookbook provided.")
+		err := DownloadCookbook(client, downloadCookbookName)
+		if err != nil {
+			log.Fatal("Unable to download cookbook", err)
+		}
+	}
+}
+
+func nodesReport(client *chef.Client) error {
 	query := map[string]interface{}{
 		"name":         []string{"name"},
 		"chef_version": []string{"chef_packages", "chef", "version"},
@@ -63,7 +85,7 @@ func main() {
 
 	pres, err := client.Search.PartialExec("node", "*:*", query)
 	if err != nil {
-		log.Fatal("Unable to collect nodes information", err)
+		return err
 	}
 
 	// using 'v' not 's' because not all fields will have values.
@@ -74,11 +96,24 @@ func main() {
 		fmt.Printf(formatString, v["name"], v["chef_version"], v["os"], v["os_version"])
 	}
 
-	if downloadCookbookName != "" {
-		fmt.Println("\n * Flag -download_cookbook provided.")
-		err := DownloadCookbook(client, downloadCookbookName)
-		if err != nil {
-			log.Fatal("Unable to download cookbook", err)
-		}
+	return nil
+}
+
+func cookbooksReport(client *chef.Client) error {
+	cbooksList, err := client.Cookbooks.ListAvailableVersions("all")
+	if err != nil {
+		return err
 	}
+
+	formatString := "%30s   %-12v\n"
+	fmt.Printf(formatString, "Cookbook Name", "Version(s)")
+	for cookbook, cbookVersions := range cbooksList {
+		versionsArray := make([]string, len(cbookVersions.Versions))
+		for i, details := range cbookVersions.Versions {
+			versionsArray[i] = details.Version
+		}
+		fmt.Printf(formatString, cookbook, strings.Join(versionsArray[:], ", "))
+	}
+
+	return nil
 }
