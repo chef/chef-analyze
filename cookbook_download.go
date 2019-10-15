@@ -6,7 +6,7 @@ import (
 	"os"
 	"path"
 
-	chef "github.com/afiune/go-chef"
+	"github.com/go-chef/chef"
 )
 
 // DownloadCookbook downloads the latest version of a cookbook
