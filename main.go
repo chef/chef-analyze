@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/go-chef/chef"
+	chef "github.com/chef/go-chef"
 	log "github.com/sirupsen/logrus"
 )
 
