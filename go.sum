@@ -1,6 +1,6 @@
 github.com/cenkalti/backoff v2.1.1+incompatible/go.mod h1:90ReRw6GdpyfrHakVjL/QHaoyV4aDUVVkXQJJJ3NXXM=
-github.com/chef/go-chef v0.3.1-0.20191015182723-585212a4eef3 h1:8YZiU5vINfa/SII3R0TP+vg3bKyol5ZAQTAYM05b+bA=
-github.com/chef/go-chef v0.3.1-0.20191015182723-585212a4eef3/go.mod h1:ft8oU7s0ktse9xzZO4n8wxTz6EKx+V+fuhYxktqXvG8=
+github.com/chef/go-chef v0.3.1-0.20191016225532-68c889767e88 h1:1EiuTq7aaGXutsY15+KMTJjzc2plm8FqXeWK1oWZI8s=
+github.com/chef/go-chef v0.3.1-0.20191016225532-68c889767e88/go.mod h1:ft8oU7s0ktse9xzZO4n8wxTz6EKx+V+fuhYxktqXvG8=
 github.com/ctdk/goiardi v0.11.9/go.mod h1:Pr6Cj6Wsahw45myttaOEZeZ0LE7p1qzWmzgsBISkrNI=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
