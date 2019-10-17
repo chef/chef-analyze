@@ -69,7 +69,7 @@ func main() {
 
 	if downloadCookbookName != "" {
 		fmt.Println("\n * Flag -download_cookbook provided.")
-		err := DownloadCookbook(client, downloadCookbookName)
+		err := client.Cookbooks.Download(downloadCookbookName, "latest")
 		if err != nil {
 			log.Fatal("Unable to download cookbook", err)
 		}
