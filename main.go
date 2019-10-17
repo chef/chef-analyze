@@ -14,14 +14,16 @@ import (
 func main() {
 	// TODO @afiune migrate these flags to use viper since it is our standard @Chef
 	var (
-		clientName    string
-		clientKey     string
-		chefServerUrl string
+		clientName           string
+		clientKey            string
+		chefServerUrl        string
+		downloadCookbookName string
 	)
 
 	flag.StringVar(&clientName, "user", "", "Chef Infra Server API client username.")
 	flag.StringVar(&clientKey, "key", "", "Chef Infra Server API client key.")
 	flag.StringVar(&chefServerUrl, "chef_server_url", "", "Chef Infra Server URL.")
+	flag.StringVar(&downloadCookbookName, "download_cookbook", "", "Tests a cookbook download")
 	flag.Parse()
 
 	if len(os.Args) > 1 && os.Args[1] == "help" {
@@ -63,6 +65,14 @@ func main() {
 
 	if err := cookbooksReport(client); err != nil {
 		log.Fatal("Unable to collect cookbooks information", err)
+	}
+
+	if downloadCookbookName != "" {
+		fmt.Println("\n * Flag -download_cookbook provided.")
+		err := client.Cookbooks.Download(downloadCookbookName, "latest")
+		if err != nil {
+			log.Fatal("Unable to download cookbook", err)
+		}
 	}
 }
 
