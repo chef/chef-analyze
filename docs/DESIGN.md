@@ -1,7 +1,8 @@
 # Design
-This document describes the shape and future of this tool, it will be
-a place for us, at Chef, to discuss about the design and usability plus,
-we will start the documentation of this tool in an early stage.
+This document describes the current and future shape of this tool, it will
+be a place for us, at Chef, to discuss about the design and usability, the
+flow of commands that we expect user to follow plus, we will start the
+documentation of this tool in an early stage.
 
 ## Help Documentation
 
@@ -17,7 +18,7 @@ Usage:
 
 Available Commands:
   help        Help about any command
-  config      Create and verify the Chef config
+  config      Manage your local Chef configuration (default: $HOME/.chef/credentials)
   report      Generate reports about your Chef inventory
   upgrade     Perform automatic upgrades
 
@@ -28,6 +29,7 @@ Flags:
   -h, --help                     help for chef-analyze
   -k, --key string               Chef Infra Server API client key
   -u, --user string              Chef Infra Server API client username
+  -p, --profile string           The credentials profile to use (default: default)
 
 Use "chef-analyze [command] --help" for more information about a command.
 $
@@ -35,11 +37,48 @@ $
 ### `report` sub-command help
 ```
 $ chef-analyze report --help
+Generate reports to analyze your Chef inventory, the available
+report types are:
+  nodes     - Display a list of nodes with Chef Client Infra version and a list of cookbooks being used
+  cookbooks - Display a list of cookbooks with their violations and a list of nodes using it
+
+Usage:
+  chef-analyze report [type] [flags]
+
+Flags:
+  -h, --help   help for report
+
+Global Flags:
+  -s, --chef_server_url string   Chef Infra Server URL
+  -k, --client_key string        Chef Infra Server API client key
+  -n, --client_name string       Chef Infra Server API client username
+  -c, --config string            Chef config file (default: $HOME/.chef/credentials)
+  -p, --profile string           The credentials profile to use (default: default)
 ```
 
 ### `config` sub-command help
 ```
 $ chef-analyze config --help
+Manage your local Chef configuration (default: $HOME/.chef/credentials)
+
+Usage:
+  chef-analyze config [command]
+
+Available Commands:
+  init        Initialize a local Chef configuration
+  verify      Verify your Chef configuration
+
+Flags:
+  -h, --help   help for config
+
+Global Flags:
+  -s, --chef_server_url string   Chef Infra Server URL
+  -k, --client_key string        Chef Infra Server API client key
+  -n, --client_name string       Chef Infra Server API client username
+  -c, --config string            Chef config file (default: $HOME/.chef/credentials)
+  -p, --profile string           The credentials profile to use (default: default)
+
+Use "chef-analyze config [command] --help" for more information about a command.
 ```
 
 ### `upgrade` sub-command help
@@ -49,14 +88,14 @@ $ chef-analyze upgrade --help
 ## Tasks
 ### Creating reports for cookbooks
 ```
-$ chef-analyze report cookbook all
-$ chef-analyze report cookbook foo
+$ chef-analyze report cookbooks
+$ chef-analyze report cookbooks foo
 ```
 
 ### Creating reports for nodes
 ```
-$ chef-analyze report node all
-$ chef-analyze report node bar
+$ chef-analyze report nodes
+$ chef-analyze report nodes bar
 ```
 
 ### Filters: all nodes in an environment
