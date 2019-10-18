@@ -10,39 +10,65 @@ import (
 	"github.com/chef/chef-analyze/pkg/config"
 )
 
-var reportCmd = &cobra.Command{
-	Use:   "report [type]",
-	Short: "Generate reports about your Chef inventory",
-	Long: `Generate reports to analyze your Chef inventory, the available
+var (
+	validReportTypes = []string{"nodes", "cookbooks"}
+	reportCmd        = &cobra.Command{
+		Use:   "report [type]",
+		Short: "Generate reports about your Chef inventory",
+		Long: `Generate reports to analyze your Chef inventory, the available
 report types are:
-  nodes     - Display nodes report
-  cookbooks - Display cookbooks report
+  nodes     - Display a list of nodes with Chef Client Infra version and a list of cookbooks being used
+  cookbooks - Display a list of cookbooks with their violations and a list of nodes using it
 `,
-	Args: cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
+		Args: reportArgsValidator,
+		RunE: func(_ *cobra.Command, args []string) error {
 
-		cfg, err := config.FromViper()
-		if err != nil {
-			return err
-		}
-
-		// Allowed reports
-		switch args[0] {
-		case "nodes":
-			if err := nodesReport(cfg); err != nil {
-				return err
-			}
-		case "cookbooks":
-			if err := cookbooksReport(cfg); err != nil {
+			cfg, err := config.FromViper()
+			if err != nil {
 				return err
 			}
 
-		default:
-			return errors.New("Invalid report type, available reports are: [nodes|cookbooks]")
-		}
+			// Allowed reports
+			switch args[0] {
+			case "nodes":
+				if err := nodesReport(cfg); err != nil {
+					return err
+				}
+			case "cookbooks":
+				if err := cookbooksReport(cfg); err != nil {
+					return err
+				}
 
+			default:
+				return errors.New("Invalid report type, available reports are: [nodes|cookbooks]")
+			}
+
+			return nil
+		},
+	}
+)
+
+func reportArgsValidator(_ *cobra.Command, args []string) error {
+	if len(args) < 1 {
+		return errors.New("report type not specified")
+	}
+	if isValidReportType(args[0]) {
 		return nil
-	},
+	}
+	return fmt.Errorf("\n  invalid report type specified: %s\n  %s", args[0], displayReportTypes())
+}
+
+func displayReportTypes() string {
+	return fmt.Sprintf("available report types: %s", strings.Join(validReportTypes, ", "))
+}
+
+func isValidReportType(t string) bool {
+	for _, vt := range validReportTypes {
+		if vt == t {
+			return true
+		}
+	}
+	return false
 }
 
 func nodesReport(cfg *config.Config) error {
