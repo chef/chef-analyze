@@ -1,9 +1,6 @@
 package cmd
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
@@ -41,6 +38,8 @@ func init() {
 
 	// adds the report command from 'cmd/report.go'
 	rootCmd.AddCommand(reportCmd)
+	// adds the config command from 'cmd/config.go'
+	rootCmd.AddCommand(configCmd)
 }
 
 func initConfig() {
@@ -49,12 +48,15 @@ func initConfig() {
 		viper.SetConfigFile(cfgFile)
 	} else {
 		// Find the config and pass it to viper
-		configFile, err := config.FindConfigFile()
-		if err != nil {
-			fmt.Println("Error: ", err.Error())
-			fmt.Println(rootCmd.UsageString())
-			os.Exit(-1)
-		}
+		configFile, _ := config.FindConfigFile()
+		// @afiune we don't exit with and error code here because if we do
+		// the user will never be able to fix the config with the commands:
+		// $ chef-analyze config init
+		//
+		// This verification has been moved to config.FromViper()
+		//if err != nil {
+		//debug("Error:  %s", err.Error())
+		//}
 		viper.SetConfigFile(configFile)
 	}
 

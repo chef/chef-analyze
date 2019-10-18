@@ -48,6 +48,14 @@ func (c *Config) CreateClient() error {
 
 // FromViper returns a Config instance from the current viper config
 func FromViper() (*Config, error) {
+	if viper.ConfigFileUsed() == "" {
+		errMsg := `
+  config file not found
+  initialize your local config with: 'chef-analyze config init'
+`
+		return nil, errors.New(errMsg)
+	}
+
 	if err := viper.ReadInConfig(); err != nil {
 		//debug("Using config file:", viper.ConfigFileUsed())
 		return nil, errors.Wrapf(err, "unable to read config from %s", viper.ConfigFileUsed())
@@ -111,5 +119,5 @@ func FindConfigFile() (string, error) {
 	}
 
 	// @afiune tell the user the paths we tried to find it?
-	return "", errors.New("unable to locate config file on disk")
+	return "", errors.New("unable to locate config file")
 }
