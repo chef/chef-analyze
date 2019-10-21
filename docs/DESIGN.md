@@ -37,13 +37,14 @@ $
 ### `report` sub-command help
 ```
 $ chef-analyze report --help
-Generate reports to analyze your Chef inventory, the available
-report types are:
-  nodes     - Display a list of nodes with Chef Client Infra version and a list of cookbooks being used
-  cookbooks - Display a list of cookbooks with their violations and a list of nodes using it
+Generate reports about your Chef inventory
 
 Usage:
-  chef-analyze report [type] [flags]
+  chef-analyze report [command]
+
+Available Commands:
+  cookbooks   Generates a cookbook oriented report
+  nodes       Generates a nodes oriented report
 
 Flags:
   -h, --help   help for report
@@ -53,7 +54,10 @@ Global Flags:
   -k, --client_key string        Chef Infra Server API client key
   -n, --client_name string       Chef Infra Server API client username
   -c, --config string            Chef config file (default: $HOME/.chef/credentials)
-  -p, --profile string           The credentials profile to use (default: default)
+  -p, --profile string           Chef Infra Server URL
+
+Use "chef-analyze report [command] --help" for more information about a command.
+$
 ```
 
 ### `config` sub-command help
