@@ -40,6 +40,8 @@ func init() {
 	rootCmd.AddCommand(reportCmd)
 	// adds the config command from 'cmd/config.go'
 	rootCmd.AddCommand(configCmd)
+	// adds the upgrade command from 'cmd/upgrade.go'
+	rootCmd.AddCommand(upgradeCmd)
 }
 
 func initConfig() {
