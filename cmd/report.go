@@ -11,67 +11,39 @@ import (
 )
 
 var (
-	validReportTypes = []string{"nodes", "cookbooks"}
-	reportCmd        = &cobra.Command{
-		Use:   "report [type]",
+	reportCmd = &cobra.Command{
+		Use:   "report",
 		Short: "Generate reports about your Chef inventory",
-		Long: `Generate reports to analyze your Chef inventory, the available
-report types are:
-  nodes     - Display a list of nodes with Chef Client Infra version and a list of cookbooks being used
-  cookbooks - Display a list of cookbooks with their violations and a list of nodes using it
-`,
-		Args: reportArgsValidator,
-		RunE: func(_ *cobra.Command, args []string) error {
-
-			cfg, err := config.FromViper()
-			if err != nil {
-				return err
-			}
-
-			// Allowed reports
-			switch args[0] {
-			case "nodes":
-				if err := nodesReport(cfg); err != nil {
-					return err
-				}
-			case "cookbooks":
-				if err := cookbooksReport(cfg); err != nil {
-					return err
-				}
-
-			default:
-				return errors.New("Invalid report type, available reports are: [nodes|cookbooks]")
-			}
-
-			return nil
-		},
+	}
+	reportCookbooksCmd = &cobra.Command{
+		Use:   "cookbooks",
+		Short: "Generates a cookbook oriented report",
+		Args:  cobra.NoArgs,
+		RunE:  cookbooksReport,
+	}
+	reportNodesCmd = &cobra.Command{
+		Use:   "nodes",
+		Short: "Generates a nodes oriented report",
+		Args:  cobra.NoArgs,
+		RunE:  nodesReport,
 	}
 )
 
-func reportArgsValidator(_ *cobra.Command, args []string) error {
-	if len(args) < 1 {
-		return errors.New("report type not specified")
-	}
-	if isValidReportType(args[0]) {
-		return nil
-	}
-	return fmt.Errorf("\n  invalid report type specified: %s\n  %s", args[0], displayReportTypes())
+func init() {
+	// adds the cookbooks command as a sub-command of the report command
+	// => chef-analyze report cookbooks
+	reportCmd.AddCommand(reportCookbooksCmd)
+	// adds the nodes command as a sub-command of the report command
+	// => chef-analyze report nodes
+	reportCmd.AddCommand(reportNodesCmd)
 }
 
-func displayReportTypes() string {
-	return fmt.Sprintf("available report types: %s", strings.Join(validReportTypes, ", "))
-}
-
-func isValidReportType(t string) bool {
-	for _, vt := range validReportTypes {
-		if vt == t {
-			return true
-		}
+func nodesReport(_ *cobra.Command, args []string) error {
+	cfg, err := config.FromViper()
+	if err != nil {
+		return err
 	}
-	return false
-}
 
-func nodesReport(cfg *config.Config) error {
 	var (
 		query = map[string]interface{}{
 			"name":         []string{"name"},
@@ -80,8 +52,8 @@ func nodesReport(cfg *config.Config) error {
 			"os_version":   []string{"platform_version"}}
 		//using 'v' not 's' because not all fields will have values.
 		formatString = "%30s   %-12v   %-15v   %-10v\n"
-		pres, err    = cfg.ChefClient.Search.PartialExec("node", "*:*", query)
 	)
+	pres, err := cfg.ChefClient.Search.PartialExec("node", "*:*", query)
 	if err != nil {
 		return errors.Wrap(err, "unable to get node(s) information")
 	}
@@ -95,7 +67,12 @@ func nodesReport(cfg *config.Config) error {
 	return nil
 }
 
-func cookbooksReport(cfg *config.Config) error {
+func cookbooksReport(_ *cobra.Command, args []string) error {
+	cfg, err := config.FromViper()
+	if err != nil {
+		return err
+	}
+
 	cbooksList, err := cfg.ChefClient.Cookbooks.ListAvailableVersions("all")
 	if err != nil {
 		return errors.Wrap(err, "unable to get cookbook(s) information")
