@@ -20,7 +20,7 @@ Available Commands:
   help        Help about any command
   config      Manage your local Chef configuration (default: $HOME/.chef/credentials)
   report      Generate reports about your Chef inventory
-  upgrade     Perform automatic upgrades
+  remediate   Perform automatic remediations
 
 
 Flags:
@@ -85,9 +85,9 @@ Global Flags:
 Use "chef-analyze config [command] --help" for more information about a command.
 ```
 
-### `upgrade` sub-command help
+### `remediate` sub-command help
 ```
-$ chef-analyze upgrade --help
+$ chef-analyze remediate --help
 ```
 ## Tasks
 ### Creating reports for cookbooks
