@@ -27,7 +27,7 @@ func init() {
 	cobra.OnInitialize(initConfig)
 
 	// Global flags
-	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", "Chef config file (default: $HOME/.chef/credentials)")
+	rootCmd.PersistentFlags().StringVarP(&cfgFile, "credentials", "c", "", "Chef credentials file (default: $HOME/.chef/credentials)")
 	rootCmd.PersistentFlags().StringP("client_name", "n", "", "Chef Infra Server API client username")
 	rootCmd.PersistentFlags().StringP("client_key", "k", "", "Chef Infra Server API client key")
 	rootCmd.PersistentFlags().StringP("chef_server_url", "s", "", "Chef Infra Server URL")
