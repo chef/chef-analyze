@@ -4,8 +4,9 @@ import "github.com/spf13/cobra"
 
 var (
 	configCmd = &cobra.Command{
-		Use:   "config",
-		Short: "Manage your local Chef configuration (default: $HOME/.chef/credentials)",
+		Use:    "config",
+		Hidden: true, // this will avoid the command to be displayed in the help/usage message
+		Short:  "Manage your local Chef configuration (default: $HOME/.chef/credentials)",
 	}
 	configVerifyCmd = &cobra.Command{
 		Use:   "verify",

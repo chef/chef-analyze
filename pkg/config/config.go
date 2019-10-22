@@ -49,11 +49,7 @@ func (c *Config) CreateClient() error {
 // FromViper returns a Config instance from the current viper config
 func FromViper() (*Config, error) {
 	if viper.ConfigFileUsed() == "" {
-		errMsg := `
-  config file not found
-  initialize your local config with: 'chef-analyze config init'
-`
-		return nil, errors.New(errMsg)
+		return nil, errors.New(ConfigNotFoundErr)
 	}
 
 	if err := viper.ReadInConfig(); err != nil {
