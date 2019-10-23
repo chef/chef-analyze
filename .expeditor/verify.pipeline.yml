@@ -1,6 +1,6 @@
 ---
 steps:
-  - label: ":linux: :darwin: :windows: top-level chef cmd"
+  - label: ":linux: :darwin: :windows: build"
     command:
       - hab studio run "source .studiorc && build_cross_platform"
     timeout_in_minutes: 10
