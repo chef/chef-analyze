@@ -6,6 +6,12 @@ package config
 //
 
 const (
+	ProfileNotFoundErr = `
+  profile not found in credentials file.
+
+  verify the format of the credentials file by following this documentation:
+    - https://docs.chef.io/knife_setup.html#knife-profiles
+`
 	CredentialsNotFoundErr = `
   credentials file not found. (default: $HOME/.chef/credentials)
 

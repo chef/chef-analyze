@@ -51,16 +51,17 @@ type Config struct {
 	Credentials
 }
 
+// switch the active profile inside the config
 func (c *Config) ActivateProfile(name string) error {
 	if len(c.Profiles) == 0 {
-		return errors.New("no profiles loaded")
+		return errors.New(ProfileNotFoundErr)
 	}
 	if creds, ok := c.Profiles[name]; ok {
 		c.Credentials = creds
 		c.profile = name
 		return nil
 	}
-	return errors.New("profile not found")
+	return errors.New(ProfileNotFoundErr)
 }
 
 // override functions can be passed to config.FromViper to override
