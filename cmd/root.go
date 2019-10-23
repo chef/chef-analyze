@@ -65,9 +65,10 @@ func initConfig() {
 		if err == nil {
 			viper.SetConfigFile(credsFile)
 		} else {
-			if !hasMinimumParams() {
-				// throw error
-				fmt.Println("Error: ---")
+
+			if !hasMinimumParams() && !isHelpCommand() {
+				fmt.Printf("Error: %s\n", MissingMinimumParametersErr)
+				rootCmd.Usage()
 				os.Exit(-1)
 			}
 			//debug("Unable to file credentials:  %s", err.Error())
@@ -96,6 +97,15 @@ func flagString(name string) string {
 		return ""
 	}
 	return f.Value.String()
+}
+func isHelpCommand() bool {
+	if len(os.Args) <= 1 {
+		return false
+	}
+	if os.Args[1] == "help" {
+		return true
+	}
+	return false
 }
 
 // overrides the credentials from the viper bound flags
