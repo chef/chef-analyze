@@ -2,7 +2,7 @@ package config
 
 //
 // The intend of this file is to have a single place where we can easily
-// visualize the list all the error messages that we present to users.
+// visualize the list of all error messages that we present to users.
 //
 
 const (
