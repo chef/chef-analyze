@@ -12,3 +12,8 @@ function build_cross_platform() {
       -os="darwin linux windows" \
       -arch="amd64 386"
 }
+
+function update_deps() {
+  install_if_missing core/go go
+  go get -u github.com/chef/go-chef@master
+}
