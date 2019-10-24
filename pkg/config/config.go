@@ -45,14 +45,19 @@ type Config struct {
 	// list of all profiles available
 	Profiles
 	// active profile (private)
-	// @afiune to change the active profile use ActivateProfile("dev")
+	// @afiune to change the active profile use SwitchProfile("dev")
 	profile string
 	// active Credentials from the active profile
 	Credentials
 }
 
+// returns the active profile
+func (c *Config) ActiveProfile() string {
+	return c.profile
+}
+
 // switch the active profile inside the config
-func (c *Config) ActivateProfile(name string) error {
+func (c *Config) SwitchProfile(name string) error {
 	if len(c.Profiles) == 0 {
 		return errors.New(ProfileNotFoundErr)
 	}
@@ -89,7 +94,7 @@ func FromViper(profile string, overrides ...OverrideFunc) (*Config, error) {
 	}
 
 	cfg := &Config{Profiles: profiles}
-	if err := cfg.ActivateProfile(profile); err != nil {
+	if err := cfg.SwitchProfile(profile); err != nil {
 		return cfg, err
 	}
 
@@ -126,7 +131,7 @@ func New(profile string, overrides ...OverrideFunc) (*Config, error) {
 	}
 
 	cfg := &Config{Profiles: profiles}
-	if err := cfg.ActivateProfile(profile); err != nil {
+	if err := cfg.SwitchProfile(profile); err != nil {
 		return cfg, err
 	}
 
@@ -195,5 +200,5 @@ func FindConfigFile(name string) (string, error) {
 	}
 
 	// @afiune tell the user the paths we tried to find it?
-	return "", errors.New(CredentialsNotFoundErr)
+	return "", errors.Errorf("file '%s' not found", name)
 }

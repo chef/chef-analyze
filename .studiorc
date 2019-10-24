@@ -17,3 +17,9 @@ function update_deps() {
   install_if_missing core/go go
   go get -u github.com/chef/go-chef@master
 }
+
+function run_tests() {
+  install_if_missing core/go go
+  install_if_missing core/gcc gcc
+  go test ./... -cover
+}
