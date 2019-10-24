@@ -14,9 +14,16 @@ steps:
           environment:
             - HAB_STUDIO_SUP=false
             - HAB_NONINTERACTIVE=true
-  - label: ":linux: go-tests"
+  - label: ":linux: go-unit"
     command:
-      - hab studio run "source .studiorc && run_tests"
+      - hab studio run "source .studiorc && unit_tests"
+    expeditor:
+      executor:
+        docker:
+          privileged: true
+  - label: ":linux: go-integration"
+    command:
+      - hab studio run "source .studiorc && integration_tests"
     expeditor:
       executor:
         docker:
