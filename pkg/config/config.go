@@ -3,7 +3,7 @@ package config
 import (
 	"io/ioutil"
 	"os"
-	"path"
+	"path/filepath"
 
 	"github.com/BurntSushi/toml"
 	"github.com/pkg/errors"
@@ -161,10 +161,13 @@ func FindConfigFile(name string) (string, error) {
 
 	var previous string
 	for {
-		configFile := path.Join(cwd, DefaultChefDirectory, name)
+		configFile := filepath.Join(cwd, DefaultChefDirectory, name)
 		if configFile == previous {
 			break
 		}
+
+		//debug("searching config in: %s\n", configFile)
+
 		if _, err := os.Stat(configFile); err == nil {
 			// config file found
 			return configFile, nil
@@ -174,7 +177,7 @@ func FindConfigFile(name string) (string, error) {
 		// to stop the for loop from going in an infinite loop
 		previous = configFile
 		// go down the directory tree
-		cwd = path.Join(cwd, "..")
+		cwd = filepath.Join(cwd, "..")
 	}
 
 	// if we were unable to find the config file inside the current
@@ -185,7 +188,7 @@ func FindConfigFile(name string) (string, error) {
 	if err != nil {
 		return "", errors.Wrap(err, "unable to detect home directory")
 	}
-	configFile := path.Join(home, DefaultChefDirectory, name)
+	configFile := filepath.Join(home, DefaultChefDirectory, name)
 	if _, err := os.Stat(configFile); err == nil {
 		// config file found
 		return configFile, nil
