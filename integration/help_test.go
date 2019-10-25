@@ -48,6 +48,20 @@ func TestHelpFlags__help(t *testing.T) {
 		"EXITCODE is not the expected one")
 }
 
+func TestHelpNoArgs(t *testing.T) {
+	out, err, exitcode := ChefAnalyze()
+	verifyGlobalFlagsFromOutput(t, out.String())
+	assert.Contains(t,
+		out.String(),
+		"Use \"chef-analyze [command] --help\" for more information about a command.",
+		"STDOUT bottom message doesn't match")
+	assert.Empty(t,
+		err.String(),
+		"STDERR should be empty")
+	assert.Equal(t, 0, exitcode,
+		"EXITCODE is not the expected one")
+}
+
 func TestHelpCommandDisplayHelpFromCommand(t *testing.T) {
 	out, err, exitcode := ChefAnalyze("help", "report")
 	verifyGlobalFlagsFromOutput(t, out.String())
