@@ -28,3 +28,12 @@ steps:
       executor:
         docker:
           privileged: true
+  - label: ":windows: go-integration"
+    command:
+      - hab studio run "./scripts/integration_tests.ps1"
+    expeditor:
+      executor:
+        windows:
+          environment:
+            - HAB_STUDIO_SUP=false
+            - HAB_NONINTERACTIVE=true
