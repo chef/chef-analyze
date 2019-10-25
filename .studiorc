@@ -18,8 +18,24 @@ function update_deps() {
   go get -u github.com/chef/go-chef@master
 }
 
-function run_tests() {
+# run unit tests
+function unit_tests() {
   install_if_missing core/go go
   install_if_missing core/gcc gcc
-  go test ./... -cover
+
+  # Avoid running integration tests inside unit tests
+  GO_PACKAGES=$(go list ./... | grep -v integration)
+  go test $GO_PACKAGES -cover
+}
+
+# run integraiton tests
+function integration_tests() {
+  install_if_missing core/go go
+  install_if_missing core/gcc gcc
+
+  log_line "Building cross-platform binaries"
+  build_cross_platform || return 1
+
+  log_line "Running integration tests (github.com/chef/chef-analyze/integration)"
+  PATH="/src/bin:$PATH" go test github.com/chef/chef-analyze/integration -v
 }
