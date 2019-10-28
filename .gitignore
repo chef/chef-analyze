@@ -10,3 +10,7 @@ results/
 
 # all arch binaries
 bin/
+
+# code coverage
+coverage.out
+coverage.html

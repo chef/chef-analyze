@@ -5,17 +5,25 @@
 hab pkg install chef/studio-common >/dev/null
 source "$(hab pkg path chef/studio-common)/bin/studio-common"
 
+# when modifying these coverage files, also update .gitignore
+coverage_file="coverage.out"
+coverage_html="coverage.html"
+
 function build_cross_platform() {
   install_if_missing core/go go
   install_if_missing core/gox gox
-  gox -output="bin/{{.Dir}}_{{.OS}}_{{.Arch}}" \
-      -os="darwin linux windows" \
-      -arch="amd64 386"
+  ( cd /src || return 1
+    gox -output="bin/{{.Dir}}_{{.OS}}_{{.Arch}}" \
+        -os="darwin linux windows" \
+        -arch="amd64 386"
+  )
 }
 
 function update_deps() {
   install_if_missing core/go go
-  go get -u github.com/chef/go-chef@master
+  ( cd /src || return 1
+    go get -u github.com/chef/go-chef@master
+  )
 }
 
 # run unit tests
@@ -23,9 +31,26 @@ function unit_tests() {
   install_if_missing core/go go
   install_if_missing core/gcc gcc
 
+  log_line "Running unit tests"
   # Avoid running integration tests inside unit tests
-  GO_PACKAGES=$(go list ./... | grep -v integration)
-  go test $GO_PACKAGES -cover
+  ( cd /src || return 1
+    GO_PACKAGES=$(go list ./... | grep -v integration)
+    go test \
+      -coverprofile=$coverage_file \
+      -covermode=atomic $GO_PACKAGES || return 1
+  )
+}
+
+# run unit tests plus code coverage information
+function code_coverage() {
+  ( cd /src || return 1
+    unit_tests
+    log_line "Output coverage profile information for each function"
+    go tool cover -func=$coverage_file
+    log_line "Generate HTML representation of coverage profile"
+    go tool cover -html=$coverage_file -o $coverage_html
+    log_line "HTML output written to '$(yellow /src/$coverage_html)' (open file with a web browser)"
+  )
 }
 
 # run integraiton tests
@@ -37,5 +62,7 @@ function integration_tests() {
   build_cross_platform || return 1
 
   log_line "Running integration tests (github.com/chef/chef-analyze/integration)"
-  PATH="/src/bin:$PATH" go test github.com/chef/chef-analyze/integration -v
+  ( cd /src || return 1
+    PATH="/src/bin:$PATH" go test github.com/chef/chef-analyze/integration -v
+  )
 }
