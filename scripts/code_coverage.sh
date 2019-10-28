@@ -3,7 +3,7 @@
 set -euo pipefail
 
 # the generated code coverage profile coming from our habitat studio
-COVERAGE_TXT="results/coverage.txt"
+COVERAGE_TXT="coverage/coverage.txt"
 # extract the repository name from the environment variable BUILDKITE_REPO
 # example: "https://github.com/chef/chef-analyze.git"
 REPO_NAME=$(echo $BUILDKITE_REPO | cut -d/ -f5 | cut -d. -f1)
@@ -27,4 +27,4 @@ EOF
 
 hab studio run "source .studiorc && code_coverage"
 
-curl -H "Authorization: token $GITHUB_TOKEN" "$COMMENTS_URL" -d "$(post_data)"
+curl -H "Authorization: token $GITHUB_TOKEN" "$COMMENTS_URL" -d "$(post_data)" >/dev/null

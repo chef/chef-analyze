@@ -17,6 +17,8 @@ steps:
   - label: ":linux: go-unit-code-coverage"
     command:
       - ./scripts/code_coverage.sh
+    artifact_paths:
+      - "coverage/*"
     expeditor:
       secrets:
         GITHUB_TOKEN:
