@@ -5,9 +5,9 @@
 hab pkg install chef/studio-common >/dev/null
 source "$(hab pkg path chef/studio-common)/bin/studio-common"
 
-# when modifying these coverage files, also update .gitignore
-coverage_file="coverage.out"
-coverage_html="coverage.html"
+coverage_out="results/coverage.raw"
+coverage_txt="results/coverage.txt"
+coverage_html="results/coverage.html"
 
 function build_cross_platform() {
   install_if_missing core/go go
@@ -34,9 +34,10 @@ function unit_tests() {
   log_line "Running unit tests"
   # Avoid running integration tests inside unit tests
   ( cd /src || return 1
+    mkdir -p results/
     GO_PACKAGES=$(go list ./... | grep -v integration)
     go test \
-      -coverprofile=$coverage_file \
+      -coverprofile=$coverage_out \
       -covermode=atomic $GO_PACKAGES || return 1
   )
 }
@@ -44,11 +45,13 @@ function unit_tests() {
 # run unit tests plus code coverage information
 function code_coverage() {
   ( cd /src || return 1
+    mkdir -p results/
     unit_tests
-    log_line "Output coverage profile information for each function"
-    go tool cover -func=$coverage_file
+    log_line "Generating coverage profile information for each function ($(yellow /src/$coverage_txt))"
+    go tool cover -func=$coverage_out -o  $coverage_txt
+    cat $coverage_txt
     log_line "Generate HTML representation of coverage profile"
-    go tool cover -html=$coverage_file -o $coverage_html
+    go tool cover -html=$coverage_out -o $coverage_html
     log_line "HTML output written to '$(yellow /src/$coverage_html)' (open file with a web browser)"
   )
 }
