@@ -10,6 +10,9 @@ coverage_out="coverage/coverage.raw"
 coverage_txt="coverage/coverage.txt"
 coverage_html="coverage/coverage.html"
 
+# switch all go commands to use the vendor/ directory
+export GOFLAGS="-mod=vendor"
+
 function build_cross_platform() {
   install_if_missing core/go go
   install_if_missing core/gox gox
@@ -23,7 +26,8 @@ function build_cross_platform() {
 function update_deps() {
   install_if_missing core/go go
   ( cd /src || return 1
-    go get -u github.com/chef/go-chef@master
+    GOFLAGS="" go get -u "$@"
+    go mod vendor
   )
 }
 
