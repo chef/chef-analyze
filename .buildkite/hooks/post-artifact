@@ -2,22 +2,27 @@
 
 set -euo pipefail
 
-# the generated code coverage profile coming from our habitat studio
+# when updating these variables, update '.studiorc' as well
 COVERAGE_TXT="coverage/coverage.txt"
+COVERAGE_HTML="coverage/coverage.html"
+
 # extract the repository name from the environment variable BUILDKITE_REPO
 # example: "https://github.com/chef/chef-analyze.git"
 REPO_NAME=$(echo $BUILDKITE_REPO | cut -d/ -f5 | cut -d. -f1)
+
 # Github API to comment back to the open pull request
 COMMENTS_URL="https://api.github.com/repos/${BUILDKITE_ORGANIZATION_SLUG}/${REPO_NAME}/issues/${BUILDKITE_PULL_REQUEST}/comments"
 
 function post_data() {
   cat <<EOF
-{"body":"# Code Coverage \\n$(echo `code_coverage_table`)"}
+{"body":"# :bar_chart: Code Coverage \\n$(echo `code_coverage_table`)"}
 EOF
 }
 
 function code_coverage_table() {
   cat <<EOF
+\\nRead the <a href='$(buildkite_artifacts_url)'>uploaded HTML coverage report</a>
+\\n
 \\nCode details | Function name | % Coverage
 \\n------------ | ------------- | ----------
 \\n
@@ -25,6 +30,14 @@ EOF
   awk '{ printf "%s | %s | %s \\n", $1, $2, $3 }' < $COVERAGE_TXT
 }
 
-hab studio run "source .studiorc && code_coverage"
+function buildkite_artifacts_url() {
+  payload=$(curl -H "Authorization: Token ${BUILDKITE_AGENT_ACCESS_TOKEN}" \
+    "https://agent.buildkite.com/v3/builds/${BUILDKITE_BUILD_ID}/artifacts/search?query=${COVERAGE_HTML}")
+  echo "$payload" | cut -d, -f5 | cut -d\" -f4
+}
+
+cat << EOF | buildkite-agent annotate --style "info"
+  Read the <a href="artifact://coverage/coverage.html">uploaded HTML coverage report</a>
+EOF
 
 curl -H "Authorization: token $GITHUB_TOKEN" "$COMMENTS_URL" -d "$(post_data)" >/dev/null

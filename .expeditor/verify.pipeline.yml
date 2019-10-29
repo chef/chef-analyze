@@ -16,7 +16,7 @@ steps:
             - HAB_NONINTERACTIVE=true
   - label: ":linux: go-unit-code-coverage"
     command:
-      - ./scripts/code_coverage.sh
+      - hab studio run "source .studiorc && code_coverage"
     artifact_paths:
       - "coverage/*"
     expeditor:
