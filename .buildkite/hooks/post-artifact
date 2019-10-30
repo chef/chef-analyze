@@ -10,12 +10,16 @@ COVERAGE_HTML="coverage/coverage.html"
 # example: "https://github.com/chef/chef-analyze.git"
 REPO_NAME=$(echo $BUILDKITE_REPO | cut -d/ -f5 | cut -d. -f1)
 
+# Compare current coverage VS master
+COVERAGE_MASTER=$(cat CODE_COVERAGE)
+COVERAGE_PR=$(grep -w total: $COVERAGE_TXT | awk '{print $NF}' | sed -e 's/%//')
+
 # Github API to comment back to the open pull request
 COMMENTS_URL="https://api.github.com/repos/${BUILDKITE_ORGANIZATION_SLUG}/${REPO_NAME}/issues/${BUILDKITE_PULL_REQUEST}/comments"
 
 function post_data() {
   cat <<EOF
-{"body":"# :bar_chart: Code Coverage \\n$(echo `code_coverage_table`)"}
+{"body":"# :bar_chart: ${COVERAGE_PR}% Code Coverage \\n$(echo `code_coverage_table`)"}
 EOF
 }
 
@@ -28,6 +32,13 @@ function code_coverage_table() {
 \\n
 EOF
   awk '{ printf "%s | %s | %s \\n", $1, $2, $3 }' < $COVERAGE_TXT
+  if [ "$(is_coverage_degraded)" == "true" ]; then
+    echo "\\n\\nThe code coverage is being degraded from $COVERAGE_MASTER to $COVERAGE_PR"
+  fi
+}
+
+function is_coverage_degraded() {
+  awk 'BEGIN { if ('$COVERAGE_MASTER' > '$COVERAGE_PR') print "true"; else print "false"}'
 }
 
 function buildkite_artifacts_url() {
@@ -41,3 +52,10 @@ cat << EOF | buildkite-agent annotate --style "info"
 EOF
 
 curl -H "Authorization: token $GITHUB_TOKEN" "$COMMENTS_URL" -d "$(post_data)" >/dev/null
+
+if [ "$(is_coverage_degraded)" == "true" ]; then
+  cat << EOF | buildkite-agent annotate --style "error"
+  The code coverage is being degraded from $COVERAGE_MASTER to $COVERAGE_PR
+EOF
+  exit 7
+fi
