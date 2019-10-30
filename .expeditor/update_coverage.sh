@@ -10,8 +10,8 @@ COVERAGE_DATE="$(date +"%Y-%m-%dT%H:%M:%S")"
 #buildkite-agent artifact download "coverage/*" --build XXX-XXX-XXX(?)
 hab studio run "source .studiorc && code_coverage"
 
-aws --profile chef-cd s3 sync coverage "s3://public-cd-buildkite-cache/$BUILDKITE_PIPELINE_SLUG/coverage/current"
-aws --profile chef-cd s3 sync coverage "s3://public-cd-buildkite-cache/$BUILDKITE_PIPELINE_SLUG/coverage/$COVERAGE_DATE"
+aws --profile chef-cd s3 sync coverage "s3://chef-workstation-coverage/$BUILDKITE_PIPELINE_SLUG/current"
+aws --profile chef-cd s3 sync coverage "s3://chef-workstation-coverage/$BUILDKITE_PIPELINE_SLUG/$COVERAGE_DATE"
 
 COVERAGE=$(grep -w total: coverage/coverage.txt| awk '{print $NF}' | cut -d. -f1 | sed -e 's/%//')
 
