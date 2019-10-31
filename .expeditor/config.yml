@@ -28,13 +28,11 @@ merge_actions:
         - "Expeditor: Skip Habitat"
         - "Expeditor: Skip All"
       only_if: built_in:bump_version
+  - bash:.expeditor/update_coverage.sh
 
 pipelines:
   - verify:
       description: Pull Request validation tests
-  - code_coverage:
-      description: Generate code coverage reports and update local repository
-      definition: .expeditor/coverage.pipeline.yml
   - habitat/build
 
 promote:
@@ -46,6 +44,3 @@ subscriptions:
   - workload: project_promoted:{{agent_id}}:*
     actions:
       - built_in:promote_habitat_packages
-  - workload: pull_request_merged:{{agent_id}}:*
-    actions:
-      - trigger_pipeline:code_coverage
