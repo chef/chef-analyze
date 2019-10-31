@@ -66,6 +66,9 @@ func TestReportingWirhOverrides(t *testing.T) {
 
 // NOTE: @afiune we don't report an error if we were unable to load the config.toml
 func TestReportingNewDefaultErrorWithoutCredentials(t *testing.T) {
+	// NOTE - this fails if you have a local credential set configured.
+	//        here (and elsewhere) we should prevent filesystem access in
+	//        unit tests. This looks promising: https://github.com/spf13/afero
 	cfg, err := subject.NewDefault()
 	if assert.NotNil(t, err) {
 		assert.Contains(t, err.Error(), "credentials file not found")
