@@ -23,12 +23,13 @@ merge_actions:
       ignore_labels:
         - "Expeditor: Skip Version Bump"
         - "Expeditor: Skip All"
+  - bash:.expeditor/update_coverage.sh:
+      only_if: built_in:bump_version
   - trigger_pipeline:habitat/build:
       ignore_labels:
         - "Expeditor: Skip Habitat"
         - "Expeditor: Skip All"
       only_if: built_in:bump_version
-  - bash:.expeditor/update_coverage.sh
 
 pipelines:
   - verify:
