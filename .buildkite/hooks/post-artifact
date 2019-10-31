@@ -1,4 +1,15 @@
 #!/bin/bash
+#
+# This script will only run for the jobs that upload Buildkite artifacts,
+# currently the only job that does that is our code coverage job so if that
+# changes we will have to customize it differently.
+#
+# The script expects the coverage data to already exist inside coverage/,
+# with that data it will compare it with the coverage in master and fail
+# if the coverage is decreased. Additionally, the script will post the
+# report back to the open Pull Request as a comment, plus sharing a link
+# to the HTML report uploaded as an artifact in Buildkite.
+#
 
 set -euo pipefail
 
@@ -10,7 +21,7 @@ COVERAGE_HTML="coverage/coverage.html"
 # example: "https://github.com/chef/chef-analyze.git"
 REPO_NAME=$(echo $BUILDKITE_REPO | cut -d/ -f5 | cut -d. -f1)
 
-# Compare current coverage VS master
+# variables used to compare current coverage VS master
 COVERAGE_MASTER=$(cat CODE_COVERAGE)
 COVERAGE_PR=$(grep -w total: $COVERAGE_TXT | awk '{print $NF}' | sed -e 's/%//')
 
@@ -24,21 +35,32 @@ EOF
 }
 
 function code_coverage_table() {
+  if [ "$(is_coverage_degraded)" == "true" ]; then
+    echo "\\n :x: The code coverage decreased by $(coverage_decrease)% (**master** ${COVERAGE_MASTER}%)"
+  else
+    echo "\\n :white_check_mark: The code coverage increased by $(coverage_increase)% (**master** ${COVERAGE_MASTER}%)"
+  fi
   cat <<EOF
-\\nRead the <a href='$(buildkite_artifacts_url)'>uploaded HTML coverage report</a>
 \\n
-\\nCode details | Function name | % Coverage
-\\n------------ | ------------- | ----------
+\\n :eyes: Read the <a href='$(buildkite_artifacts_url)'>uploaded HTML coverage report</a>
+\\n
+\\nFunction defined at | Function name | Coverage
+\\n------------------- | ------------- | ---------
 \\n
 EOF
   awk '{ printf "%s | %s | %s \\n", $1, $2, $3 }' < $COVERAGE_TXT
-  if [ "$(is_coverage_degraded)" == "true" ]; then
-    echo "\\n\\nThe code coverage is being degraded from $COVERAGE_MASTER to $COVERAGE_PR"
-  fi
+}
+
+function coverage_decrease() {
+  awk 'BEGIN { print '$COVERAGE_MASTER' - '$COVERAGE_PR' }'
+}
+
+function coverage_increase() {
+  awk 'BEGIN { print '$COVERAGE_PR' - '$COVERAGE_MASTER' }'
 }
 
 function is_coverage_degraded() {
-  awk 'BEGIN { if ('$COVERAGE_MASTER' > '$COVERAGE_PR') print "true"; else print "false"}'
+  awk 'BEGIN { if ('$COVERAGE_MASTER' > '$COVERAGE_PR') print "true"; else print "false" }'
 }
 
 function buildkite_artifacts_url() {
@@ -47,15 +69,19 @@ function buildkite_artifacts_url() {
   echo "$payload" | cut -d, -f5 | cut -d\" -f4
 }
 
-cat << EOF | buildkite-agent annotate --style "info"
-  Read the <a href="artifact://coverage/coverage.html">uploaded HTML coverage report</a>
-EOF
-
 curl -H "Authorization: token $GITHUB_TOKEN" "$COMMENTS_URL" -d "$(post_data)" >/dev/null
 
 if [ "$(is_coverage_degraded)" == "true" ]; then
   cat << EOF | buildkite-agent annotate --style "error"
-  The code coverage is being degraded from $COVERAGE_MASTER to $COVERAGE_PR
+  The code coverage is being degraded from ${COVERAGE_MASTER}% to ${COVERAGE_PR}%
+
+  Take a look at the <a href="artifact://coverage/coverage.html">uploaded HTML coverage report</a>
 EOF
   exit 7
+else
+  cat << EOF | buildkite-agent annotate --style "success"
+  The code coverage will increase from ${COVERAGE_MASTER}% to ${COVERAGE_PR}%
+
+  Read the <a href="artifact://coverage/coverage.html">uploaded HTML coverage report</a>
+EOF
 fi
