@@ -32,9 +32,9 @@ var (
 		Use:   "cookbooks",
 		Short: "Generates a cookbook oriented report",
 		Args:  cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, _ []string) error {
+		RunE: func(_ *cobra.Command, _ []string) error {
 			cfg, err := config.FromViper(
-				cmd.Flag("profile").Value.String(),
+				globalFlags.profile,
 				overrideCredentials(),
 			)
 			if err != nil {
@@ -48,9 +48,9 @@ var (
 		Use:   "nodes",
 		Short: "Generates a nodes oriented report",
 		Args:  cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, _ []string) error {
+		RunE: func(_ *cobra.Command, _ []string) error {
 			cfg, err := config.FromViper(
-				cmd.Flag("profile").Value.String(),
+				globalFlags.profile,
 				overrideCredentials(),
 			)
 			if err != nil {
