@@ -5,7 +5,7 @@ set -eou pipefail
 COVERAGE_FOLDER=$(echo "$EXPEDITOR_SCM_SETTINGS_REPO" | sed -e 's/\//-/')
 COVERAGE_FOLDER="$COVERAGE_FOLDER-$EXPEDITOR_SCM_SETTINGS_BRANCH"
 
-aws --profile chef-cd s3 cp "s3://chef-workstation-coverage/$COVERAGE_FOLDER/current" coverage
+aws --profile chef-cd s3 cp "s3://chef-workstation-coverage/$COVERAGE_FOLDER/current" coverage --recursive
 
 COVERAGE=$(grep -w total: coverage/coverage.txt| awk '{print $NF}' | sed -e 's/%//')
 
