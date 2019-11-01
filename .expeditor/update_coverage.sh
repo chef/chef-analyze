@@ -26,4 +26,4 @@ echo "$COVERAGE" > CODE_COVERAGE
 git add CODE_COVERAGE
 
 git commit --message "Update code coverage to ${COVERAGE}%"
-#git push origin master
+git push origin master
