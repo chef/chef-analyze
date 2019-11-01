@@ -35,7 +35,23 @@ subscriptions:
   - workload: pull_request_merged:{{agent_id}}:*
     actions:
       - trigger_pipeline:code_coverage
-  - workload: chef/chef-analyze:master_completed:pull_request_merged:chef/chef-analyze:master:*
+  - workload: buildkite_build_failed:{{agent_id}}:code_coverage:*
+    actions:
+      - bash:.expeditor/update_coverage.sh:
+          post_commit: false
+      - built_in:bump_version:
+          post_commit: false
+      - trigger_pipeline:habitat/build:
+          post_commit: true
+  - workload: buildkite_build_passed:{{agent_id}}:code_coverage:*
+    actions:
+      - bash:.expeditor/update_coverage.sh:
+          post_commit: false
+      - built_in:bump_version:
+          post_commit: false
+      - trigger_pipeline:habitat/build:
+          post_commit: true
+  - workload: buildkite_build_canceled:{{agent_id}}:code_coverage:*
     actions:
       - bash:.expeditor/update_coverage.sh:
           post_commit: false
