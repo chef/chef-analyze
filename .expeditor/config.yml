@@ -28,11 +28,17 @@ merge_actions:
         - "Expeditor: Skip Habitat"
         - "Expeditor: Skip All"
       only_if: built_in:bump_version
+  - trigger_pipeline:code_coverage:
+      ignore_labels:
+        - "Expeditor: Skip All"
 
 pipelines:
   - verify:
       description: Pull Request validation tests
   - habitat/build
+  - code_coverage:
+      description: Generate code coverage reports
+      definition: .expeditor/coverage.pipeline.yml
 
 promote:
   channels:
@@ -40,6 +46,9 @@ promote:
     - stable
 
 subscriptions:
+  - workload: buildkite_build_passed:{{agent_id}}:code_coverage:*
+    actions:
+      - bash:.expeditor/update_coverage.sh
   - workload: project_promoted:{{agent_id}}:*
     actions:
       - built_in:promote_habitat_packages
