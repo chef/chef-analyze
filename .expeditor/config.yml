@@ -1,4 +1,3 @@
-# Documentation available at https://expeditor.chef.io/docs/getting-started/
 ---
 # The name we use for this project when interacting with Expeditor Slack App
 project:
@@ -30,6 +29,7 @@ merge_actions:
       only_if: built_in:bump_version
   - trigger_pipeline:code_coverage:
       ignore_labels:
+        - "Expeditor: Skip Code Coverage"
         - "Expeditor: Skip All"
 
 pipelines:
