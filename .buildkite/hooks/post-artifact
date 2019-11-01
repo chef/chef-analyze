@@ -35,11 +35,17 @@ EOF
 }
 
 function code_coverage_table() {
-  if [ "$(is_coverage_degraded)" == "true" ]; then
-    echo "\\n :x: The code coverage decreased by $(coverage_decrease)% (**master** ${COVERAGE_MASTER}%)"
+  if [ "$COVERAGE_MASTER" == "$COVERAGE_PR" ]; then
+    echo "\\n :arrows_counterclockwise: This change neither increases nor decreases the code coverage. (**master ${COVERAGE_MASTER}%**)"
+    echo "\\n ## 0% Increase! :sweat_smile:"
+  elif [ "$(is_coverage_degraded)" == "true" ]; then
+    echo "\\n :x: The code coverage is decreased. (**master ${COVERAGE_MASTER}%**)"
+    echo "\\n ## $(coverage_decrease)% Decrease! :thinking:"
   else
-    echo "\\n :white_check_mark: The code coverage increased by $(coverage_increase)% (**master** ${COVERAGE_MASTER}%)"
+    echo "\\n :white_check_mark: The code coverage is increased. (**master ${COVERAGE_MASTER}%**)"
+    echo "\\n ## $(coverage_increase)% Increase! :rocket:"
   fi
+
   cat <<EOF
 \\n
 \\n :eyes: Read the <a href='$(buildkite_artifacts_url)'>uploaded HTML coverage report</a>
@@ -71,12 +77,20 @@ function buildkite_artifacts_url() {
 
 curl -H "Authorization: token $GITHUB_TOKEN" "$COMMENTS_URL" -d "$(post_data)" >/dev/null
 
-if [ "$(is_coverage_degraded)" == "true" ]; then
+if [ "$COVERAGE_MASTER" == "$COVERAGE_PR" ]; then
+  cat << EOF | buildkite-agent annotate --style "info"
+  This change neither increases nor decreases the code coverage from master. (${COVERAGE_MASTER}%)
+
+  Read the <a href="artifact://coverage/coverage.html">uploaded HTML coverage report</a>
+EOF
+elif [ "$(is_coverage_degraded)" == "true" ]; then
   cat << EOF | buildkite-agent annotate --style "error"
-  The code coverage is being degraded from ${COVERAGE_MASTER}% to ${COVERAGE_PR}%
+  The code coverage will decrease from ${COVERAGE_MASTER}% to ${COVERAGE_PR}%
 
   Take a look at the <a href="artifact://coverage/coverage.html">uploaded HTML coverage report</a>
 EOF
+  # @afiune this exit code enforces the code coverage to be increased or,
+  # at least, to be the same as master
   exit 7
 else
   cat << EOF | buildkite-agent annotate --style "success"
