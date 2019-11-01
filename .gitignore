@@ -4,6 +4,7 @@
 
 # Habitat
 results/
+coverage/
 
 # mac
 .DS_Store
