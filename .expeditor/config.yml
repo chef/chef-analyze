@@ -18,6 +18,20 @@ github:
   major_bump_labels:
     - "Expeditor: Bump Version Major"
 
+merge_actions:
+  - built_in:bump_version:
+      ignore_labels:
+        - "Expeditor: Skip Version Bump"
+        - "Expeditor: Skip All"
+  - trigger_pipeline:habitat/build:
+      ignore_labels:
+        - "Expeditor: Skip Habitat"
+        - "Expeditor: Skip All"
+      only_if: built_in:bump_version
+  - trigger_pipeline:code_coverage:
+      ignore_labels:
+        - "Expeditor: Skip All"
+
 pipelines:
   - verify:
       description: Pull Request validation tests
@@ -32,33 +46,9 @@ promote:
     - stable
 
 subscriptions:
-  - workload: pull_request_merged:{{agent_id}}:*
-    actions:
-      - trigger_pipeline:code_coverage
-  - workload: buildkite_build_failed:{{agent_id}}:code_coverage:*
-    actions:
-      - bash:.expeditor/update_coverage.sh:
-          post_commit: false
-      - built_in:bump_version:
-          post_commit: false
-      - trigger_pipeline:habitat/build:
-          post_commit: true
   - workload: buildkite_build_passed:{{agent_id}}:code_coverage:*
     actions:
-      - bash:.expeditor/update_coverage.sh:
-          post_commit: false
-      - built_in:bump_version:
-          post_commit: false
-      - trigger_pipeline:habitat/build:
-          post_commit: true
-  - workload: buildkite_build_canceled:{{agent_id}}:code_coverage:*
-    actions:
-      - bash:.expeditor/update_coverage.sh:
-          post_commit: false
-      - built_in:bump_version:
-          post_commit: false
-      - trigger_pipeline:habitat/build:
-          post_commit: true
+      - bash:.expeditor/update_coverage.sh
   - workload: project_promoted:{{agent_id}}:*
     actions:
       - built_in:promote_habitat_packages
