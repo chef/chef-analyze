@@ -48,3 +48,8 @@ func Cookbooks(cfg *config.Config) error {
 
 	return nil
 }
+
+func demoFunction() error {
+	fmt.Println("New function that does not have a test! :(")
+	return nil
+}
