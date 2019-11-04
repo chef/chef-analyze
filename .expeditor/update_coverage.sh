@@ -10,7 +10,7 @@ aws --profile chef-cd s3 cp "s3://chef-workstation-coverage/$COVERAGE_FOLDER/cur
 COVERAGE=$(grep -w total: coverage/coverage.txt| awk '{print $NF}' | sed -e 's/%//')
 COVERAGE_MASTER=$(cat CODE_COVERAGE)
 
-if [ "$COVERAGE_MASTER" == "$COVERAGE_PR" ]; then
+if [ "$COVERAGE_MASTER" == "$COVERAGE" ]; then
   echo "This change neither increased nor decreased the code coverage from master. (${COVERAGE_MASTER}%)"
   echo "TIP: Add the GH tag 'Expeditor: Skip Code Coverage' to avoid triggering this task."
   exit 0
