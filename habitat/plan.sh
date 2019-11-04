@@ -15,3 +15,7 @@ do_before() {
   do_default_before
   update_pkg_version
 }
+
+do_prepare() {
+  export GOFLAGS="-mod=vendor"
+}
