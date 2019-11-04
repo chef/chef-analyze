@@ -80,7 +80,7 @@ func init() {
 	)
 	rootCmd.PersistentFlags().BoolVarP(
 		&globalFlags.noSSLCheck,
-		"no-ssl-check", "k", false,
+		"no-ssl-check", "o", false,
 		"Disable SSL certificate verification",
 	)
 	// @afiune we can't use viper to bind the flags since our config doesn't really match
