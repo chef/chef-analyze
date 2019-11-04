@@ -27,8 +27,15 @@ import (
 )
 
 var (
-	credsFile string
-	rootCmd   = &cobra.Command{
+	globalFlags struct {
+		credsFile     string
+		clientName    string
+		clientKey     string
+		chefServerUrl string
+		profile       string
+		noSSLCheck    bool
+	}
+	rootCmd = &cobra.Command{
 		Use:   "chef-analyze",
 		Short: "Analyze your Chef inventory",
 		Long: `Analyze your Chef inventory by generating reports to understand the effort
@@ -46,11 +53,36 @@ func init() {
 	cobra.OnInitialize(initConfig)
 
 	// Global flags
-	rootCmd.PersistentFlags().StringVarP(&credsFile, "credentials", "c", "", "Chef credentials file (default $HOME/.chef/credentials)")
-	rootCmd.PersistentFlags().StringP("client_name", "n", "", "Chef Infra Server API client username")
-	rootCmd.PersistentFlags().StringP("client_key", "k", "", "Chef Infra Server API client key")
-	rootCmd.PersistentFlags().StringP("chef_server_url", "s", "", "Chef Infra Server URL")
-	rootCmd.PersistentFlags().StringP("profile", "p", "default", "Chef Infra Server URL")
+	rootCmd.PersistentFlags().StringVarP(
+		&globalFlags.credsFile,
+		"credentials", "c", "",
+		"Chef credentials file (default $HOME/.chef/credentials)",
+	)
+	rootCmd.PersistentFlags().StringVarP(
+		&globalFlags.clientName,
+		"client_name", "n", "",
+		"Chef Infra Server API client username",
+	)
+	rootCmd.PersistentFlags().StringVarP(
+		&globalFlags.clientKey,
+		"client_key", "k", "",
+		"Chef Infra Server API client key",
+	)
+	rootCmd.PersistentFlags().StringVarP(
+		&globalFlags.chefServerUrl,
+		"chef_server_url", "s", "",
+		"Chef Infra Server URL",
+	)
+	rootCmd.PersistentFlags().StringVarP(
+		&globalFlags.profile,
+		"profile", "p", "default",
+		"Chef Infra Server URL",
+	)
+	rootCmd.PersistentFlags().BoolVarP(
+		&globalFlags.noSSLCheck,
+		"no-ssl-check", "o", false,
+		"Disable SSL certificate verification",
+	)
 	// @afiune we can't use viper to bind the flags since our config doesn't really match
 	// any valid toml structure. (that is, the .chef/credentials toml file)
 	//
@@ -67,9 +99,9 @@ func init() {
 }
 
 func initConfig() {
-	if credsFile != "" {
+	if globalFlags.credsFile != "" {
 		// Use credentials file from the flag
-		viper.SetConfigFile(credsFile)
+		viper.SetConfigFile(globalFlags.credsFile)
 	} else {
 		// Find the credentials and pass it to viper
 		credsFile, err := config.FindCredentialsFile()
@@ -99,20 +131,13 @@ func initConfig() {
 // this tool to work, with or without credentials config
 // TODO @afiune revisit
 func hasMinimumParams() bool {
-	if flagString("chef_server_url") != "" &&
-		flagString("client_name") != "" &&
-		flagString("client_key") != "" {
+	if globalFlags.chefServerUrl != "" &&
+		globalFlags.clientName != "" &&
+		globalFlags.clientKey != "" {
 		return true
 	}
 
 	return false
-}
-func flagString(name string) string {
-	f := rootCmd.PersistentFlags().Lookup(name)
-	if f == nil {
-		return ""
-	}
-	return f.Value.String()
 }
 func isHelpCommand() bool {
 	if len(os.Args) <= 1 {
@@ -127,14 +152,17 @@ func isHelpCommand() bool {
 // overrides the credentials from the viper bound flags
 func overrideCredentials() config.OverrideFunc {
 	return func(c *config.Config) {
-		if flagString("client_name") != "" {
-			c.ClientName = flagString("client_name")
+		if globalFlags.clientName != "" {
+			c.ClientName = globalFlags.clientName
 		}
-		if flagString("client_key") != "" {
-			c.ClientKey = flagString("client_key")
+		if globalFlags.clientKey != "" {
+			c.ClientKey = globalFlags.clientKey
 		}
-		if flagString("chef_server_url") != "" {
-			c.ChefServerUrl = flagString("chef_server_url")
+		if globalFlags.chefServerUrl != "" {
+			c.ChefServerUrl = globalFlags.chefServerUrl
+		}
+		if globalFlags.noSSLCheck {
+			c.SkipSSL = true
 		}
 	}
 }
