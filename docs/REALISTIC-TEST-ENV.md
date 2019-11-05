@@ -11,7 +11,7 @@ using your `chef-engineering` account.
 3) Create a `$HOME/.chef/credentials` config file (or if you already have
 one, then just add the following profile) with:
   ```toml
-  [test]
+  [ws-test]
   client_name     = 'chef-workstation'
   client_key      = '/Users/YOUR-USERNAME/.chef/chef-workstation.pem'
   chef_server_url = 'https://ip-10-0-22-232.us-west-2.compute.internal/organizations/gtms'
@@ -23,5 +23,5 @@ one, then just add the following profile) with:
 54.212.196.10 ip-10-0-22-232.us-west-2.compute.internal
 ```
 
-You should be able to run `chef analyze report nodes --no-ssl-check --profile test`
+You should be able to run `chef analyze report nodes --no-ssl-check --profile ws-test`
 to generate reports from the test environment.
