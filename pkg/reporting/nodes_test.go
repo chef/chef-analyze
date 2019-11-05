@@ -12,12 +12,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// type SearchResult struct {
-//   Total int
-//   Start int
-//   Rows  []interface{}
-// }
-
 var ()
 
 type PartialSearchMock struct {
@@ -37,21 +31,15 @@ func (psm PartialSearchMock) PartialExec(idx, statement string,
 func TestNodes(t *testing.T) {
 	creds := credentials.Credentials{}
 
-	// cfg := &config.Config{}
-	// creds, err := credentials.FromViper(
-	//   globalFlags.profile,
-	//   overrideCredentials(),
-	// )
-
 	cfg := &reporting.Reporting{Credentials: creds}
 	testValidResultsWithNulls(t, cfg)
 	testErrorResult(t, cfg)
 }
+
 func testErrorResult(t *testing.T, cfg *reporting.Reporting) {
 	expectedError := fmt.Errorf("error here")
 	mocksearch := makeMockSearch("", expectedError)
 	_, err := reporting.Nodes(cfg, mocksearch)
-	fmt.Printf("%v", err)
 	assert.NotNil(t, err)
 }
 

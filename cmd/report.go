@@ -74,6 +74,7 @@ var (
 			if err != nil {
 				return err
 			}
+
 			results, err := reporting.Nodes(cfg, chefClient.Search)
 			if err != nil {
 				return err

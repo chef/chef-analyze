@@ -42,7 +42,11 @@ func (nri NodeReportItem) Array() []string {
 		cookbooks}
 }
 
-// TODO - we no longer need cfg. I'm not sure that this is best - I like having a single
+// func (nri NodeReportItem) String() string {
+//   return ""
+// }
+
+// NOTE - we no longer need cfg. I'm not sure that this is best - I like having a single
 //        cfg which includes the client, but did not want to create a full mock interface for
 //        chef.client here - that belongs in go-chef, where it can be maintained alongside
 //        any interface changes that originate there.
