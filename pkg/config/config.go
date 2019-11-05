@@ -65,6 +65,8 @@ type Config struct {
 	profile string
 	// active Credentials from the active profile
 	Credentials
+	// skip the SSL certificate verification
+	SkipSSL bool
 }
 
 // returns the active profile
