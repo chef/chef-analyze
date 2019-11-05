@@ -37,7 +37,7 @@ From within a Chef Habitat Studio, you can build the chef-analyze CLI by:
     $ hab studio enter
     [1][default:/src:0]# build
     ```
-2. Helper method to build a cross-platform binaries.
+2. Helper method to build cross-platform binaries.
     ```
     $ hab studio enter
     [1][default:/src:0]# build_cross_platform
@@ -59,6 +59,20 @@ From within a Chef Habitat Studio, you can run both, unit and integration tests:
     ```
     __NOTE:__ The integration tests require a binary to test against, this helper automatically triggers
     a cross-platform build and uses the generated binary for the running platform.
+
+### Code coverage
+This repository requires any change to always increase, or at least, maintain the percentage of code
+coverage, to execute the current coverage run:
+```
+$ hab studio enter
+[1][default:/src:0]# code_coverage
+```
+For details about the code coverage open the generated HTML report located at `coverage/coverage.html`.
+
+### Patching a local Chef Workstation Install
+You can override the `chef-analyze` binary that comes inside your local Chef Workstation install by
+running `make` at the top level folder of this repository. Then just simply run `chef-analyze` or
+`chef analyze` to use the top-level chef wrapper.
 
 ## Contributing
 
