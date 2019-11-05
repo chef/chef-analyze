@@ -23,5 +23,12 @@ one, then just add the following profile) with:
 54.212.196.10 ip-10-0-22-232.us-west-2.compute.internal
 ```
 
-You should be able to run `chef analyze report nodes --no-ssl-check --profile ws-test`
+You should be able to run `chef analyze report nodes --ssl-no-verify --profile ws-test`
 to generate reports from the test environment.
+
+### Unable to access test environment
+If you are unable to access the above test environment, you might have to manually add your
+IP Address to the static instance's security group. Log in to the Chef Engineering AWS Account
+and navigate to the following [link](https://us-west-2.console.aws.amazon.com/ec2/home?region=us-west-2#SecurityGroups:groupId=sg-0dfb155aa6932036f;sort=groupId),
+clic on the Security Group and select the **Inbound** tab, then clic **Edit** and **Add Rule**,
+on the new rule choose the `Type=All Traffic` and the `Source=My IP`, finally clic **Save**.

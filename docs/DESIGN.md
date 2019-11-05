@@ -26,7 +26,7 @@ Flags:
   -n, --client_name string       Chef Infra Server API client username
   -c, --credentials string       Chef credentials file (default $HOME/.chef/credentials)
   -h, --help                     help for chef-analyze
-  -o, --no-ssl-check             Disable SSL certificate verification
+  -o, --ssl-no-verify            Disable SSL certificate verification
   -p, --profile string           Chef Infra Server URL (default "default")
 
 Use "chef-analyze [command] --help" for more information about a command.
@@ -52,7 +52,7 @@ Global Flags:
   -k, --client_key string        Chef Infra Server API client key
   -n, --client_name string       Chef Infra Server API client username
   -c, --credentials string       Chef credentials file (default $HOME/.chef/credentials)
-  -o, --no-ssl-check             Disable SSL certificate verification
+  -o, --ssl-no-verify            Disable SSL certificate verification
   -p, --profile string           Chef Infra Server URL (default "default")
 
 Use "chef-analyze report [command] --help" for more information about a command.
