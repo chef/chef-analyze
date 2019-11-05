@@ -27,7 +27,7 @@ type Config struct {
 	// our Credentials (default: $HOME/.chef/credentials)
 	credentials.Credentials
 	// skip the SSL certificate verification
-	SkipSSL bool
+	NoSSLVerify bool
 }
 
 // override functions to override any particular setting

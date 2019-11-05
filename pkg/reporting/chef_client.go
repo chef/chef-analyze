@@ -39,7 +39,7 @@ func NewChefClient(cfg *Config) (*chef.Client, error) {
 		// TODO @afiune fix this upstream, if you do not add a '/' at the end of th URL
 		// the client will be malformed for any further request
 		BaseURL: cfg.ChefServerUrl + "/",
-		SkipSSL: cfg.SkipSSL,
+		SkipSSL: cfg.NoSSLVerify,
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "unable setup a Chef client")

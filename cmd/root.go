@@ -33,7 +33,7 @@ var (
 		clientKey     string
 		chefServerUrl string
 		profile       string
-		noSSLCheck    bool
+		noSSLverify   bool
 	}
 	rootCmd = &cobra.Command{
 		Use:   "chef-analyze",
@@ -79,8 +79,8 @@ func init() {
 		"Chef Infra Server URL",
 	)
 	rootCmd.PersistentFlags().BoolVarP(
-		&globalFlags.noSSLCheck,
-		"no-ssl-check", "o", false,
+		&globalFlags.noSSLverify,
+		"ssl-no-verify", "o", false,
 		"Disable SSL certificate verification",
 	)
 	// @afiune we can't use viper to bind the flags since our config doesn't really match

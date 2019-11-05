@@ -37,7 +37,7 @@ func TestConfigWithDefaults(t *testing.T) {
 		assert.Equal(t, "foo", cfg.ClientName)
 		assert.Equal(t, ".chef/foo.pem", cfg.ClientKey)
 		assert.Equal(t, "chef-server.example.com/organizations/bubu", cfg.ChefServerUrl)
-		assert.Equal(t, false, cfg.SkipSSL)
+		assert.Equal(t, false, cfg.NoSSLVerify)
 		assert.Equal(t, true, cfg.Telemetry.Enable, "telemetry.enable is not well parsed")
 		assert.Equal(t, false, cfg.Telemetry.Dev, "telemetry.dev is not well parsed")
 		assert.Equal(t, "debug", cfg.Log.Level, "telemetry.dev is not well parsed")
@@ -53,14 +53,14 @@ func TestConfigWirhOverrides(t *testing.T) {
 
 	cfg, err := subject.NewDefault(
 		func(c *subject.Config) {
-			c.SkipSSL = true
+			c.NoSSLVerify = true
 		},
 	)
 	if assert.Nil(t, err) {
 		assert.Equal(t, "foo", cfg.ClientName)
 		assert.Equal(t, ".chef/foo.pem", cfg.ClientKey)
 		assert.Equal(t, "chef-server.example.com/organizations/bubu", cfg.ChefServerUrl)
-		assert.Equal(t, true, cfg.SkipSSL)
+		assert.Equal(t, true, cfg.NoSSLVerify)
 	}
 }
 
