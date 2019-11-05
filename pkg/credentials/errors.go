@@ -14,7 +14,7 @@
 // limitations under the License.
 //
 
-package config
+package credentials
 
 //
 // The intend of this file is to have a single place where we can easily
@@ -22,16 +22,22 @@ package config
 //
 
 const (
-	ConfigTomlNotFoundErr = `
-  config.toml file not found. (default: $HOME/.chef-workstation/config.toml)
+	ProfileNotFoundErr = `
+  profile not found in credentials file.
 
-  setup your local configuration file by following this documentation:
-    - https://www.chef.sh/docs/reference/config/
+  verify the format of the credentials file by following this documentation:
+    - https://docs.chef.io/knife_setup.html#knife-profiles
 `
-	MalformedConfigTomlFileErr = `
-  unable to parse config.toml file.
+	CredentialsNotFoundErr = `
+  credentials file not found. (default: $HOME/.chef/credentials)
 
-  verify the format of the configuration file by following this documentation:
-    - https://www.chef.sh/docs/reference/config/
+  setup your local credentials config by following this documentation:
+    - https://docs.chef.io/knife_setup.html#knife-profiles
+`
+	MalformedCredentialsFileErr = `
+  unable to parse credentials file.
+
+  verify the format of the credentials file by following this documentation:
+    - https://docs.chef.io/knife_setup.html#knife-profiles
 `
 )

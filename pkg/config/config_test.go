@@ -19,308 +19,255 @@ package config_test
 import (
 	"io/ioutil"
 	"os"
-	"path/filepath"
 	"testing"
 
-	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 
 	subject "github.com/chef/chef-analyze/pkg/config"
 )
 
-func TestFindConfigFileExists(t *testing.T) {
-	if err := os.MkdirAll(".chef", os.ModePerm); err != nil {
+func TestNewConfigNotFoundError(t *testing.T) {
+	cfg, err := subject.New()
+	if assert.NotNil(t, err) {
+		assert.Contains(t, err.Error(), "config.toml file not found. (default: $HOME/.chef-workstation/config.toml)")
+		assert.Contains(t, err.Error(), "setup your local configuration file by following this documentation:")
+		assert.Contains(t, err.Error(), "https://www.chef.sh/docs/reference/config/")
+		assert.Equal(t, subject.Config{}, cfg, "should return an empty config")
+	}
+}
+
+func TestNewConfigUnableToReadPermissionsError(t *testing.T) {
+	defer os.RemoveAll(".chef-workstation") // clean up
+	if err := os.MkdirAll(".chef-workstation", os.ModePerm); err != nil {
 		t.Fatal(err)
 	}
-	defer os.RemoveAll(".chef") // clean up
 
-	cwd, err := os.Getwd()
+	// a super secure file! no one can read, write or execute. ha!
+	err := ioutil.WriteFile(".chef-workstation/config.toml", []byte(""), 0000)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	tmpfile, err := ioutil.TempFile(".chef", "my-config")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	var (
-		tmpfileBase = filepath.Base(tmpfile.Name())
-		tmpfileAbs  = filepath.Join(cwd, tmpfile.Name())
-	)
-
-	cfgFile, err := subject.FindConfigFile(tmpfileBase)
-	if assert.Nil(t, err) {
-		assert.Equal(t, tmpfileAbs, cfgFile)
-	}
-}
-
-func TestFindConfigFileNotFound(t *testing.T) {
-	cfgFile, err := subject.FindConfigFile("config.toml")
+	cfg, err := subject.New()
 	if assert.NotNil(t, err) {
-		assert.Contains(t, err.Error(), "file 'config.toml' not found")
-		assert.Equal(t, "", cfgFile)
+		assert.Contains(t, err.Error(), "unable to read config.toml from")
+		assert.Contains(t, err.Error(), ".chef-workstation/config.toml")
+		assert.Contains(t, err.Error(), "permission denied")
+		assert.Equal(t, subject.Config{}, cfg, "should return an empty config")
 	}
 }
 
-func TestFindCredentialsFileNotFound(t *testing.T) {
-	credsFile, err := subject.FindCredentialsFile()
+func TestNewConfigOtherKindOfError(t *testing.T) {
+	// save real HOME, empty it and restored it after this test runs
+	savedHome := os.Getenv("HOME")
+	os.Setenv("HOME", "")
+	defer os.Setenv("HOME", savedHome)
+
+	cfg, err := subject.New()
 	if assert.NotNil(t, err) {
-		assert.Contains(t, err.Error(), "file 'credentials' not found")
-		assert.Equal(t, "", credsFile)
+		assert.Contains(t, err.Error(), "unable to detect home directory")
+		assert.Contains(t, err.Error(), "$HOME is not defined")
+		assert.Equal(t, subject.Config{}, cfg, "should return an empty config")
 	}
 }
 
-func TestNewDefault(t *testing.T) {
-	createCredentialsConfig(t)
-	defer os.RemoveAll(".chef") // clean up
+func TestNewMalformedConfigError(t *testing.T) {
+	createMalformedConfigToml(t)
+	defer os.RemoveAll(".chef-workstation") // clean up
 
-	cfg, err := subject.NewDefault()
-	if assert.Nil(t, err) {
-		assert.Equal(t,
-			subject.DefaultProfileName, cfg.ActiveProfile(),
-			"the default profile doesn't match")
-		assert.Equal(t,
-			"foo", cfg.ClientName,
-			"the default client_name doesn't match")
-		assert.Equal(t,
-			"foo.pem", cfg.ClientKey,
-			"the default client_key doesn't match")
-		assert.Equal(t,
-			"chef-server.example.com/organizations/bubu", cfg.ChefServerUrl,
-			"the default chef_server_url doesn't match")
-	}
-}
-
-func TestNewErrorCredsNotFound(t *testing.T) {
-	cfg, err := subject.New("dev")
+	cfg, err := subject.New()
 	if assert.NotNil(t, err) {
-		assert.Contains(t, err.Error(), "file 'credentials' not found")
-		assert.Nil(t, cfg)
+		assert.Contains(t, err.Error(), "unable to parse config.toml file.")
+		assert.Contains(t, err.Error(), "verify the format of the configuration file by following this documentation")
+		assert.Contains(t, err.Error(), "https://www.chef.sh/docs/reference/config/")
+		assert.Contains(t, err.Error(), "(last key parsed 'chef.cookbook_repo_paths'): expected a comma or array terminator")
+		assert.Equal(t, subject.Config{}, cfg, "should return an empty config")
 	}
 }
 
 func TestNew(t *testing.T) {
-	createCredentialsConfig(t)
-	defer os.RemoveAll(".chef") // clean up
+	createConfigToml(t)
+	defer os.RemoveAll(".chef-workstation") // clean up
 
-	cfg, err := subject.New("dev")
+	cfg, err := subject.New()
 	if assert.Nil(t, err) {
-		assert.Equal(t,
-			"dev", cfg.ActiveProfile(),
-			"the active profile doesn't match")
-		assert.Equal(t,
-			"dev", cfg.ClientName,
-			"the active client_name doesn't match")
-		assert.Equal(t,
-			"dev.pem", cfg.ClientKey,
-			"the active client_key doesn't match")
-		assert.Equal(t,
-			"chef-server.example.com/organizations/dev", cfg.ChefServerUrl,
-			"the active chef_server_url doesn't match")
+		// test parsing of telemetry settings
+		assert.Equal(t, true, cfg.Telemetry.Enable, "telemetry.enable is not well parsed")
+		assert.Equal(t, false, cfg.Telemetry.Dev, "telemetry.dev is not well parsed")
+
+		// test parsing of log settings
+		assert.Equal(t, "debug", cfg.Log.Level, "log.level is not well parsed")
+		assert.Equal(t, "/path/to/chef-workstation.log", cfg.Log.Location, "log.location is not well parsed")
+
+		// test parsing of cache settings
+		assert.Equal(t, "/path/to/.cache/chef-workstation", cfg.Cache.Path, "cache.path is not well parsed")
+
+		// test parsing of connection settings
+		assert.Equal(t, "ssh", cfg.Connection.DefaultProtocol, "connection.default_protocol is not well parsed")
+		assert.Equal(t, "bubu", cfg.Connection.DefaultUser, "connection.default_user is not well parsed")
+		assert.Equal(t, true, cfg.Connection.SSH.SSL, "connection.ssh.ssl is not well parsed")
+		assert.Equal(t, true, cfg.Connection.SSH.SSLVerify, "connection.ssh.ssl_verify is not well parsed")
+		assert.Equal(t, false, cfg.Connection.WinRM.SSL, "connection.winrm.ssl is not well parsed")
+		assert.Equal(t, false, cfg.Connection.WinRM.SSLVerify, "connection.winrm.ssl_verify is not well parsed")
+
+		// test parsing of chef settings
+		assert.Equal(t, "/path/to/mytrustedcerts", cfg.Chef.TrustedCertsDir, "chef.trusted_certs_dir is not well parsed")
+		assert.Equal(t, 2, len(cfg.Chef.CookbookRepoPaths), "chef.cookbook_repo_paths is not well parsed")
+		assert.Contains(t, cfg.Chef.CookbookRepoPaths, "/var/chef/cookbooks", "chef.cookbook_repo_paths is not well parsed")
+		assert.Contains(t, cfg.Chef.CookbookRepoPaths, "/path/to/cookbooks", "chef.cookbook_repo_paths is not well parsed")
+
+		// test parsing of updates settings
+		assert.Equal(t, true, cfg.Updates.Enable, "updates.enable is not well parsed")
+		assert.Equal(t, "current", cfg.Updates.Channel, "updates.channel is not well parsed")
+		assert.Equal(t, 60, cfg.Updates.IntervalMinutes, "updates.interval_minutes is not well parsed")
+
+		// test parsing of data-collector settings
+		assert.Equal(t, "https://1.1.1.1/data-collector/v0/", cfg.DataCollector.Url, "data_collector.url is not well parsed")
+		assert.Equal(t, "ABCDEF0123456789", cfg.DataCollector.Token, "data_collector.token is not well parsed")
+
+		// test parsing of features settings
+		assert.Equal(t, 3, len(cfg.Features), "features is not well parsed")
+		assert.Equal(t, true, cfg.Features["foo"], "features is not well parsed")
+		assert.Equal(t, true, cfg.Features["bar"], "features is not well parsed")
+		assert.Equal(t, false, cfg.Features["xyz"], "features is not well parsed")
+
+		// test parsing of dev settings
+		assert.Equal(t, true, cfg.Dev.Spinner, "dev.spinner is not well parsed")
 	}
 }
 
-func TestNewWithSingleOverrides(t *testing.T) {
-	createCredentialsConfig(t)
-	defer os.RemoveAll(".chef") // clean up
+func TestNewOverrideFuncs(t *testing.T) {
+	createConfigToml(t)
+	defer os.RemoveAll(".chef-workstation") // clean up
 
-	cfg, err := subject.New("dev",
-		func(c *subject.Config) {
-			c.ClientName = "caramelo"
-		},
+	cfg, err := subject.New()
+	if assert.Nil(t, err) {
+		assert.Equal(t, true, cfg.Telemetry.Enable, "telemetry.enable is not well parsed")
+		assert.Equal(t, false, cfg.Telemetry.Dev, "telemetry.dev is not well parsed")
+		assert.Equal(t, "debug", cfg.Log.Level, "telemetry.dev is not well parsed")
+		assert.Equal(t, "ssh", cfg.Connection.DefaultProtocol, "connection.default_protocol is not well parsed")
+		assert.Equal(t, 3, len(cfg.Features), "features is not well parsed")
+		assert.Equal(t, true, cfg.Features["foo"], "features is not well parsed")
+	}
+
+	cfg, err = subject.New(
+		// switching telemetry of
+		func(c *subject.Config) { c.Telemetry.Enable = false },
+		// activating dev mode
+		func(c *subject.Config) { c.Telemetry.Dev = true },
+		// lower log level
+		func(c *subject.Config) { c.Log.Level = "info" },
+		// change default protocol
+		func(c *subject.Config) { c.Connection.DefaultProtocol = "winrm" },
+		// activate a new feature
+		func(c *subject.Config) { c.Features["new"] = true },
+		// deactivate a new feature
+		func(c *subject.Config) { c.Features["foo"] = false },
 	)
 	if assert.Nil(t, err) {
-		assert.Equal(t,
-			"dev", cfg.ActiveProfile(),
-			"the active profile doesn't match")
-		assert.Equal(t,
-			"caramelo", cfg.ClientName, // overridden above
-			"the overridden client_name doesn't match")
-		assert.Equal(t,
-			"dev.pem", cfg.ClientKey,
-			"the active client_key doesn't match")
-		assert.Equal(t,
-			"chef-server.example.com/organizations/dev", cfg.ChefServerUrl,
-			"the active chef_server_url doesn't match")
-	}
-}
-
-func TestNewWithMultipleOverrides(t *testing.T) {
-	createCredentialsConfig(t)
-	defer os.RemoveAll(".chef") // clean up
-
-	overrides := []subject.OverrideFunc{
-		// overrides client_key
-		func(c *subject.Config) { c.ClientKey = "foo.pem" },
-		// switches profile, which makes it all change
-		func(c *subject.Config) { c.SwitchProfile("dev") },
-		// overrides client_name
-		func(c *subject.Config) { c.ClientName = "bubulubu" },
-	}
-
-	// loading default profile but change to dev from above override
-	cfg, err := subject.New("default", overrides...)
-	if assert.Nil(t, err) {
-		assert.Equal(t,
-			"dev", cfg.ActiveProfile(),
-			"the active profile doesn't match")
-		assert.Equal(t,
-			"bubulubu", cfg.ClientName,
-			"the overridden client_name doesn't match")
-		assert.Equal(t,
-			"dev.pem", cfg.ClientKey,
-			"the active client_key doesn't match")
-		assert.Equal(t,
-			"chef-server.example.com/organizations/dev", cfg.ChefServerUrl,
-			"the active chef_server_url doesn't match")
-	}
-}
-
-func TestConfigSwitchProfiles(t *testing.T) {
-	createCredentialsConfig(t)
-	defer os.RemoveAll(".chef") // clean up
-
-	cfg, err := subject.NewDefault()
-	if assert.Nil(t, err) {
-		assert.Equal(t,
-			subject.DefaultProfileName, cfg.ActiveProfile(),
-			"the active profile doesn't match")
-		assert.Equal(t,
-			"foo", cfg.ClientName,
-			"the active client_name doesn't match")
-		assert.Equal(t,
-			"foo.pem", cfg.ClientKey,
-			"the active client_key doesn't match")
-		assert.Equal(t,
-			"chef-server.example.com/organizations/bubu", cfg.ChefServerUrl,
-			"the active chef_server_url doesn't match")
-	}
-
-	// Switching to an existing profile
-	err = cfg.SwitchProfile("dev")
-	if assert.Nil(t, err) {
-		assert.Equal(t,
-			"dev", cfg.ActiveProfile(),
-			"the new active profile doesn't match")
-		assert.Equal(t,
-			"dev", cfg.ClientName,
-			"the new active client_name doesn't match")
-		assert.Equal(t,
-			"dev.pem", cfg.ClientKey,
-			"the new active client_key doesn't match")
-		assert.Equal(t,
-			"chef-server.example.com/organizations/dev", cfg.ChefServerUrl,
-			"the new active chef_server_url doesn't match")
-	}
-	// Switching to an existing profile
-	err = cfg.SwitchProfile("not-exist")
-	if assert.NotNil(t, err) {
-		assert.Contains(t, err.Error(), "profile not found in credentials file")
-		assert.Equal(t,
-			"dev", cfg.ActiveProfile(),
-			"the active profile shouldn't have changed")
-	}
-}
-
-func TestFromViperError(t *testing.T) {
-	cfg, err := subject.FromViper("default")
-	if assert.NotNil(t, err) {
-		assert.Contains(t, err.Error(), "credentials file not found. (default: $HOME/.chef/credentials")
-		assert.Nil(t, cfg)
-	}
-
-	// These settings are set from the cmd/ Go package, note that
-	// this file was not rendered on purpose to trigger an error
-	viper.SetConfigFile(".chef/credentials")
-	viper.SetConfigType("toml")
-
-	cfg, err = subject.FromViper("default")
-	if assert.NotNil(t, err) {
-		assert.Contains(t, err.Error(), "unable to read config from '.chef/credentials'")
-		assert.Contains(t, err.Error(), "no such file or directory")
-		assert.Nil(t, cfg)
-	}
-}
-
-func TestFromViper(t *testing.T) {
-	createCredentialsConfig(t)
-	defer os.RemoveAll(".chef") // clean up
-
-	// These settings are set from the cmd/ Go package
-	viper.SetConfigFile(".chef/credentials")
-	viper.SetConfigType("toml")
-
-	cfg, err := subject.FromViper("default")
-	if assert.Nil(t, err) {
-		assert.Equal(t,
-			subject.DefaultProfileName, cfg.ActiveProfile(),
-			"the default profile doesn't match")
-		assert.Equal(t,
-			"foo", cfg.ClientName,
-			"the default client_name doesn't match")
-		assert.Equal(t,
-			"foo.pem", cfg.ClientKey,
-			"the default client_key doesn't match")
-		assert.Equal(t,
-			"chef-server.example.com/organizations/bubu", cfg.ChefServerUrl,
-			"the default chef_server_url doesn't match")
-	}
-}
-
-func TestFromViperWithMultipleOverrides(t *testing.T) {
-	createCredentialsConfig(t)
-	defer os.RemoveAll(".chef") // clean up
-
-	// These settings are set from the cmd/ Go package
-	viper.SetConfigFile(".chef/credentials")
-	viper.SetConfigType("toml")
-
-	overrides := []subject.OverrideFunc{
-		// overrides client_key
-		func(c *subject.Config) { c.ClientKey = "bar.pem" },
-		// overrides client_name
-		func(c *subject.Config) { c.ClientName = "bubulubu" },
-	}
-
-	cfg, err := subject.FromViper("default", overrides...)
-	if assert.Nil(t, err) {
-		assert.Equal(t,
-			subject.DefaultProfileName, cfg.ActiveProfile(),
-			"the default profile doesn't match")
-		assert.Equal(t,
-			"bubulubu", cfg.ClientName,
-			"the overridden client_name doesn't match")
-		assert.Equal(t,
-			"bar.pem", cfg.ClientKey,
-			"the overridden client_key doesn't match")
-		assert.Equal(t,
-			"chef-server.example.com/organizations/bubu", cfg.ChefServerUrl,
-			"the default chef_server_url doesn't match")
+		assert.Equal(t, false, cfg.Telemetry.Enable, "telemetry.enable was not overwritten")
+		assert.Equal(t, true, cfg.Telemetry.Dev, "telemetry.dev was not overwritten")
+		assert.Equal(t, "info", cfg.Log.Level, "telemetry.dev was not overwritten")
+		assert.Equal(t, "winrm", cfg.Connection.DefaultProtocol, "connection.default_protocol was not overwritten")
+		assert.Equal(t, 4, len(cfg.Features), "features was not overwritten")
+		assert.Equal(t, false, cfg.Features["foo"], "features was not overwritten")
+		assert.Equal(t, true, cfg.Features["new"], "features was not overwritten")
 	}
 }
 
 // when calling this function, make sure to add the defer clean up as the below example
-//
-// createCredentialsConfig(t)
-// defer os.RemoveAll(".chef") // clean up
-//
-func createCredentialsConfig(t *testing.T) {
-	if err := os.MkdirAll(".chef", os.ModePerm); err != nil {
+// ```go
+// createConfigToml(t)
+// defer os.RemoveAll(".chef-workstation") // clean up
+// ```
+func createConfigToml(t *testing.T) {
+	if err := os.MkdirAll(".chef-workstation", os.ModePerm); err != nil {
 		t.Fatal(err)
 	}
 
-	creds := []byte(`[default]
-client_name = "foo"
-client_key = "foo.pem"
-chef_server_url = "chef-server.example.com/organizations/bubu"
+	creds := []byte(`
+[telemetry]
+enable = true
+dev = false
+
+[log]
+level="debug"
+location="/path/to/chef-workstation.log"
+
+[cache]
+path="/path/to/.cache/chef-workstation"
+
+[connection]
+default_protocol="ssh"
+default_user="bubu"
+
+[connection.ssh]
+ssl=true
+ssl_verify=true
+
+[connection.winrm]
+ssl=false
+ssl_verify=false
+
+[chef]
+trusted_certs_dir="/path/to/mytrustedcerts"
+cookbook_repo_paths = [
+  "/path/to/cookbooks",
+  "/var/chef/cookbooks"
+]
+
+[updates]
+enable = true
+channel = "current"
+interval_minutes = 60
+
+[data_collector]
+url="https://1.1.1.1/data-collector/v0/"
+token="ABCDEF0123456789"
+
+[features]
+foo = true
+bar = true
+xyz = false
 
 [dev]
-client_name = "dev"
-client_key = "dev.pem"
-chef_server_url = "chef-server.example.com/organizations/dev"
+spinner = true
 `)
-	err := ioutil.WriteFile(".chef/credentials", creds, 0644)
+	err := ioutil.WriteFile(".chef-workstation/config.toml", creds, 0666)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+// when calling this function, make sure to add the defer clean up as the below example
+// ```go
+// createMalformedConfigToml(t)
+// defer os.RemoveAll(".chef-workstation") // clean up
+// ```
+func createMalformedConfigToml(t *testing.T) {
+	if err := os.MkdirAll(".chef-workstation", os.ModePerm); err != nil {
+		t.Fatal(err)
+	}
+
+	// @afiune the typo is inside the 'cookbook_repo_paths': missing a comma
+	creds := []byte(`
+[telemetry]
+enable = true
+dev = false
+
+[chef]
+trusted_certs_dir="/path/to/mytrustedcerts"
+cookbook_repo_paths = [
+  "/path/to/cookbooks"
+  "/var/chef/cookbooks"
+]
+
+[updates]
+enable = true
+channel = "current"
+interval_minutes = 60
+`)
+	err := ioutil.WriteFile(".chef-workstation/config.toml", creds, 0666)
 	if err != nil {
 		t.Fatal(err)
 	}

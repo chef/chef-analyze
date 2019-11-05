@@ -20,11 +20,9 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
-
-	"github.com/chef/chef-analyze/pkg/config"
 )
 
-func Nodes(cfg *config.Config) error {
+func Nodes(cfg *Config) error {
 	var (
 		query = map[string]interface{}{
 			"name":         []string{"name"},

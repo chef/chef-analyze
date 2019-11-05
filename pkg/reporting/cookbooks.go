@@ -21,11 +21,9 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-
-	"github.com/chef/chef-analyze/pkg/config"
 )
 
-func Cookbooks(cfg *config.Config) error {
+func Cookbooks(cfg *Config) error {
 	chefClient, err := NewChefClient(cfg)
 	if err != nil {
 		return err

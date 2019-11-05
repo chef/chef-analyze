@@ -19,7 +19,7 @@ package cmd
 import (
 	"github.com/spf13/cobra"
 
-	"github.com/chef/chef-analyze/pkg/config"
+	"github.com/chef/chef-analyze/pkg/credentials"
 	"github.com/chef/chef-analyze/pkg/reporting"
 )
 
@@ -33,14 +33,18 @@ var (
 		Short: "Generates a cookbook oriented report",
 		Args:  cobra.NoArgs,
 		RunE: func(_ *cobra.Command, _ []string) error {
-			cfg, err := config.FromViper(
+			creds, err := credentials.FromViper(
 				globalFlags.profile,
 				overrideCredentials(),
 			)
 			if err != nil {
 				return err
 			}
-
+			// @afiune here we can load our config
+			cfg := &reporting.Config{Credentials: creds}
+			if globalFlags.noSSLCheck {
+				cfg.SkipSSL = true
+			}
 			return reporting.Cookbooks(cfg)
 		},
 	}
@@ -49,14 +53,18 @@ var (
 		Short: "Generates a nodes oriented report",
 		Args:  cobra.NoArgs,
 		RunE: func(_ *cobra.Command, _ []string) error {
-			cfg, err := config.FromViper(
+			creds, err := credentials.FromViper(
 				globalFlags.profile,
 				overrideCredentials(),
 			)
 			if err != nil {
 				return err
 			}
-
+			// @afiune here we can load our config
+			cfg := &reporting.Config{Credentials: creds}
+			if globalFlags.noSSLCheck {
+				cfg.SkipSSL = true
+			}
 			return reporting.Nodes(cfg)
 		},
 	}
