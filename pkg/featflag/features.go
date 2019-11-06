@@ -122,7 +122,9 @@ func New(envName, key string) Feature {
 	return feat
 }
 
-func UseConfig(c *config.Config) {
+// load a custom configuration instance,
+// this config is used inside the func 'Enabled()'
+func LoadConfig(c *config.Config) {
 	cfg = c
 }
 
@@ -175,10 +177,10 @@ func (feat *Feature) Equals(xfeat *Feature) bool {
 
 // a feature flag is enabled when:
 //
-// 1) either the configured env variable is set to any value
-// 2) or, the configured key is found inside the configuration file (config.toml)
+// 1) either the configured environment variable is set to any value or,
+// 2) the configured key is found and turned on inside the configuration file (config.toml)
 //
-// (the verification is done in the above order)
+// (the verification is done in that order)
 func (feat *Feature) Enabled() bool {
 	if !feat.Equals(&ChefFeatAll) && ChefFeatAll.Enabled() {
 		return true
@@ -196,6 +198,7 @@ func (feat *Feature) Enabled() bool {
 	return feat.valueFromConfig()
 }
 
+// extract the value from the loaded configuration
 func (feat *Feature) valueFromConfig() bool {
 	if cfg == nil {
 		return false

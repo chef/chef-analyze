@@ -172,14 +172,14 @@ func TestProtectAddingAnExistingFeatureFlag(t *testing.T) {
 // tests that involve modifying the config (config.toml)
 //
 func TestAccessingFlagsWithNilConfig(t *testing.T) {
-	featflag.UseConfig(nil)
+	featflag.LoadConfig(nil)
 	assert.False(t, featflag.ChefFeatAll.Enabled())
 	assert.False(t, featflag.ChefFeatAnalyze.Enabled())
 }
 
 func TestEnableFlagsFromConfigToml(t *testing.T) {
 	// all flags should be disabled
-	featflag.UseConfig(nil)
+	featflag.LoadConfig(nil)
 	assert.False(t,
 		featflag.ChefFeatAll.Enabled(),
 		"global ALL feature flag should be disabled",
@@ -204,7 +204,7 @@ func TestEnableFlagsFromConfigToml(t *testing.T) {
 	if err != nil {
 		t.Fatal("unable to load config.toml, check why this happened", err.Error())
 	}
-	featflag.UseConfig(&customConfig)
+	featflag.LoadConfig(&customConfig)
 
 	// now things start getting interesting
 	assert.False(t,
