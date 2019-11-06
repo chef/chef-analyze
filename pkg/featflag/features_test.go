@@ -146,6 +146,28 @@ func TestAddFooFeatureFlag(t *testing.T) {
 	assert.True(t, chefFeatFoo.Enabled())
 }
 
+func TestProtectAddingAnExistingFeatureFlag(t *testing.T) {
+	// the CHEF_FEAT_ALL is a protected environment variable,
+	// if a user tries to set a new feature flag with it,
+	// the library should return the already registered flag
+	featFlag := featflag.New("CHEF_FEAT_ALL", "bubu")
+	assert.Equal(t, "CHEF_FEAT_ALL", featFlag.Env())
+	assert.Equal(t, "all", featFlag.Key())
+	assert.True(t,
+		featflag.ChefFeatAll.Equals(&featFlag),
+		"the CHEF_FEAT_ALL feature flags should never change",
+	)
+
+	// the same goes for the global analyze feature flag
+	featFlag = featflag.New("MY_ANALYZE_FEATURE", "analyze")
+	assert.Equal(t, "CHEF_FEAT_ANALYZE", featFlag.Env())
+	assert.Equal(t, "analyze", featFlag.Key())
+	assert.True(t,
+		featflag.ChefFeatAnalyze.Equals(&featFlag),
+		"the CHEF_FEAT_ANALYZE feature flags should never change",
+	)
+}
+
 //
 // tests that involve modifying the config (config.toml)
 //

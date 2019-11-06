@@ -65,6 +65,8 @@ type Feature struct {
 //
 // when do I define a global feature flag?
 // > when that flag is being used by multiple packages
+//
+// NOTE: all environment variables and config keys are unique
 var (
 	// this special feature will enable all features at once
 	ChefFeatAll = Feature{
@@ -98,11 +100,25 @@ func init() {
 // chefFeatFoo.Enabled()  // returns true if the feature flag is enabled
 // ```
 func New(envName, key string) Feature {
+	// since all environment variables and config keys are unique,
+	// to protect them, this function will verify if there is a
+	// registered feature flag with any field, if so, it returns it
+	if feat, exist := GetFromEnv(envName); exist {
+		return *feat
+	}
+	if feat, exist := GetFromKey(key); exist {
+		return *feat
+	}
+
+	// create a new feature
 	feat := Feature{
 		configKey: key,
 		envName:   envName,
 	}
+
+	// register the new feature
 	featureFlags = append(featureFlags, feat)
+
 	return feat
 }
 
