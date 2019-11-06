@@ -35,3 +35,33 @@ func TestNewChefClientWithDefaults(t *testing.T) {
 		assert.NotNil(t, client)
 	}
 }
+
+func TestNewChefClientWithouAnySettings(t *testing.T) {
+	client, err := subject.NewChefClient(&subject.Reporting{})
+	assert.Nil(t, client)
+	if assert.NotNil(t, err) {
+		// first error
+		assert.Contains(t, err.Error(), "couldn't read key")
+	}
+}
+
+func TestNewChefClientCredsWithEmptyKey(t *testing.T) {
+	createCredentialsConfig(t)
+	defer os.RemoveAll(".chef") // clean up
+
+	cfg, err := subject.NewDefault()
+	if assert.Nil(t, err) {
+		assert.NotNil(t, cfg)
+
+		// activate a profile that has an empty key pem
+		err := cfg.SwitchProfile("empty")
+		assert.Nil(t, err)
+
+		client, err := subject.NewChefClient(&cfg)
+		assert.Nil(t, client)
+		if assert.NotNil(t, err) {
+			assert.Contains(t, err.Error(), "unable to setup an API client")
+			assert.Contains(t, err.Error(), "private key block size invalid")
+		}
+	}
+}

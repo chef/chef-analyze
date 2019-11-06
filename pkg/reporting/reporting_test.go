@@ -95,6 +95,11 @@ chef_server_url = "chef-server.example.com/organizations/bubu"
 client_name = "dev"
 client_key = ".chef/dev.pem"
 chef_server_url = "chef-server.example.com/organizations/dev"
+
+[empty]
+client_name = "empty"
+client_key = ".chef/empty.pem"
+chef_server_url = "chef-server.example.com/organizations/empty"
 `)
 	err := ioutil.WriteFile(".chef/credentials", creds, 0644)
 	if err != nil {
@@ -105,6 +110,10 @@ chef_server_url = "chef-server.example.com/organizations/dev"
 		t.Fatal(err)
 	}
 	err = ioutil.WriteFile(".chef/dev.pem", key(), 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = ioutil.WriteFile(".chef/empty.pem", []byte(""), 0644)
 	if err != nil {
 		t.Fatal(err)
 	}

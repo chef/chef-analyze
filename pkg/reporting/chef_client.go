@@ -42,7 +42,7 @@ func NewChefClient(cfg *Reporting) (*chef.Client, error) {
 		SkipSSL: cfg.NoSSLVerify,
 	})
 	if err != nil {
-		return nil, errors.Wrap(err, "unable setup a Chef client")
+		return nil, errors.Wrap(err, "unable to setup an API client")
 	}
 
 	return client, nil
