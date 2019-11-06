@@ -21,30 +21,28 @@ import (
 
 	chef "github.com/chef/go-chef"
 	"github.com/pkg/errors"
-
-	"github.com/chef/chef-analyze/pkg/config"
 )
 
 // creates a new Chef Client instance by stablishing a connection
-// with the loaded Config
-func NewChefClient(c *config.Config) (*chef.Client, error) {
+// with the loaded credentials
+func NewChefClient(cfg *Reporting) (*chef.Client, error) {
 	// read the client key
-	key, err := ioutil.ReadFile(c.ClientKey)
+	key, err := ioutil.ReadFile(cfg.ClientKey)
 	if err != nil {
-		return nil, errors.Wrapf(err, "couldn't read key '%s'", c.ClientKey)
+		return nil, errors.Wrapf(err, "couldn't read key '%s'", cfg.ClientKey)
 	}
 
 	// create a chef client
 	client, err := chef.NewClient(&chef.Config{
-		Name: c.ClientName,
+		Name: cfg.ClientName,
 		Key:  string(key),
 		// TODO @afiune fix this upstream, if you do not add a '/' at the end of th URL
 		// the client will be malformed for any further request
-		BaseURL: c.ChefServerUrl + "/",
-		SkipSSL: c.SkipSSL,
+		BaseURL: cfg.ChefServerUrl + "/",
+		SkipSSL: cfg.NoSSLVerify,
 	})
 	if err != nil {
-		return nil, errors.Wrap(err, "unable setup a Chef client")
+		return nil, errors.Wrap(err, "unable to setup an API client")
 	}
 
 	return client, nil

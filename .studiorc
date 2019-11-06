@@ -51,7 +51,7 @@ function unit_tests() {
 function code_coverage() {
   ( cd /src || return 1
     mkdir -p coverage/
-    unit_tests
+    unit_tests || return 1
     log_line "Generating coverage profile information for each function ($(yellow /src/$coverage_txt))"
     go tool cover -func=$coverage_out -o  $coverage_txt
     cat $coverage_txt

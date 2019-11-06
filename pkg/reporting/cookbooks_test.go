@@ -14,24 +14,17 @@
 // limitations under the License.
 //
 
-package config
+package reporting_test
 
-//
-// The intend of this file is to have a single place where we can easily
-// visualize the list of all error messages that we present to users.
-//
+import (
+	"testing"
 
-const (
-	ConfigTomlNotFoundErr = `
-  config.toml file not found. (default: $HOME/.chef-workstation/config.toml)
+	"github.com/stretchr/testify/assert"
 
-  setup your local configuration file by following this documentation:
-    - https://www.chef.sh/docs/reference/config/
-`
-	MalformedConfigTomlFileErr = `
-  unable to parse config.toml file.
-
-  verify the format of the configuration file by following this documentation:
-    - https://www.chef.sh/docs/reference/config/
-`
+	subject "github.com/chef/chef-analyze/pkg/reporting"
 )
+
+func TestNodes(t *testing.T) {
+	err := subject.Nodes(&subject.Reporting{})
+	assert.NotNil(t, err)
+}

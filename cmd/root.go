@@ -23,7 +23,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"github.com/chef/chef-analyze/pkg/config"
+	"github.com/chef/chef-analyze/pkg/credentials"
 )
 
 var (
@@ -33,7 +33,7 @@ var (
 		clientKey     string
 		chefServerUrl string
 		profile       string
-		noSSLCheck    bool
+		noSSLverify   bool
 	}
 	rootCmd = &cobra.Command{
 		Use:   "chef-analyze",
@@ -79,8 +79,8 @@ func init() {
 		"Chef Infra Server URL",
 	)
 	rootCmd.PersistentFlags().BoolVarP(
-		&globalFlags.noSSLCheck,
-		"no-ssl-check", "o", false,
+		&globalFlags.noSSLverify,
+		"ssl-no-verify", "o", false,
 		"Disable SSL certificate verification",
 	)
 	// @afiune we can't use viper to bind the flags since our config doesn't really match
@@ -104,7 +104,7 @@ func initConfig() {
 		viper.SetConfigFile(globalFlags.credsFile)
 	} else {
 		// Find the credentials and pass it to viper
-		credsFile, err := config.FindCredentialsFile()
+		credsFile, err := credentials.FindCredentialsFile()
 		// @afiune we don't exit with and error code here because if we do
 		// the user will never be able to fix the config with the commands:
 		// $ chef-analyze config init
@@ -150,8 +150,8 @@ func isHelpCommand() bool {
 }
 
 // overrides the credentials from the viper bound flags
-func overrideCredentials() config.OverrideFunc {
-	return func(c *config.Config) {
+func overrideCredentials() credentials.OverrideFunc {
+	return func(c *credentials.Credentials) {
 		if globalFlags.clientName != "" {
 			c.ClientName = globalFlags.clientName
 		}
@@ -160,9 +160,6 @@ func overrideCredentials() config.OverrideFunc {
 		}
 		if globalFlags.chefServerUrl != "" {
 			c.ChefServerUrl = globalFlags.chefServerUrl
-		}
-		if globalFlags.noSSLCheck {
-			c.SkipSSL = true
 		}
 	}
 }

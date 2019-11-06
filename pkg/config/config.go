@@ -18,205 +18,98 @@ package config
 
 import (
 	"io/ioutil"
-	"os"
-	"path/filepath"
+	"strings"
 
 	"github.com/BurntSushi/toml"
 	"github.com/pkg/errors"
-	"github.com/spf13/viper"
 )
 
-const (
-	DefaultProfileName         = "default"
-	DefaultChefDirectory       = ".chef"
-	DefaultCredentialsFileName = "credentials"
-)
-
-// the credentials from a single profile
-type Credentials struct {
-	ChefServerUrl string `toml:"chef_server_url" mapstructure:"chef_server_url"`
-	ClientName    string `toml:"client_name" mapstructure:"client_name"`
-	ClientKey     string `toml:"client_key" mapstructure:"client_key"`
-}
-
-// a list of credentials, this type maps exactly as our .chef/credentials file
-//
-// example:
-//
-// [default]
-// client_name = "foo"
-// client_key = "foo.pem"
-// chef_server_url = "chef-server.example.com/organizations/bubu"
-//
-// [dev]
-// client_name = "dev"
-// client_key = "dev.pem"
-// chef_server_url = "chef-server.example.com/organizations/dev"
-//
-type Profiles map[string]Credentials
-
-// main config that holds all profiles, active profile and credentials
-// plus a Chef API client to connect to a Chef Infra Server
+// abstraction of the chef-workstation configuration file (config.toml)
 type Config struct {
-	// list of all profiles available
-	Profiles
-	// active profile (private)
-	// @afiune to change the active profile use SwitchProfile("dev")
-	profile string
-	// active Credentials from the active profile
-	Credentials
-	// skip the SSL certificate verification
-	SkipSSL bool
+	Telemetry     telemetrySettings `toml:"telemetry" mapstructure:"telemetry"`
+	Log           logSettings       `toml:"log" mapstructure:"log"`
+	Cache         cacheSettings     `toml:"cache" mapstructure:"cache"`
+	Chef          chefSettings      `toml:"chef" mapstructure:"chef"`
+	Updates       updatesSettings   `toml:"updates" mapstructure:"updates"`
+	DataCollector dcSettings        `toml:"data_collector" mapstructure:"data_collector"`
+	Connection    connSettings      `toml:"connection" mapstructure:"connection"`
+	Features      map[string]bool   `toml:"features" mapstructure:"features"`
+	Dev           devSettings       `toml:"dev" mapstructure:"dev"`
 }
 
-// returns the active profile
-func (c *Config) ActiveProfile() string {
-	return c.profile
+type telemetrySettings struct {
+	Enable bool `toml:"enable" mapstructure:"enable"`
+	Dev    bool `toml:"dev" mapstructure:"dev"`
 }
 
-// switch the active profile inside the config
-func (c *Config) SwitchProfile(name string) error {
-	if len(c.Profiles) == 0 {
-		return errors.New(ProfileNotFoundErr)
-	}
-	if creds, ok := c.Profiles[name]; ok {
-		c.Credentials = creds
-		c.profile = name
-		return nil
-	}
-	return errors.New(ProfileNotFoundErr)
+type logSettings struct {
+	Level    string `toml:"level" mapstructure:"level"`
+	Location string `toml:"location" mapstructure:"location"`
 }
 
-// override functions can be passed to config.FromViper to override
-// any configuration setting
+type cacheSettings struct {
+	Path string `toml:"path" mapstructure:"path"`
+}
+
+type chefSettings struct {
+	TrustedCertsDir   string   `toml:"trusted_certs_dir" mapstructure:"trusted_certs_dir"`
+	CookbookRepoPaths []string `toml:"cookbook_repo_paths" mapstructure:"cookbook_repo_paths"`
+}
+
+type updatesSettings struct {
+	Enable          bool   `toml:"enable" mapstructure:"enable"`
+	Channel         string `toml:"channel" mapstructure:"channel"`
+	IntervalMinutes int    `toml:"interval_minutes" mapstructure:"interval_minutes"`
+}
+
+type dcSettings struct {
+	Url   string `toml:"url" mapstructure:"url"`
+	Token string `toml:"token" mapstructure:"token"`
+}
+
+type connSettings struct {
+	DefaultProtocol string           `toml:"default_protocol" mapstructure:"default_protocol"`
+	DefaultUser     string           `toml:"default_user" mapstructure:"default_user"`
+	WinRM           protocolSettings `toml:"winrm" mapstructure:"winrm"`
+	SSH             protocolSettings `toml:"ssh" mapstructure:"ssh"`
+}
+
+type protocolSettings struct {
+	SSL       bool `toml:"ssl" mapstructure:"ssl"`
+	SSLVerify bool `toml:"ssl_verify" mapstructure:"ssl_verify"`
+}
+
+type devSettings struct {
+	Spinner bool `toml:"spinner" mapstructure:"spinner"`
+}
+
+// override functions to override any particular setting
 type OverrideFunc func(*Config)
 
-// returns a Config instance from the current viper config
-func FromViper(profile string, overrides ...OverrideFunc) (*Config, error) {
-	if viper.ConfigFileUsed() == "" {
-		return nil, errors.New(CredentialsNotFoundErr)
-	}
+// returns a new Config instance
+func New(overrides ...OverrideFunc) (Config, error) {
+	cfg := Config{}
 
-	if err := viper.ReadInConfig(); err != nil {
-		//debug("Using config file:", viper.ConfigFileUsed())
-		return nil, errors.Wrapf(err, "unable to read config from '%s'", viper.ConfigFileUsed())
-	}
-
-	// TODO @afiune add a mechanism to log debug messages
-	//debug("using config file:", viper.ConfigFileUsed())
-
-	profiles := Profiles{}
-	// Unmarshall the viper config
-	if err := viper.Unmarshal(&profiles); err != nil {
-		return nil, errors.Wrap(err, MalformedCredentialsFileErr)
-	}
-
-	cfg := &Config{Profiles: profiles}
-	if err := cfg.SwitchProfile(profile); err != nil {
+	configToml, err := FindChefWorkstationConfigFile()
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			return cfg, errors.New(ConfigTomlNotFoundErr)
+		}
 		return cfg, err
 	}
 
-	for _, f := range overrides {
-		f(cfg)
-	}
-
-	return cfg, nil
-}
-
-// returns a Config instance using the default profile
-func NewDefault() (*Config, error) {
-	return New(DefaultProfileName)
-}
-
-// returns a Config instance using the provided profile
-func New(profile string, overrides ...OverrideFunc) (*Config, error) {
-	credsFile, err := FindCredentialsFile()
+	configBytes, err := ioutil.ReadFile(configToml)
 	if err != nil {
-		// @afiune wrap it with useful message
-		return nil, err
+		return cfg, errors.Wrapf(err, "unable to read config.toml from '%s'", configToml)
 	}
 
-	credsBytes, err := ioutil.ReadFile(credsFile)
-	if err != nil {
-		// @afiune wrap it with useful message
-		return nil, err
-	}
-
-	profiles := Profiles{}
-	if _, err := toml.Decode(string(credsBytes), &profiles); err != nil {
-		// @afiune wrap it with useful message
-		return nil, err
-	}
-
-	cfg := &Config{Profiles: profiles}
-	if err := cfg.SwitchProfile(profile); err != nil {
-		return cfg, err
+	if _, err := toml.Decode(string(configBytes), &cfg); err != nil {
+		return cfg, errors.Wrap(err, MalformedConfigTomlFileErr)
 	}
 
 	for _, f := range overrides {
-		f(cfg)
+		f(&cfg)
 	}
 
 	return cfg, nil
-}
-
-// finds the credentials file (default .chef/credentials) inside the current
-// directory and recursively, plus inside the $HOME directory
-func FindCredentialsFile() (string, error) {
-	return FindConfigFile(DefaultCredentialsFileName)
-}
-
-// @afiune do we want to find other files like knife.rb and config.rb?
-//func FindKnifeRbFile() (string, error) {
-//return FindConfigFile("knife.rb")
-//}
-//func FindConfigRbFile() (string, error) {
-//return FindConfigFile("config.rb")
-//}
-
-// finds the provided configuration file inside the current
-// directory and recursively, plus inside the $HOME directory
-func FindConfigFile(name string) (string, error) {
-	cwd, err := os.Getwd()
-	if err != nil {
-		return "", errors.Wrap(err, "unable to detect current directory")
-	}
-
-	var previous string
-	for {
-		configFile := filepath.Join(cwd, DefaultChefDirectory, name)
-		if configFile == previous {
-			break
-		}
-
-		//debug("searching config in: %s\n", configFile)
-
-		if _, err := os.Stat(configFile); err == nil {
-			// config file found
-			return configFile, nil
-		}
-
-		// save the config file as previous, why? we need a way
-		// to stop the for loop from going in an infinite loop
-		previous = configFile
-		// go down the directory tree
-		cwd = filepath.Join(cwd, "..")
-	}
-
-	// if we were unable to find the config file inside the current
-	// directory and recursively, then try inside the home directory
-	// @afiune what about using github.com/mitchellh/go-homedir
-	// => homedir.Dir()
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", errors.Wrap(err, "unable to detect home directory")
-	}
-	configFile := filepath.Join(home, DefaultChefDirectory, name)
-	if _, err := os.Stat(configFile); err == nil {
-		// config file found
-		return configFile, nil
-	}
-
-	// @afiune tell the user the paths we tried to find it?
-	return "", errors.Errorf("file '%s' not found", name)
 }

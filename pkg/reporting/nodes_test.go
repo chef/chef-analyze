@@ -21,11 +21,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/chef/chef-analyze/pkg/config"
 	subject "github.com/chef/chef-analyze/pkg/reporting"
 )
 
 func TestCookbooks(t *testing.T) {
-	err := subject.Cookbooks(&config.Config{})
+	err := subject.Cookbooks(&subject.Reporting{})
 	assert.NotNil(t, err)
 }
