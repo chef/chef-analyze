@@ -35,43 +35,26 @@ func FindChefWorkstationConfigFile() (string, error) {
 	return FindConfigFile(DefaultFileName)
 }
 
-// finds the provided configuration file inside the current
-// directory and recursively, plus inside the $HOME directory
+// finds the provided configuration file name inside the
+// current directory, if the file is not there the, it
+// looks up inside the users $HOME directory
 func FindConfigFile(name string) (string, error) {
 	cwd, err := os.Getwd()
 	if err != nil {
 		return "", errors.Wrap(err, "unable to detect current directory")
 	}
 
-	var previous string
-	for {
-		if cwd == previous {
-			break
-		}
-
-		//debug("searching config in: %s\n", cwd)
-
-		configFile, exists := configFileExistsInsideDefaultDirectories(cwd, name)
-		if exists {
-			return configFile, nil
-		}
-
-		// save the config file as previous, why? we need a way
-		// to stop the for loop from going in an infinite loop
-		previous = cwd
-		// go down the directory tree
-		cwd = filepath.Join(cwd, "..")
+	//debug("searching config in: %s\n", cwd)
+	configFile, exists := configFileExistsInsideDefaultDirectories(cwd, name)
+	if exists {
+		return configFile, nil
 	}
 
-	// if we were unable to find the config file inside the current
-	// directory and recursively, then try inside the home directory
-	// @afiune what about using github.com/mitchellh/go-homedir
-	// => homedir.Dir()
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", errors.Wrap(err, "unable to detect home directory")
 	}
-	configFile, exists := configFileExistsInsideDefaultDirectories(home, name)
+	configFile, exists = configFileExistsInsideDefaultDirectories(home, name)
 	if exists {
 		return configFile, nil
 	}
@@ -81,7 +64,7 @@ func FindConfigFile(name string) (string, error) {
 }
 
 // verify if a config file exists inside any of the default directories
-// directories: ['.chef/', '.chef-workstation/']
+// => current directories: ['.chef/', '.chef-workstation/']
 func configFileExistsInsideDefaultDirectories(dir, name string) (string, bool) {
 	// search inside .chef/
 	cfgFileFromChefDir := filepath.Join(dir, DefaultChefDirectory, name)
