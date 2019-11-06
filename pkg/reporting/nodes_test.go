@@ -25,6 +25,6 @@ import (
 )
 
 func TestCookbooks(t *testing.T) {
-	err := subject.Cookbooks(&subject.Config{})
+	err := subject.Cookbooks(&subject.Reporting{})
 	assert.NotNil(t, err)
 }

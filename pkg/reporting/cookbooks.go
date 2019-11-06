@@ -23,7 +23,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func Cookbooks(cfg *Config) error {
+func Cookbooks(cfg *Reporting) error {
 	chefClient, err := NewChefClient(cfg)
 	if err != nil {
 		return err

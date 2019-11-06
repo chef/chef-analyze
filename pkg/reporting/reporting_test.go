@@ -26,7 +26,7 @@ import (
 	subject "github.com/chef/chef-analyze/pkg/reporting"
 )
 
-func TestConfigWithDefaults(t *testing.T) {
+func TestReportingWithDefaults(t *testing.T) {
 	createCredentialsConfig(t)
 	defer os.RemoveAll(".chef") // clean up
 	createConfigToml(t)
@@ -47,12 +47,12 @@ func TestConfigWithDefaults(t *testing.T) {
 	}
 }
 
-func TestConfigWirhOverrides(t *testing.T) {
+func TestReportingWirhOverrides(t *testing.T) {
 	createCredentialsConfig(t)
 	defer os.RemoveAll(".chef") // clean up
 
 	cfg, err := subject.NewDefault(
-		func(c *subject.Config) {
+		func(c *subject.Reporting) {
 			c.NoSSLVerify = true
 		},
 	)
@@ -65,14 +65,14 @@ func TestConfigWirhOverrides(t *testing.T) {
 }
 
 // NOTE: @afiune we don't report an error if we were unable to load the config.toml
-func TestConfigNewDefaultErrorWithoutCredentials(t *testing.T) {
+func TestReportingNewDefaultErrorWithoutCredentials(t *testing.T) {
 	cfg, err := subject.NewDefault()
 	if assert.NotNil(t, err) {
 		assert.Contains(t, err.Error(), "credentials file not found")
 		assert.Contains(t, err.Error(), "default: $HOME/.chef/credentials")
 		assert.Contains(t, err.Error(), "setup your local credentials config by following this documentation")
 		assert.Contains(t, err.Error(), "https://docs.chef.io/knife_setup.html#knife-profiles")
-		assert.Equal(t, subject.Config{}, cfg)
+		assert.Equal(t, subject.Reporting{}, cfg)
 	}
 }
 

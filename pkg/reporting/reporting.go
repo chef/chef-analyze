@@ -21,7 +21,7 @@ import (
 	"github.com/chef/chef-analyze/pkg/credentials"
 )
 
-type Config struct {
+type Reporting struct {
 	// our Config (default: $HOME/.chef-workstation/config.toml)
 	config.Config
 	// our Credentials (default: $HOME/.chef/credentials)
@@ -30,12 +30,12 @@ type Config struct {
 	NoSSLVerify bool
 }
 
-// override functions to override any particular setting
-type OverrideFunc func(*Config)
+// override functions to override any particular setting from the a reporting struct
+type OverrideFunc func(*Reporting)
 
 // returns a reporting Config instance using the defaults
-func NewDefault(overrides ...OverrideFunc) (Config, error) {
-	rCfg := Config{}
+func NewDefault(overrides ...OverrideFunc) (Reporting, error) {
+	rCfg := Reporting{}
 
 	creds, err := credentials.NewDefault()
 	if err != nil {

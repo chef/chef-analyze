@@ -40,11 +40,12 @@ var (
 			if err != nil {
 				return err
 			}
-			// @afiune here we can load our config
-			cfg := &reporting.Config{Credentials: creds}
+
+			cfg := &reporting.Reporting{Credentials: creds}
 			if globalFlags.noSSLverify {
 				cfg.NoSSLVerify = true
 			}
+
 			return reporting.Cookbooks(cfg)
 		},
 	}
@@ -60,11 +61,12 @@ var (
 			if err != nil {
 				return err
 			}
-			// @afiune here we can load our config
-			cfg := &reporting.Config{Credentials: creds}
+
+			cfg := &reporting.Reporting{Credentials: creds}
 			if globalFlags.noSSLverify {
 				cfg.NoSSLVerify = true
 			}
+
 			return reporting.Nodes(cfg)
 		},
 	}

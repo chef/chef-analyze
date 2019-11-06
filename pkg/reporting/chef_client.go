@@ -25,7 +25,7 @@ import (
 
 // creates a new Chef Client instance by stablishing a connection
 // with the loaded credentials
-func NewChefClient(cfg *Config) (*chef.Client, error) {
+func NewChefClient(cfg *Reporting) (*chef.Client, error) {
 	// read the client key
 	key, err := ioutil.ReadFile(cfg.ClientKey)
 	if err != nil {

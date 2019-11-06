@@ -25,6 +25,6 @@ import (
 )
 
 func TestNodes(t *testing.T) {
-	err := subject.Nodes(&subject.Config{})
+	err := subject.Nodes(&subject.Reporting{})
 	assert.NotNil(t, err)
 }

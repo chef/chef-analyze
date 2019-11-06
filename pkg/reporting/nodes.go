@@ -22,7 +22,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func Nodes(cfg *Config) error {
+func Nodes(cfg *Reporting) error {
 	var (
 		query = map[string]interface{}{
 			"name":         []string{"name"},

@@ -35,14 +35,6 @@ func FindChefWorkstationConfigFile() (string, error) {
 	return FindConfigFile(DefaultFileName)
 }
 
-// @afiune do we want to find other files like knife.rb and config.rb?
-//func FindKnifeRbFile() (string, error) {
-//return FindConfigFile("knife.rb")
-//}
-//func FindConfigRbFile() (string, error) {
-//return FindConfigFile("config.rb")
-//}
-
 // finds the provided configuration file inside the current
 // directory and recursively, plus inside the $HOME directory
 func FindConfigFile(name string) (string, error) {
