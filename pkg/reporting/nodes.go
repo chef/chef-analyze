@@ -2,6 +2,7 @@ package reporting
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/pkg/errors"
 
@@ -29,22 +30,18 @@ type PartialSearchInterface interface {
 	PartialExec(idx, statement string, params map[string]interface{}) (res chef.SearchResult, err error)
 }
 
-// TODO - should we offer this here as part of the struct, or allow the caller to handle it?
 func (nri NodeReportItem) Array() []string {
-	var cookbooks string
+	var cookbooks []string
 	for _, v := range nri.CookbookVersions {
-		cookbooks = cookbooks + v.String() + " "
+		cookbooks = append(cookbooks, v.String())
 	}
 	return []string{nri.Name,
 		nri.ChefVersion,
 		nri.OS,
 		nri.OSVersion,
-		cookbooks}
+		strings.Join(cookbooks, " "),
+	}
 }
-
-// func (nri NodeReportItem) String() string {
-//   return ""
-// }
 
 // NOTE - we no longer need cfg. I'm not sure that this is best - I like having a single
 //        cfg which includes the client, but did not want to create a full mock interface for

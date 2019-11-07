@@ -12,8 +12,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var ()
-
 type PartialSearchMock struct {
 	desiredError   error
 	desiredResults chef.SearchResult
@@ -44,6 +42,8 @@ func testErrorResult(t *testing.T, cfg *reporting.Reporting) {
 }
 
 func testValidResultsWithNulls(t *testing.T, cfg *reporting.Reporting) {
+	// It's a little less verbose and a little more readable to format
+	// this as JSON then convert it where we need it than to create it as a golang map.
 	rows := `[
     { "data" : {"name" : "node1", "chef_version": "12.22", "os" : "windows", "os_version": "10.1",   "cookbooks" : { "mycookbook" : { "version" : "1.0" } } } },
     { "data" : {"name" : "node2", "chef_version": "13.11", "os" : null,       "os_version":    null, "cookbooks" : { "mycookbook" : { "version" : "1.0" } , "test" : { "version" : "9.9" } } } },
@@ -91,10 +91,7 @@ func makeMockSearch(searchResultJSON string, desiredError error) PartialSearchMo
 		if err != nil {
 			panic(err)
 		}
-	} else {
 	}
-
 	result := chef.SearchResult{Rows: convertedSearchResult}
-
 	return PartialSearchMock{desiredError: desiredError, desiredResults: result}
 }
