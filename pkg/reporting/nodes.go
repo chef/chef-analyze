@@ -14,7 +14,7 @@ type CookbookVersion struct {
 	Version string
 }
 
-func (cbv CookbookVersion) String() string {
+func (cbv *CookbookVersion) String() string {
 	return fmt.Sprintf("%s(%s)", cbv.Name, cbv.Version)
 }
 
@@ -30,7 +30,7 @@ type PartialSearchInterface interface {
 	PartialExec(idx, statement string, params map[string]interface{}) (res chef.SearchResult, err error)
 }
 
-func (nri NodeReportItem) Array() []string {
+func (nri *NodeReportItem) Array() []string {
 	var cookbooks []string
 	for _, v := range nri.CookbookVersions {
 		cookbooks = append(cookbooks, v.String())
@@ -60,8 +60,7 @@ func Nodes(cfg *Reporting, searcher PartialSearchInterface) ([]NodeReportItem, e
 
 	pres, err := searcher.PartialExec("node", "*:*", query)
 	if err != nil {
-		e := errors.Wrap(err, "unable to get node(s) information")
-		return nil, e
+		return nil, errors.Wrap(err, "unable to get node(s) information")
 	}
 
 	// We use len here and not pres.Rows, because when caller does not have permissions to
