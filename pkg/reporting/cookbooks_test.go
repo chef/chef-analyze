@@ -24,7 +24,7 @@ import (
 	subject "github.com/chef/chef-analyze/pkg/reporting"
 )
 
-func TestNodes(t *testing.T) {
-	err := subject.Nodes(&subject.Reporting{})
+func TestCookbooks(t *testing.T) {
+	err := subject.Cookbooks(&subject.Reporting{})
 	assert.NotNil(t, err)
 }
