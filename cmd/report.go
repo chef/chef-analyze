@@ -26,7 +26,7 @@ import (
 var (
 	reportCmd = &cobra.Command{
 		Use:   "report",
-		Short: "Generate reports about your Chef inventory",
+		Short: "Generate reports from a Chef Infra Server",
 	}
 	reportCookbooksCmd = &cobra.Command{
 		Use:   "cookbooks",

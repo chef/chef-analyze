@@ -37,10 +37,10 @@ var (
 	}
 	rootCmd = &cobra.Command{
 		Use:   "chef-analyze",
-		Short: "Analyze your Chef inventory",
-		Long: `Analyze your Chef inventory by generating reports to understand the effort
-to upgrade to the latest version of the Chef tools, automatically fixing
-violations and/or deprecations, and generating Effortless packages.
+		Short: "A CLI to analyze artifacts from a Chef Infra Server",
+		Long: `Analyze your Chef Infra Server artifacts to understand the effort to upgrade
+your infrastructure by generating reports, automatically fixing violations
+and/or deprecations, and generating Effortless packages.
 `,
 	}
 )
