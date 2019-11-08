@@ -290,7 +290,7 @@ func TestAppMalformedConfigError(t *testing.T) {
 	createAppConfigTomlMalformed(t)
 	defer os.RemoveAll(subject.DefaultChefWorkstationDirectory) // clean up
 
-	cfg, err := subject.App()
+	_, err := subject.App()
 	if assert.NotNil(t, err) {
 		assert.Contains(t, err.Error(), "unable to parse .app-managed-config.toml file.")
 		assert.Contains(t, err.Error(), "there must be a problem with the Chef Workstation App, verify the format of the configuration by following this documentation")
