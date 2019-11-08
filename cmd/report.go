@@ -17,6 +17,9 @@
 package cmd
 
 import (
+	"os"
+
+	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 
 	"github.com/chef/chef-analyze/pkg/credentials"
@@ -26,7 +29,7 @@ import (
 var (
 	reportCmd = &cobra.Command{
 		Use:   "report",
-		Short: "Generate reports about your Chef inventory",
+		Short: "Generate reports from a Chef Infra Server",
 	}
 	reportCookbooksCmd = &cobra.Command{
 		Use:   "cookbooks",
@@ -40,7 +43,6 @@ var (
 			if err != nil {
 				return err
 			}
-
 			cfg := &reporting.Reporting{Credentials: creds}
 			if globalFlags.noSSLverify {
 				cfg.NoSSLVerify = true
@@ -58,6 +60,7 @@ var (
 				globalFlags.profile,
 				overrideCredentials(),
 			)
+
 			if err != nil {
 				return err
 			}
@@ -67,7 +70,18 @@ var (
 				cfg.NoSSLVerify = true
 			}
 
-			return reporting.Nodes(cfg)
+			chefClient, err := reporting.NewChefClient(cfg)
+			if err != nil {
+				return err
+			}
+
+			results, err := reporting.Nodes(cfg, chefClient.Search)
+			if err != nil {
+				return err
+			}
+
+			writeNodeReport(results)
+			return nil
 		},
 	}
 )
@@ -79,4 +93,17 @@ func init() {
 	// adds the nodes command as a sub-command of the report command
 	// => chef-analyze report nodes
 	reportCmd.AddCommand(reportNodesCmd)
+}
+func writeNodeReport(records []reporting.NodeReportItem) {
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader([]string{"Node Name", "Chef Version", "OS", "OS Version", "Cookbooks"})
+	table.SetReflowDuringAutoWrap(true)
+	table.SetRowLine(true)
+	table.SetAutoWrapText(true)
+	table.SetReflowDuringAutoWrap(true)
+	table.SetBorder(true)
+	for _, record := range records {
+		table.Append(record.Array())
+	}
+	table.Render()
 }

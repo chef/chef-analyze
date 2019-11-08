@@ -1,16 +1,16 @@
 # chef-analyze
 [![Build status](https://badge.buildkite.com/a5dfa44b20a6ec189a93bcbda031db452f1d964fa6836f7065.svg)](https://buildkite.com/chef/chef-chef-analyze-master-verify)
-[![Code coverage](https://img.shields.io/badge/coverage-83.5%25-green)](https://buildkite.com/chef/chef-chef-analyze-master-verify)
+[![Code coverage](https://img.shields.io/badge/coverage-87.0%25-green)](https://buildkite.com/chef/chef-chef-analyze-master-verify)
 
-A CLI to analyze your Chef Inventory.
+A CLI to analyze artifacts from a Chef Infra Server.
 
 **Umbrella Project**: [Chef Workstation](https://github.com/chef/chef-oss-practices/blob/master/projects/chef-workstation.md)
 
-**Project State**: [Active](https://github.com/chef/chef-oss-practices/blob/master/repo-management/repo-states.md#active)
+**Project State**: [Prototyping](https://github.com/chef/chef-oss-practices/blob/master/repo-management/repo-states.md#prototyping)
 
-**Issues [Response Time Maximum](https://github.com/chef/chef-oss-practices/blob/master/repo-management/repo-states.md)**: 14 days
+**Issues [Response Time Maximum](https://github.com/chef/chef-oss-practices/blob/master/repo-management/repo-states.md)**: Not yet defined
 
-**Pull Request [Response Time Maximum](https://github.com/chef/chef-oss-practices/blob/master/repo-management/repo-states.md)**: 14 days
+**Pull Request [Response Time Maximum](https://github.com/chef/chef-oss-practices/blob/master/repo-management/repo-states.md)**: Not yet defined
 
 ## Installation
 

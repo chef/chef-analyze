@@ -9,16 +9,16 @@ documentation of this tool in an early stage.
 ### Main help
 ```bash
 $ chef-analyze help
-Analyze your Chef inventory by generating reports to understand the effort
-to upgrade to the latest version of the Chef tools, automatically fixing
-violations and/or deprecations, and generating Effortless packages.
+Analyze your Chef Infra Server artifacts to understand the effort to upgrade
+your infrastructure by generating reports, automatically fixing violations
+and/or deprecations, and generating Effortless packages.
 
 Usage:
   chef-analyze [command]
 
 Available Commands:
   help        Help about any command
-  report      Generate reports about your Chef inventory
+  report      Generate reports from a Chef Infra Server
 
 Flags:
   -s, --chef_server_url string   Chef Infra Server URL
@@ -35,7 +35,7 @@ $
 ### `report` sub-command help
 ```
 $ chef-analyze report --help
-Generate reports about your Chef inventory
+Generate reports from a Chef Infra Server
 
 Usage:
   chef-analyze report [command]
