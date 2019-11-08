@@ -89,7 +89,10 @@ var (
 )
 
 func init() {
-	c, _ := config.New()
+	c, err := config.New()
+	if err != nil {
+		//debug("unable to load config: %s", err)
+	}
 	cfg = &c
 }
 

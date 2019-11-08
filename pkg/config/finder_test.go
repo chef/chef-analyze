@@ -104,11 +104,11 @@ func TestFindConfigFileExists(t *testing.T) {
 	}
 }
 
-func TestFindChefWorkstationConfigFileExists(t *testing.T) {
-	createConfigToml(t)
+func TestFindChefWSUserConfigFileExists(t *testing.T) {
+	createUserConfigToml(t)
 	defer os.RemoveAll(".chef-workstation") // clean up
 
-	configToml, err := subject.FindChefWorkstationConfigFile()
+	configToml, err := subject.FindChefWSUserConfigFile()
 	if assert.Nil(t, err) {
 		assert.NotEmpty(t, configToml, "the config.toml should be found")
 	}
