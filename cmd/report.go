@@ -17,6 +17,7 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/chef/go-libs/credentials"
@@ -84,6 +85,41 @@ var (
 			return nil
 		},
 	}
+	cookbookStateCmd = &cobra.Command{
+		Use:   "cookbook-state",
+		Short: "Generates cookbook report that shows current remediation state and usage",
+		Args:  cobra.NoArgs,
+		RunE: func(_ *cobra.Command, _ []string) error {
+			creds, err := credentials.FromViper(
+				globalFlags.profile,
+				overrideCredentials(),
+			)
+
+			if err != nil {
+				return err
+			}
+
+			cfg := &reporting.Reporting{Credentials: creds}
+			if globalFlags.noSSLverify {
+				cfg.NoSSLVerify = true
+			}
+
+			chefClient, err := reporting.NewChefClient(cfg)
+			if err != nil {
+				return err
+			}
+
+			results, err := reporting.CookbookState(cfg, chefClient.Cookbooks, chefClient.Search)
+			if err != nil {
+				return err
+			} else {
+				writeCookbookStateReport(results)
+			}
+
+			return nil
+
+		},
+	}
 )
 
 func init() {
@@ -93,6 +129,16 @@ func init() {
 	// adds the nodes command as a sub-command of the report command
 	// => chef-analyze report nodes
 	reportCmd.AddCommand(reportNodesCmd)
+	reportCmd.AddCommand(cookbookStateCmd)
+}
+
+// TODO different output depending on flags or TTY?
+
+func writeCookbookStateReport(records []*reporting.CookbookStateRecord) {
+	for _, record := range records {
+		fmt.Printf("%v (%v): %v violations, %v auto-correctable, %v nodes affected\n",
+			record.Name, record.Version, record.Violations, record.Autocorrectable, len(record.Nodes))
+	}
 }
 func writeNodeReport(records []reporting.NodeReportItem) {
 	table := tablewriter.NewWriter(os.Stdout)
