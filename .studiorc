@@ -25,6 +25,7 @@ function build_cross_platform() {
 
 function update_deps() {
   install_if_missing core/go go
+  install_if_missing core/git git
   ( cd /src || return 1
     GOFLAGS="" go get -u "$@"
     go mod vendor

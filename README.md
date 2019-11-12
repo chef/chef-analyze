@@ -71,8 +71,8 @@ For details about the code coverage open the generated HTML report located at `c
 
 ### Patching a local Chef Workstation Install
 You can override the `chef-analyze` binary that comes inside your local Chef Workstation install by
-running `make` at the top level folder of this repository. Then just simply run `chef-analyze` or
-`chef analyze` to use the top-level chef wrapper.
+running `make patch_local_workstation` at the top level folder of this repository. Then just simply
+run `chef-analyze` or `chef analyze` to use the top-level chef wrapper.
 
 ## Contributing
 
