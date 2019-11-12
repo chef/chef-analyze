@@ -4,7 +4,7 @@ go 1.13
 
 require (
 	github.com/BurntSushi/toml v0.3.1
-	github.com/afiune/godist v0.0.0-20191111224518-75a11ae637fb
+	github.com/afiune/godist v0.0.0-20191112171109-9f14d833c284
 	github.com/axw/gocov v1.0.0 // indirect
 	github.com/browsh-org/browsh v1.6.4 // indirect
 	github.com/buger/goterm v0.0.0-20181115115552-c206103e1f37 // indirect

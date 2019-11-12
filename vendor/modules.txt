@@ -1,6 +1,6 @@
 # github.com/BurntSushi/toml v0.3.1
 github.com/BurntSushi/toml
-# github.com/afiune/godist v0.0.0-20191111224518-75a11ae637fb
+# github.com/afiune/godist v0.0.0-20191112171109-9f14d833c284
 github.com/afiune/godist
 # github.com/chef/go-chef v0.3.1-0.20191022192238-9a61e1963868
 github.com/chef/go-chef
