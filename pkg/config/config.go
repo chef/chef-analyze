@@ -89,7 +89,9 @@ type OverrideFunc func(*Config)
 // returns a new Config instance with both config loaded,
 // the WS App (Tray) config and the User config
 func New(overrides ...OverrideFunc) (Config, error) {
-	// if the application config has an error, we ignore it
+	// the user should not be modifying the app config manually, so
+	// if there is an error loading it, something went wrong on our
+	// side and that should not stop the user from using the tool
 	cfg, err := App()
 	if err != nil {
 		//debug("unable to load application config: %s", err)
