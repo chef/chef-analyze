@@ -9,14 +9,9 @@ ifeq ($(UNAME_S),Darwin)
 endif
 BINARY:=chef-analyze_$(PLATFORM)
 
-# If we are running make in our CI pipeline, default to our go build cmd
-ifeq ($(CI),true)
 default: go-build
-else
-default: patch_local_workstation_install
-endif
 
-patch_local_workstation_install: build_cross_platform override_binary
+patch_local_workstation: build_cross_platform override_binary
 
 hab-build:
 	hab pkg build .
