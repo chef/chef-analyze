@@ -1,5 +1,7 @@
 # github.com/BurntSushi/toml v0.3.1
 github.com/BurntSushi/toml
+# github.com/afiune/godist v0.0.0-20191111224518-75a11ae637fb
+github.com/afiune/godist
 # github.com/chef/go-chef v0.3.1-0.20191022192238-9a61e1963868
 github.com/chef/go-chef
 # github.com/davecgh/go-spew v1.1.1
@@ -50,7 +52,7 @@ github.com/spf13/viper
 github.com/stretchr/testify/assert
 # github.com/subosito/gotenv v1.2.0
 github.com/subosito/gotenv
-# golang.org/x/sys v0.0.0-20191105231009-c1f44814a5cd
+# golang.org/x/sys v0.0.0-20191110163157-d32e6e3b99c4
 golang.org/x/sys/unix
 # golang.org/x/text v0.3.2
 golang.org/x/text/transform

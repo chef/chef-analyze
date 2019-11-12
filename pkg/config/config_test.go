@@ -31,7 +31,7 @@ func TestNewConfigNotFoundError(t *testing.T) {
 	if assert.NotNil(t, err) {
 		assert.Contains(t, err.Error(), "config.toml file not found. (default: $HOME/.chef-workstation/config.toml)")
 		assert.Contains(t, err.Error(), "setup your local configuration file by following this documentation:")
-		assert.Contains(t, err.Error(), "https://www.chef.sh/docs/reference/config/")
+		assert.Contains(t, err.Error(), "https://chef.sh/docs/reference/config/")
 		assert.Equal(t, subject.Config{}, cfg, "should return an empty config")
 	}
 }
@@ -81,7 +81,7 @@ func TestNewMalformedConfigError(t *testing.T) {
 	if assert.NotNil(t, err) {
 		assert.Contains(t, err.Error(), "unable to parse config.toml file.")
 		assert.Contains(t, err.Error(), "verify the format of the configuration file by following this documentation")
-		assert.Contains(t, err.Error(), "https://www.chef.sh/docs/reference/config/")
+		assert.Contains(t, err.Error(), "https://chef.sh/docs/reference/config/")
 		assert.Contains(t, err.Error(), "(last key parsed 'chef.cookbook_repo_paths'): expected a comma or array terminator")
 		assert.Equal(t, subject.Config{}, cfg, "should return an empty config")
 	}

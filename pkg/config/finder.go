@@ -23,6 +23,7 @@ import (
 	"github.com/pkg/errors"
 )
 
+// TODO: @afiune these variables to the 'dist' go package pattern
 const (
 	DefaultChefDirectory            = ".chef"
 	DefaultChefWorkstationDirectory = ".chef-workstation"

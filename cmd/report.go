@@ -17,19 +17,21 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 
 	"github.com/chef/chef-analyze/pkg/credentials"
+	"github.com/chef/chef-analyze/pkg/dist"
 	"github.com/chef/chef-analyze/pkg/reporting"
 )
 
 var (
 	reportCmd = &cobra.Command{
 		Use:   "report",
-		Short: "Generate reports from a Chef Infra Server",
+		Short: fmt.Sprintf("Generate reports from a %s", dist.ServerProduct),
 	}
 	reportCookbooksCmd = &cobra.Command{
 		Use:   "cookbooks",

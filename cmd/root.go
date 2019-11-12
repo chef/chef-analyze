@@ -24,6 +24,7 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/chef/chef-analyze/pkg/credentials"
+	"github.com/chef/chef-analyze/pkg/dist"
 )
 
 var (
@@ -36,7 +37,7 @@ var (
 		noSSLverify   bool
 	}
 	rootCmd = &cobra.Command{
-		Use:   "chef-analyze",
+		Use:   dist.Exec,
 		Short: "A CLI to analyze artifacts from a Chef Infra Server",
 		Long: `Analyze your Chef Infra Server artifacts to understand the effort to upgrade
 your infrastructure by generating reports, automatically fixing violations
