@@ -1,5 +1,6 @@
 //
 // Copyright 2019 Chef Software, Inc.
+// Author: Salim Afiune <afiune@chef.io>
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,52 +17,180 @@
 
 package featflag
 
-import "os"
+import (
+	"fmt"
+	"os"
+	"strings"
 
-type Feature int
-
-const (
-	ChefFeatAll Feature = iota
-	ChefFeatAnalyze
+	"github.com/chef/chef-analyze/pkg/config"
 )
 
-var featureFlags = map[Feature]string{
-	ChefFeatAll:     "CHEF_FEAT_ALL",
-	ChefFeatAnalyze: "CHEF_FEAT_ANALYZE",
+// this go library is an abstraction that manipulates feature flags through
+// environment variables and a configuration file, by default it contains
+// global flags that can be used in multiple go packages.
+//
+// example 1: use a global feature flag
+// ```go
+// if featflag.ChefFeatAnalyze.Enabled() {
+//   // the analyze feature is enabled, act upon it
+// }
+// ```
+//
+// example 2: define a local feature flag
+// ```go
+// chefFeatXYZ := featflag.New("CHEF_FEAT_XYZ", "xyz")
+// if chefFeatXYZ.Enabled() {
+//   // the XYZ feature is enabled, act upon it
+// }
+// ```
+type Feature struct {
+	// the key associated to the feature flag defined inside the configuration file (config.toml)
+	//
+	// example of a config key:
+	// ```toml
+	// [features]
+	// analyze = true
+	// xyz = false
+	// ```
+	configKey string
+
+	// the environment variable name associated to the feature flag
+	//
+	// example of environment variables:
+	// CHEF_FEAT_ANALYZE=true
+	// CHEF_FEAT_XYZ=true
+	envName string
 }
 
-func New(envName string) Feature {
-	feat := Feature(len(featureFlags) + 1 + int(ChefFeatAll))
-	featureFlags[feat] = envName
+// global vs local feature flags
+//
+// when do I define a global feature flag?
+// > when that flag is being used by multiple packages
+//
+// NOTE: all environment variables and config keys are unique
+var (
+	// this special feature will enable all features at once
+	ChefFeatAll = Feature{
+		configKey: "all",
+		envName:   "CHEF_FEAT_ALL",
+	}
+
+	// enables the chef-analyze feature
+	ChefFeatAnalyze = Feature{
+		configKey: "analyze",
+		envName:   "CHEF_FEAT_ANALYZE",
+	}
+
+	// a list of all feature flags, global and local
+	featureFlags = []Feature{ChefFeatAll, ChefFeatAnalyze}
+
+	// config instance to access feature keys
+	cfg *config.Config
+)
+
+func init() {
+	c, _ := config.New()
+	cfg = &c
+}
+
+// registers a new feature flag
+//
+// example of a new feature flag called 'foo':
+// ```go
+// chefFeatFoo := featflag.New("CHEF_FEAT_FOO", "foo")
+// chefFeatFoo.Enabled()  // returns true if the feature flag is enabled
+// ```
+func New(envName, key string) Feature {
+	// since all environment variables and config keys are unique,
+	// to protect them, this function will verify if there is a
+	// registered feature flag with any field, if so, it returns it
+	if feat, exist := GetFromEnv(envName); exist {
+		return *feat
+	}
+	if feat, exist := GetFromKey(key); exist {
+		return *feat
+	}
+
+	// create a new feature
+	feat := Feature{
+		configKey: key,
+		envName:   envName,
+	}
+
+	// register the new feature
+	featureFlags = append(featureFlags, feat)
+
 	return feat
 }
 
-func Get(envName string) (Feature, bool) {
-	for feat, name := range featureFlags {
-		if envName == name {
-			return feat, true
-		}
+// load a custom configuration instance,
+// this config is used inside the func 'Enabled()'
+func LoadConfig(c *config.Config) {
+	cfg = c
+}
+
+func ListAll() string {
+	list := make([]string, len(featureFlags))
+	for i, feat := range featureFlags {
+		list[i] = feat.String()
 	}
-	return -1, false
+
+	return strings.Join(list, " ")
 }
 
-func (feat Feature) Name() string {
-	name, _ := featureFlags[feat]
-	return name
+func (feat *Feature) String() string {
+	return fmt.Sprintf("(%s:%s)", feat.Key(), feat.Env())
 }
 
-func (feat Feature) Enabled() bool {
-	if feat != ChefFeatAll && ChefFeatAll.Enabled() {
+func (feat *Feature) Env() string {
+	return feat.envName
+}
+
+func (feat *Feature) Key() string {
+	return feat.configKey
+}
+
+func (feat *Feature) Equals(xfeat *Feature) bool {
+	if feat.String() == xfeat.String() {
 		return true
 	}
 
-	if os.Getenv(feat.Name()) == "" {
+	return false
+}
+
+// a feature flag is enabled when:
+//
+// 1) either the configured environment variable is set to any value or,
+// 2) the configured key is found and turned on inside the configuration file (config.toml)
+//
+// (the verification is done in that order)
+func (feat *Feature) Enabled() bool {
+	if !feat.Equals(&ChefFeatAll) && ChefFeatAll.Enabled() {
+		return true
+	}
+
+	if os.Getenv(feat.Env()) != "" {
+		// users can use any value to enable a feature flag
+		//
+		// example:
+		// CHEF_FEAT_ALL=true
+		// CHEF_FEAT_ALL=1
+		return true
+	}
+
+	return feat.valueFromConfig()
+}
+
+// extract the value from the loaded configuration
+func (feat *Feature) valueFromConfig() bool {
+	if cfg == nil {
 		return false
 	}
-	// @afiune do we want users to turn features with any value?
-	// or do we want to be explicit:
-	//
-	// CHEF_FEAT_ALL=true
-	// CHEF_FEAT_ALL=1
-	return true
+
+	value, ok := cfg.Features[feat.Key()]
+	if ok {
+		return value
+	}
+
+	return false
 }
