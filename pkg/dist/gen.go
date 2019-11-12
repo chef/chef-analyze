@@ -1,4 +1,4 @@
-// +build dist
+// +build skip
 
 // this file will be ignored for builds, but included for dependencies, it will
 // generate automatically a 'global.go' with a set of global variables
