@@ -1,5 +1,6 @@
 //
 // Copyright 2019 Chef Software, Inc.
+// Author: Salim Afiune <afiune@chef.io>
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,26 +15,30 @@
 // limitations under the License.
 //
 
-package config
-
-import "github.com/chef/chef-analyze/pkg/dist"
+package credentials
 
 //
 // The intend of this file is to have a single place where we can easily
 // visualize the list of all error messages that we present to users.
 //
 
-var (
-	ConfigTomlNotFoundErr = `
-  config.toml file not found. (default: $HOME/.chef-workstation/config.toml)
+const (
+	ProfileNotFoundErr = `
+  profile not found in credentials file.
 
-  setup your local configuration file by following this documentation:
-    - ` + dist.WSWebsite + `/docs/reference/config/
+  verify the format of the credentials file by following this documentation:
+    - https://docs.chef.io/knife_setup.html#knife-profiles
 `
-	MalformedConfigTomlFileErr = `
-  unable to parse config.toml file.
+	CredentialsNotFoundErr = `
+  credentials file not found. (default: $HOME/.chef/credentials)
 
-  verify the format of the configuration file by following this documentation:
-    - ` + dist.WSWebsite + `/docs/reference/config/
+  setup your local credentials config by following this documentation:
+    - https://docs.chef.io/knife_setup.html#knife-profiles
+`
+	MalformedCredentialsFileErr = `
+  unable to parse credentials file.
+
+  verify the format of the credentials file by following this documentation:
+    - https://docs.chef.io/knife_setup.html#knife-profiles
 `
 )

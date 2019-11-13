@@ -4,6 +4,9 @@ github.com/BurntSushi/toml
 github.com/afiune/godist
 # github.com/chef/go-chef v0.3.1-0.20191022192238-9a61e1963868
 github.com/chef/go-chef
+# github.com/chef/go-libs v0.0.0-20191113210636-f7d3e0e776b7
+github.com/chef/go-libs/config
+github.com/chef/go-libs/credentials
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
 # github.com/fsnotify/fsnotify v1.4.7
@@ -52,7 +55,7 @@ github.com/spf13/viper
 github.com/stretchr/testify/assert
 # github.com/subosito/gotenv v1.2.0
 github.com/subosito/gotenv
-# golang.org/x/sys v0.0.0-20191110163157-d32e6e3b99c4
+# golang.org/x/sys v0.0.0-20191113165036-4c7a9d0fe056
 golang.org/x/sys/unix
 # golang.org/x/text v0.3.2
 golang.org/x/text/transform

@@ -1,5 +1,6 @@
 //
 // Copyright 2019 Chef Software, Inc.
+// Author: Salim Afiune <afiune@chef.io>
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -86,25 +87,20 @@ type devSettings struct {
 // override functions to override any particular setting
 type OverrideFunc func(*Config)
 
-// returns a new Config instance
+// returns a new Config instance with both config loaded,
+// the WS App (Tray) config and the User config
 func New(overrides ...OverrideFunc) (Config, error) {
-	cfg := Config{}
-
-	configToml, err := FindChefWorkstationConfigFile()
+	// the user should not be modifying the app config manually, so
+	// if there is an error loading it, something went wrong on our
+	// side and that should not stop the user from using the tool
+	cfg, err := App()
 	if err != nil {
-		if strings.Contains(err.Error(), "not found") {
-			return cfg, errors.New(ConfigTomlNotFoundErr)
-		}
+		//debug("unable to load application config: %s", err)
+		cfg = Config{}
+	}
+
+	if err := cfg.MergeUserConfig(); err != nil {
 		return cfg, err
-	}
-
-	configBytes, err := ioutil.ReadFile(configToml)
-	if err != nil {
-		return cfg, errors.Wrapf(err, "unable to read config.toml from '%s'", configToml)
-	}
-
-	if _, err := toml.Decode(string(configBytes), &cfg); err != nil {
-		return cfg, errors.Wrap(err, MalformedConfigTomlFileErr)
 	}
 
 	for _, f := range overrides {
@@ -112,4 +108,82 @@ func New(overrides ...OverrideFunc) (Config, error) {
 	}
 
 	return cfg, nil
+}
+
+// returns a new Config with only the WS App (Tray) config loaded
+func App(overrides ...OverrideFunc) (Config, error) {
+	var (
+		cfg = Config{}
+		err = loadAppConfig(&cfg)
+	)
+
+	for _, f := range overrides {
+		f(&cfg)
+	}
+
+	return cfg, err
+}
+
+// returns a new Config with only the User config loaded (`config.toml`)
+func User(overrides ...OverrideFunc) (Config, error) {
+	var (
+		cfg = Config{}
+		err = loadUserConfig(&cfg)
+	)
+
+	for _, f := range overrides {
+		f(&cfg)
+	}
+
+	return cfg, err
+}
+
+func (c *Config) MergeAppConfig() error {
+	return loadAppConfig(c)
+}
+
+func (c *Config) MergeUserConfig() error {
+	return loadUserConfig(c)
+}
+
+func loadAppConfig(cfg *Config) error {
+	configToml, err := FindChefWSAppConfigFile()
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			return errors.New(AppConfigTomlNotFoundErr)
+		}
+		return err
+	}
+
+	configBytes, err := ioutil.ReadFile(configToml)
+	if err != nil {
+		return errors.Wrapf(err, "unable to read config.toml from '%s'", configToml)
+	}
+
+	if _, err := toml.Decode(string(configBytes), cfg); err != nil {
+		return errors.Wrap(err, AppConfigTomlMalformedErr)
+	}
+
+	return nil
+}
+
+func loadUserConfig(cfg *Config) error {
+	configToml, err := FindChefWSUserConfigFile()
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			return errors.New(UserConfigTomlNotFoundErr)
+		}
+		return err
+	}
+
+	configBytes, err := ioutil.ReadFile(configToml)
+	if err != nil {
+		return errors.Wrapf(err, "unable to read config.toml from '%s'", configToml)
+	}
+
+	if _, err := toml.Decode(string(configBytes), cfg); err != nil {
+		return errors.Wrap(err, UserConfigTomlMalformedErr)
+	}
+
+	return nil
 }

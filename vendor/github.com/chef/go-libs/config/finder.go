@@ -1,5 +1,6 @@
 //
 // Copyright 2019 Chef Software, Inc.
+// Author: Salim Afiune <afiune@chef.io>
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,29 +24,36 @@ import (
 	"github.com/pkg/errors"
 )
 
-// TODO: @afiune these variables to the 'dist' go package pattern
 const (
 	DefaultChefDirectory            = ".chef"
 	DefaultChefWorkstationDirectory = ".chef-workstation"
-	DefaultFileName                 = "config.toml"
+	DefaultChefWSUserConfigFile     = "config.toml"
+	DefaultChefWSAppConfigFile      = ".app-managed-config.toml"
 )
 
-// finds the configuration file (default .chef-workstation/config.toml) inside the current
-// directory and recursively, plus inside the $HOME directory
-func FindChefWorkstationConfigFile() (string, error) {
-	return FindConfigFile(DefaultFileName)
+// finds the user configuration file (default .chef-workstation/config.toml) inside the
+// current directory and recursively, plus inside the $HOME directory
+func FindChefWSUserConfigFile() (string, error) {
+	return FindConfigFile(DefaultChefWSUserConfigFile)
+}
+
+// finds the application configuration file (default .chef-workstation/.app-managed-config.toml)
+// inside the current directory and recursively, plus inside the $HOME directory
+func FindChefWSAppConfigFile() (string, error) {
+	return FindConfigFile(DefaultChefWSAppConfigFile)
 }
 
 // finds the provided configuration file name inside the
 // current directory, if the file is not there the, it
 // looks up inside the users $HOME directory
 func FindConfigFile(name string) (string, error) {
+	//debug("searching config file: %s", name)
 	cwd, err := os.Getwd()
 	if err != nil {
 		return "", errors.Wrap(err, "unable to detect current directory")
 	}
 
-	//debug("searching config in: %s\n", cwd)
+	//debug("searching in current dir: %s", cwd)
 	configFile, exists := configFileExistsInsideDefaultDirectories(cwd, name)
 	if exists {
 		return configFile, nil
@@ -55,12 +63,12 @@ func FindConfigFile(name string) (string, error) {
 	if err != nil {
 		return "", errors.Wrap(err, "unable to detect home directory")
 	}
+	//debug("searching in user home dir: %s", home)
 	configFile, exists = configFileExistsInsideDefaultDirectories(home, name)
 	if exists {
 		return configFile, nil
 	}
 
-	// @afiune tell the user the paths we tried to find it?
 	return "", errors.Errorf("file '%s' not found", name)
 }
 

@@ -17,8 +17,8 @@
 package reporting
 
 import (
-	"github.com/chef/chef-analyze/pkg/config"
-	"github.com/chef/chef-analyze/pkg/credentials"
+	"github.com/chef/go-libs/config"
+	"github.com/chef/go-libs/credentials"
 )
 
 type Reporting struct {

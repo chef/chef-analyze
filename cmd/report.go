@@ -20,10 +20,10 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/chef/go-libs/credentials"
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 
-	"github.com/chef/chef-analyze/pkg/credentials"
 	"github.com/chef/chef-analyze/pkg/dist"
 	"github.com/chef/chef-analyze/pkg/reporting"
 )

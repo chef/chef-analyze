@@ -25,6 +25,7 @@ function build_cross_platform() {
 
 function update_deps() {
   install_if_missing core/go go
+  install_if_missing core/git git
   ( cd /src || return 1
     GOFLAGS="" go get -u "$@"
     go mod vendor
@@ -79,5 +80,13 @@ function integration_tests() {
   log_line "Running integration tests (github.com/chef/chef-analyze/integration)"
   ( cd /src || return 1
     PATH="/src/bin:$PATH" go test github.com/chef/chef-analyze/integration -v
+  )
+}
+
+# run an example of a go program that leverages the featflag go library
+function featflag_run_example() {
+  install_if_missing core/go go
+  ( cd /src || return 1
+    go run github.com/chef/chef-analyze/pkg/featflag/example
   )
 }
