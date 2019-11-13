@@ -1,5 +1,6 @@
 //
 // Copyright 2019 Chef Software, Inc.
+// Author: Salim Afiune <afiune@chef.io>
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -24,7 +25,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 
-	"github.com/chef/chef-analyze/pkg/config"
+	"github.com/chef/go-libs/config"
 )
 
 const (
