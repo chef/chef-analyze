@@ -48,7 +48,12 @@ var (
 				cfg.NoSSLVerify = true
 			}
 
-			return reporting.Cookbooks(cfg)
+			chefClient, err := reporting.NewChefClient(cfg)
+			if err != nil {
+				return err
+			}
+
+			return reporting.Cookbooks(cfg, chefClient.Search)
 		},
 	}
 	reportNodesCmd = &cobra.Command{

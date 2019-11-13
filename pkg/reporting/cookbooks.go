@@ -23,26 +23,112 @@ import (
 	"github.com/pkg/errors"
 )
 
-func Cookbooks(cfg *Reporting) error {
-	chefClient, err := NewChefClient(cfg)
+// https://www.davidkaya.com/sets-in-golang/
+type versionSet map[string]struct{}
+
+func newVersionSet(version string) *versionSet {
+	return &versionSet{
+		version: struct{}{},
+	}
+}
+
+func (s versionSet) Add(value string) {
+	_, exists := s[value]
+	if !exists {
+		s[value] = struct{}{}
+	}
+}
+
+func (s versionSet) Array() []string {
+	keys := make([]string, len(s), len(s))
+
+	i := 0
+	for k := range s {
+		keys[i] = k
+		i++
+	}
+	return keys
+}
+
+// func (s *versionSet) Remove(value string) {
+// 	delete(s.m, value)
+// }
+
+// func (s *versionSet) Contains(value string) bool {
+// 	_, c := s.m[value]
+// 	return c
+// }
+
+func Cookbooks(cfg *Reporting, searcher PartialSearchInterface) error {
+	var (
+		query = map[string]interface{}{
+			"cookbooks": []string{"cookbooks"},
+		}
+	)
+
+	results, err := searcher.PartialExec("node", "*:*", query)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "unable to get node(s) information")
 	}
 
-	cbooksList, err := chefClient.Cookbooks.ListAvailableVersions("all")
-	if err != nil {
-		return errors.Wrap(err, "unable to get cookbook(s) information")
-	}
+	// We use len here and not pres.Rows, because when caller does not have permissions to
+	// 	view all nodes in the result set, the actual returned number will be lower than
+	// 	the value of Rows.
 
 	formatString := "%30s   %-12v\n"
 	fmt.Printf(formatString, "Cookbook Name", "Version(s)")
-	for cookbook, cbookVersions := range cbooksList {
-		versionsArray := make([]string, len(cbookVersions.Versions))
-		for i, details := range cbookVersions.Versions {
-			versionsArray[i] = details.Version
+	uniqueCookbooks := make(map[string]*versionSet, 0)
+
+	for _, element := range results.Rows {
+
+		// cookbook version arrives as [ NAME : { version: VERSION } - we extract that here.
+		v := element.(map[string]interface{})["data"].(map[string]interface{})
+
+		if v != nil {
+			if v["cookbooks"] != nil {
+
+				// First, de-dup used cookbooks
+				cookbooks := v["cookbooks"].(map[string]interface{})
+				for k, v := range cookbooks {
+					name := k
+					version := safeStringFromMap(v.(map[string]interface{}), "version")
+					if versionSet, ok := uniqueCookbooks[name]; ok {
+						versionSet.Add(version)
+					} else {
+						uniqueCookbooks[name] = newVersionSet(version)
+					}
+				}
+			}
+		} else {
+			return errors.New("No cookbooks found")
 		}
-		fmt.Printf(formatString, cookbook, strings.Join(versionsArray[:], ", "))
+	}
+
+	for name, versions := range uniqueCookbooks {
+		fmt.Printf(formatString, name, strings.Join(versions.Array(), ", "))
 	}
 
 	return nil
+
+	// chefClient, err := NewChefClient(cfg)
+	// if err != nil {
+	// 	return err
+	// }
+
+	// cbooksList, err := chefClient.Cookbooks.ListAvailableVersions("all")
+	// if err != nil {
+	// 	return errors.Wrap(err, "unable to get cookbook(s) information")
+	// }
+
+	// formatString := "%30s   %-12v\n"
+	// fmt.Printf(formatString, "Cookbook Name", "Version(s)")
+	// for cookbook, cbookVersions := range cbooksList {
+	// 	versionsArray := make([]string, len(cbookVersions.Versions))
+	// 	for i, details := range cbookVersions.Versions {
+	// 		versionsArray[i] = details.Version
+	// 	}
+	// 	fmt.Printf(formatString, cookbook, strings.Join(versionsArray[:], ", "))
+	// }
+
+	// return nil
 }
