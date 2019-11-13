@@ -89,7 +89,12 @@ var (
 )
 
 func init() {
-	c, _ := config.New()
+	// if the user does not have a config.toml we still want them to
+	// be able to use the environment based feature flag variables
+	c, err := config.New()
+	if err != nil {
+		//debug("unable to load config: %s", err)
+	}
 	cfg = &c
 }
 

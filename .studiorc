@@ -75,3 +75,11 @@ function integration_tests() {
     PATH="/src/bin:$PATH" go test github.com/chef/chef-analyze/integration -v
   )
 }
+
+# run an example of a go program that leverages the featflag go library
+function featflag_run_example() {
+  install_if_missing core/go go
+  ( cd /src || return 1
+    go run github.com/chef/chef-analyze/pkg/featflag/example
+  )
+}

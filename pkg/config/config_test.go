@@ -19,6 +19,7 @@ package config_test
 import (
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -39,7 +40,7 @@ func TestNewConfigNotFoundError(t *testing.T) {
 // TODO @afiune re enable this test once we understand what is happening with
 // our docker images. Issue: https://github.com/chef/chef-analyze/issues/56
 func _TestNewConfigUnableToReadPermissionsError(t *testing.T) {
-	defer os.RemoveAll(".chef-workstation") // clean up
+	defer os.RemoveAll(subject.DefaultChefWorkstationDirectory) // clean up
 	if err := os.MkdirAll(".chef-workstation", os.ModePerm); err != nil {
 		t.Fatal(err)
 	}
@@ -74,8 +75,9 @@ func TestNewConfigOtherKindOfError(t *testing.T) {
 }
 
 func TestNewMalformedConfigError(t *testing.T) {
-	createMalformedConfigToml(t)
-	defer os.RemoveAll(".chef-workstation") // clean up
+	createUserConfigTomlMalformed(t)
+	createAppConfigTomlMalformed(t)
+	defer os.RemoveAll(subject.DefaultChefWorkstationDirectory) // clean up
 
 	cfg, err := subject.New()
 	if assert.NotNil(t, err) {
@@ -87,60 +89,25 @@ func TestNewMalformedConfigError(t *testing.T) {
 	}
 }
 
-func TestNew(t *testing.T) {
-	createConfigToml(t)
-	defer os.RemoveAll(".chef-workstation") // clean up
+func TestNewWithNoAppConfig(t *testing.T) {
+	createUserConfigToml(t)
+	defer os.RemoveAll(subject.DefaultChefWorkstationDirectory) // clean up
 
 	cfg, err := subject.New()
 	if assert.Nil(t, err) {
-		// test parsing of telemetry settings
-		assert.Equal(t, true, cfg.Telemetry.Enable, "telemetry.enable is not well parsed")
-		assert.Equal(t, false, cfg.Telemetry.Dev, "telemetry.dev is not well parsed")
+		assertSameInformationThatDoesntChangeOften(t, &cfg)
 
-		// test parsing of log settings
-		assert.Equal(t, "debug", cfg.Log.Level, "log.level is not well parsed")
-		assert.Equal(t, "/path/to/chef-workstation.log", cfg.Log.Location, "log.location is not well parsed")
-
-		// test parsing of cache settings
-		assert.Equal(t, "/path/to/.cache/chef-workstation", cfg.Cache.Path, "cache.path is not well parsed")
-
-		// test parsing of connection settings
-		assert.Equal(t, "ssh", cfg.Connection.DefaultProtocol, "connection.default_protocol is not well parsed")
-		assert.Equal(t, "bubu", cfg.Connection.DefaultUser, "connection.default_user is not well parsed")
-		assert.Equal(t, true, cfg.Connection.SSH.SSL, "connection.ssh.ssl is not well parsed")
-		assert.Equal(t, true, cfg.Connection.SSH.SSLVerify, "connection.ssh.ssl_verify is not well parsed")
-		assert.Equal(t, false, cfg.Connection.WinRM.SSL, "connection.winrm.ssl is not well parsed")
-		assert.Equal(t, false, cfg.Connection.WinRM.SSLVerify, "connection.winrm.ssl_verify is not well parsed")
-
-		// test parsing of chef settings
-		assert.Equal(t, "/path/to/mytrustedcerts", cfg.Chef.TrustedCertsDir, "chef.trusted_certs_dir is not well parsed")
-		assert.Equal(t, 2, len(cfg.Chef.CookbookRepoPaths), "chef.cookbook_repo_paths is not well parsed")
-		assert.Contains(t, cfg.Chef.CookbookRepoPaths, "/var/chef/cookbooks", "chef.cookbook_repo_paths is not well parsed")
-		assert.Contains(t, cfg.Chef.CookbookRepoPaths, "/path/to/cookbooks", "chef.cookbook_repo_paths is not well parsed")
-
-		// test parsing of updates settings
-		assert.Equal(t, true, cfg.Updates.Enable, "updates.enable is not well parsed")
-		assert.Equal(t, "current", cfg.Updates.Channel, "updates.channel is not well parsed")
-		assert.Equal(t, 60, cfg.Updates.IntervalMinutes, "updates.interval_minutes is not well parsed")
-
-		// test parsing of data-collector settings
-		assert.Equal(t, "https://1.1.1.1/data-collector/v0/", cfg.DataCollector.Url, "data_collector.url is not well parsed")
-		assert.Equal(t, "ABCDEF0123456789", cfg.DataCollector.Token, "data_collector.token is not well parsed")
-
-		// test parsing of features settings
+		// test parsing the features settings
 		assert.Equal(t, 3, len(cfg.Features), "features is not well parsed")
 		assert.Equal(t, true, cfg.Features["foo"], "features is not well parsed")
 		assert.Equal(t, true, cfg.Features["bar"], "features is not well parsed")
 		assert.Equal(t, false, cfg.Features["xyz"], "features is not well parsed")
-
-		// test parsing of dev settings
-		assert.Equal(t, true, cfg.Dev.Spinner, "dev.spinner is not well parsed")
 	}
 }
 
 func TestNewOverrideFuncs(t *testing.T) {
-	createConfigToml(t)
-	defer os.RemoveAll(".chef-workstation") // clean up
+	createUserConfigToml(t)
+	defer os.RemoveAll(subject.DefaultChefWorkstationDirectory) // clean up
 
 	cfg, err := subject.New()
 	if assert.Nil(t, err) {
@@ -153,7 +120,7 @@ func TestNewOverrideFuncs(t *testing.T) {
 	}
 
 	cfg, err = subject.New(
-		// switching telemetry of
+		// switching telemetry off
 		func(c *subject.Config) { c.Telemetry.Enable = false },
 		// activating dev mode
 		func(c *subject.Config) { c.Telemetry.Dev = true },
@@ -177,17 +144,173 @@ func TestNewOverrideFuncs(t *testing.T) {
 	}
 }
 
+func TestNewPlusWSAppConfig(t *testing.T) {
+	createUserConfigToml(t)
+	createAppConfigToml(t)
+	defer os.RemoveAll(subject.DefaultChefWorkstationDirectory) // clean up
+
+	cfg, err := subject.New()
+	if assert.Nil(t, err) {
+		// @afiune telemetry data is inverted inside the WS App Config (Tray) but it doesn't
+		// matter since it is being overwritten by the User Config :nice:
+		// NOTE: tests are the same, they don't change
+		assertSameInformationThatDoesntChangeOften(t, &cfg)
+
+		// test parsing of features settings
+		// NOTE: @afiune here is where it gets interesting, the user has 3 features and the
+		// app config has 2 new extra features, that is why the features here are 5
+		assert.Equal(t, 5, len(cfg.Features), "features are not well parsed")
+		assert.Equal(t, true, cfg.Features["foo"], "features are not well parsed")
+		assert.Equal(t, true, cfg.Features["bar"], "features are not well parsed")
+		assert.Equal(t, false, cfg.Features["xyz"], "features (from the app config) are not well parsed")
+		assert.Equal(t, true, cfg.Features["abc"], "features (from the app config) are not well parsed")
+		assert.Equal(t, true, cfg.Features["ws_app_feature"], "features (from the app config) are not well parsed")
+	}
+}
+
+// this test is exactly the same as TestNewWithNoAppConfig()
+func TestUser(t *testing.T) {
+	createUserConfigToml(t)
+	defer os.RemoveAll(subject.DefaultChefWorkstationDirectory) // clean up
+
+	cfg, err := subject.User()
+	if assert.Nil(t, err) {
+		assertSameInformationThatDoesntChangeOften(t, &cfg)
+		assert.Equal(t, 3, len(cfg.Features), "features is not well parsed")
+		assert.Equal(t, true, cfg.Features["foo"], "features is not well parsed")
+		assert.Equal(t, true, cfg.Features["bar"], "features is not well parsed")
+		assert.Equal(t, false, cfg.Features["xyz"], "features is not well parsed")
+	}
+}
+
+func TestApp(t *testing.T) {
+	createAppConfigToml(t)
+	defer os.RemoveAll(subject.DefaultChefWorkstationDirectory) // clean up
+
+	cfg, err := subject.App()
+	if assert.Nil(t, err) {
+		// here we can't use assertSameInformationThatDoesntChangeOften(t, &cfg)
+		// because mainly all the user config is not loaded, so this is only loading
+		// the app config which is very short, only telemetry, updates and features
+
+		// test parsing of telemetry settings
+		assert.Equal(t, false, cfg.Telemetry.Enable, "telemetry.enable is not well parsed")
+		assert.Equal(t, true, cfg.Telemetry.Dev, "telemetry.dev is not well parsed")
+
+		// test parsing of updates settings
+		assert.Equal(t, "stable", cfg.Updates.Channel, "updates.channel is not well parsed")
+
+		// test parsing of features settings
+		assert.Equal(t, 4, len(cfg.Features), "features is not well parsed")
+		assert.Equal(t, true, cfg.Features["ws_app_feature"], "features is not well parsed")
+		assert.Equal(t, true, cfg.Features["abc"], "features is not well parsed")
+		assert.Equal(t, true, cfg.Features["xyz"], "features is not well parsed")
+		assert.Equal(t, false, cfg.Features["foo"], "features is not well parsed")
+
+		// NOTE: any other config should be empty, for example the data_collector config
+		assert.Equal(t, "", cfg.DataCollector.Url, "data_collector.url is not well parsed")
+		assert.Equal(t, "", cfg.DataCollector.Token, "data_collector.token is not well parsed")
+	}
+}
+
+func TestUserOverrideFuncs(t *testing.T) {
+	createUserConfigToml(t)
+	defer os.RemoveAll(subject.DefaultChefWorkstationDirectory) // clean up
+
+	cfg, err := subject.User()
+	if assert.Nil(t, err) {
+		assert.Equal(t, true, cfg.Telemetry.Enable, "telemetry.enable is not well parsed")
+	}
+
+	cfg, err = subject.User(
+		// switching telemetry off
+		func(c *subject.Config) { c.Telemetry.Enable = false },
+	)
+	if assert.Nil(t, err) {
+		assert.Equal(t, false, cfg.Telemetry.Enable, "telemetry.enable was not overwritten")
+	}
+}
+
+func TestAppOverrideFuncs(t *testing.T) {
+	createAppConfigToml(t)
+	defer os.RemoveAll(subject.DefaultChefWorkstationDirectory) // clean up
+
+	cfg, err := subject.App()
+	if assert.Nil(t, err) {
+		assert.Equal(t, false, cfg.Telemetry.Enable, "telemetry.enable is not well parsed")
+	}
+
+	cfg, err = subject.App(
+		// switching telemetry on
+		func(c *subject.Config) { c.Telemetry.Enable = true },
+	)
+	if assert.Nil(t, err) {
+		assert.Equal(t, true, cfg.Telemetry.Enable, "telemetry.enable was not overwritten")
+	}
+}
+
+// not that we actually need this, but we might :wink:
+func TestMergeAppConfig(t *testing.T) {
+	createAppConfigToml(t)
+	defer os.RemoveAll(subject.DefaultChefWorkstationDirectory) // clean up
+
+	cfg := subject.Config{}
+	// values that doesn't exist in the application config
+	cfg.DataCollector.Url = "example.com"
+	cfg.DataCollector.Token = "token"
+
+	// value that is set in the application config to "stable"
+	// we set it to current and the merge should override it
+	cfg.Updates.Channel = "current"
+
+	err := cfg.MergeAppConfig()
+
+	if assert.Nil(t, err) {
+		// test parsing of telemetry settings
+		assert.Equal(t, false, cfg.Telemetry.Enable, "telemetry.enable is not well parsed")
+		assert.Equal(t, true, cfg.Telemetry.Dev, "telemetry.dev is not well parsed")
+
+		// test parsing of updates settings
+		assert.Equal(t, "stable", cfg.Updates.Channel, "updates.channel is not well parsed")
+
+		// test parsing of features settings
+		assert.Equal(t, 4, len(cfg.Features), "features is not well parsed")
+		assert.Equal(t, true, cfg.Features["ws_app_feature"], "features is not well parsed")
+		assert.Equal(t, true, cfg.Features["abc"], "features is not well parsed")
+		assert.Equal(t, true, cfg.Features["xyz"], "features is not well parsed")
+		assert.Equal(t, false, cfg.Features["foo"], "features is not well parsed")
+
+		// NOTE: any other config should be empty, for example the data_collector config
+		assert.Equal(t, "example.com", cfg.DataCollector.Url, "data_collector.url is not well parsed")
+		assert.Equal(t, "token", cfg.DataCollector.Token, "data_collector.token is not well parsed")
+	}
+}
+
+func TestAppMalformedConfigError(t *testing.T) {
+	createAppConfigTomlMalformed(t)
+	defer os.RemoveAll(subject.DefaultChefWorkstationDirectory) // clean up
+
+	_, err := subject.App()
+	if assert.NotNil(t, err) {
+		assert.Contains(t, err.Error(), "unable to parse .app-managed-config.toml file.")
+		assert.Contains(t, err.Error(), "there must be a problem with the Chef Workstation App, verify the format of the configuration by following this documentation")
+		assert.Contains(t, err.Error(), "https://www.chef.sh/docs/reference/config/")
+		assert.Contains(t, err.Error(), "toml: cannot load TOML value of type string into a Go boolea")
+	}
+}
+
 // when calling this function, make sure to add the defer clean up as the below example
 // ```go
-// createConfigToml(t)
-// defer os.RemoveAll(".chef-workstation") // clean up
+// createUserConfigToml(t)
+// defer os.RemoveAll(subject.DefaultChefWorkstationDirectory) // clean up
 // ```
-func createConfigToml(t *testing.T) {
-	if err := os.MkdirAll(".chef-workstation", os.ModePerm); err != nil {
+func createUserConfigToml(t *testing.T) {
+	if err := os.MkdirAll(subject.DefaultChefWorkstationDirectory, os.ModePerm); err != nil {
 		t.Fatal(err)
 	}
 
-	creds := []byte(`
+	var (
+		cfgData = []byte(`
 [telemetry]
 enable = true
 dev = false
@@ -235,7 +358,12 @@ xyz = false
 [dev]
 spinner = true
 `)
-	err := ioutil.WriteFile(".chef-workstation/config.toml", creds, 0666)
+		userConfigFile = filepath.Join(
+			subject.DefaultChefWorkstationDirectory,
+			subject.DefaultChefWSUserConfigFile,
+		)
+	)
+	err := ioutil.WriteFile(userConfigFile, cfgData, 0666)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -243,16 +371,17 @@ spinner = true
 
 // when calling this function, make sure to add the defer clean up as the below example
 // ```go
-// createMalformedConfigToml(t)
-// defer os.RemoveAll(".chef-workstation") // clean up
+// createUserConfigTomlMalformed(t)
+// defer os.RemoveAll(subject.DefaultChefWorkstationDirectory) // clean up
 // ```
-func createMalformedConfigToml(t *testing.T) {
-	if err := os.MkdirAll(".chef-workstation", os.ModePerm); err != nil {
+func createUserConfigTomlMalformed(t *testing.T) {
+	if err := os.MkdirAll(subject.DefaultChefWorkstationDirectory, os.ModePerm); err != nil {
 		t.Fatal(err)
 	}
 
-	// @afiune the typo is inside the 'cookbook_repo_paths': missing a comma
-	creds := []byte(`
+	var (
+		// @afiune the typo is inside the 'cookbook_repo_paths': missing a comma
+		cfgData = []byte(`
 [telemetry]
 enable = true
 dev = false
@@ -269,8 +398,121 @@ enable = true
 channel = "current"
 interval_minutes = 60
 `)
-	err := ioutil.WriteFile(".chef-workstation/config.toml", creds, 0666)
+		userConfigFile = filepath.Join(
+			subject.DefaultChefWorkstationDirectory,
+			subject.DefaultChefWSUserConfigFile,
+		)
+	)
+	err := ioutil.WriteFile(userConfigFile, cfgData, 0666)
 	if err != nil {
 		t.Fatal(err)
 	}
+}
+
+// when calling this function, make sure to add the defer clean up as the below example
+// ```go
+// createAppConfigToml(t)
+// defer os.RemoveAll(subject.DefaultChefWorkstationDirectory) // clean up
+// ```
+func createAppConfigToml(t *testing.T) {
+	if err := os.MkdirAll(subject.DefaultChefWorkstationDirectory, os.ModePerm); err != nil {
+		t.Fatal(err)
+	}
+
+	var (
+		featuresList = []byte(`
+[telemetry]
+enable = false
+dev = true
+
+[updates]
+channel = "stable"
+
+[features]
+ws_app_feature = true
+abc = true
+xyz = true
+foo = false
+`)
+		appConfigFile = filepath.Join(
+			subject.DefaultChefWorkstationDirectory,
+			subject.DefaultChefWSAppConfigFile,
+		)
+	)
+	err := ioutil.WriteFile(appConfigFile, featuresList, 0666)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+// when calling this function, make sure to add the defer clean up as the below example
+// ```go
+// createAppConfigTomlMalformed(t)
+// defer os.RemoveAll(subject.DefaultChefWorkstationDirectory) // clean up
+// ```
+func createAppConfigTomlMalformed(t *testing.T) {
+	if err := os.MkdirAll(subject.DefaultChefWorkstationDirectory, os.ModePerm); err != nil {
+		t.Fatal(err)
+	}
+
+	var (
+		featuresList = []byte(`
+[telemetry]
+enable = false
+dev = true
+
+[updates]
+channel = "stable"
+
+[features]
+foo = "wrong"
+`)
+		appConfigFile = filepath.Join(
+			subject.DefaultChefWorkstationDirectory,
+			subject.DefaultChefWSAppConfigFile,
+		)
+	)
+	err := ioutil.WriteFile(appConfigFile, featuresList, 0666)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func assertSameInformationThatDoesntChangeOften(t *testing.T, cfg *subject.Config) {
+	// test parsing of telemetry settings
+	assert.Equal(t, true, cfg.Telemetry.Enable, "telemetry.enable is not well parsed")
+	assert.Equal(t, false, cfg.Telemetry.Dev, "telemetry.dev is not well parsed")
+
+	// test parsing of log settings
+	assert.Equal(t, "debug", cfg.Log.Level, "log.level is not well parsed")
+	assert.Equal(t, "/path/to/chef-workstation.log", cfg.Log.Location, "log.location is not well parsed")
+
+	// test parsing of cache settings
+	assert.Equal(t, "/path/to/.cache/chef-workstation", cfg.Cache.Path, "cache.path is not well parsed")
+
+	// test parsing of connection settings
+	assert.Equal(t, "ssh", cfg.Connection.DefaultProtocol, "connection.default_protocol is not well parsed")
+	assert.Equal(t, "bubu", cfg.Connection.DefaultUser, "connection.default_user is not well parsed")
+	assert.Equal(t, true, cfg.Connection.SSH.SSL, "connection.ssh.ssl is not well parsed")
+	assert.Equal(t, true, cfg.Connection.SSH.SSLVerify, "connection.ssh.ssl_verify is not well parsed")
+	assert.Equal(t, false, cfg.Connection.WinRM.SSL, "connection.winrm.ssl is not well parsed")
+	assert.Equal(t, false, cfg.Connection.WinRM.SSLVerify, "connection.winrm.ssl_verify is not well parsed")
+
+	// test parsing of chef settings
+	assert.Equal(t, "/path/to/mytrustedcerts", cfg.Chef.TrustedCertsDir, "chef.trusted_certs_dir is not well parsed")
+	assert.Equal(t, 2, len(cfg.Chef.CookbookRepoPaths), "chef.cookbook_repo_paths is not well parsed")
+	assert.Contains(t, cfg.Chef.CookbookRepoPaths, "/var/chef/cookbooks", "chef.cookbook_repo_paths is not well parsed")
+	assert.Contains(t, cfg.Chef.CookbookRepoPaths, "/path/to/cookbooks", "chef.cookbook_repo_paths is not well parsed")
+
+	// test parsing of updates settings
+	assert.Equal(t, true, cfg.Updates.Enable, "updates.enable is not well parsed")
+	assert.Equal(t, "current", cfg.Updates.Channel, "updates.channel is not well parsed")
+	assert.Equal(t, 60, cfg.Updates.IntervalMinutes, "updates.interval_minutes is not well parsed")
+
+	// test parsing of data-collector settings
+	assert.Equal(t, "https://1.1.1.1/data-collector/v0/", cfg.DataCollector.Url, "data_collector.url is not well parsed")
+	assert.Equal(t, "ABCDEF0123456789", cfg.DataCollector.Token, "data_collector.token is not well parsed")
+
+	// test parsing of dev settings
+	assert.Equal(t, true, cfg.Dev.Spinner, "dev.spinner is not well parsed")
 }

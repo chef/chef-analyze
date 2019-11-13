@@ -20,6 +20,7 @@ package featflag_test
 import (
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -118,7 +119,7 @@ func TestAccessingFlagsWithNilConfig(t *testing.T) {
 	assert.False(t, subject.ChefFeatAnalyze.Enabled())
 }
 
-func TestEnableFlagsFromConfigToml(t *testing.T) {
+func TestEnableFlagsFromUserConfigToml(t *testing.T) {
 	// all flags should be disabled
 	subject.LoadConfig(nil)
 	assert.False(t,
@@ -137,8 +138,72 @@ func TestEnableFlagsFromConfigToml(t *testing.T) {
 	)
 
 	// initializing a configuration file
-	createConfigToml(t)
-	defer os.RemoveAll(".chef-workstation") // clean up
+	createUserConfigToml(t)
+	defer os.RemoveAll(config.DefaultChefWorkstationDirectory) // clean up
+
+	// loading the config to the featflag library
+	customConfig, err := config.New()
+	if err != nil {
+		t.Fatal("unable to load config.toml, check why this happened", err.Error())
+	}
+	subject.LoadConfig(&customConfig)
+
+	// now things start getting interesting
+	assert.False(t,
+		subject.ChefFeatAll.Enabled(),
+		"global ALL feature flag should continue to be disabled",
+	)
+	assert.True(t, // now it is enabled! (from the config)
+		subject.ChefFeatAnalyze.Enabled(),
+		"global ANALYZE feature flag should be enabled from loaded config.toml",
+	)
+	assert.False(t,
+		chefFeatXYZ.Enabled(),
+		"local XYZ feature flag should continue to be disabled",
+	)
+
+	// since environment variables has more priorityby, by enabling the
+	// global feature flag CHEF_FEAT_ALL all features should be enabled
+	defer os.Setenv("CHEF_FEAT_ALL", "")
+	if err := os.Setenv("CHEF_FEAT_ALL", "gimmeall"); err != nil {
+		t.Fatal("unable to set environment variable")
+	}
+
+	assert.True(t,
+		subject.ChefFeatAll.Enabled(),
+		"global ALL feature flag should be now enabled",
+	)
+	assert.True(t, // now it is enabled! (from the config)
+		subject.ChefFeatAnalyze.Enabled(),
+		"global ANALYZE feature flag should continue to be enabled",
+	)
+	assert.True(t,
+		chefFeatXYZ.Enabled(),
+		"local XYZ feature flag should be now enabled",
+	)
+}
+
+func TestEnableFlagsFromAppConfigToml(t *testing.T) {
+	// all flags should be disabled
+	subject.LoadConfig(nil)
+	assert.False(t,
+		subject.ChefFeatAll.Enabled(),
+		"global ALL feature flag should be disabled",
+	)
+	assert.False(t,
+		subject.ChefFeatAnalyze.Enabled(),
+		"global ANALYZE feature flag should be disabled",
+	)
+	// even new flags created locally
+	var chefFeatXYZ = subject.New("CHEF_FEAT_XYZ", "xyz")
+	assert.False(t,
+		chefFeatXYZ.Enabled(),
+		"local XYZ feature flag should be disabled",
+	)
+
+	// initializing a configuration file
+	createAppConfigToml(t)
+	defer os.RemoveAll(config.DefaultChefWorkstationDirectory) // clean up
 
 	// loading the config to the featflag library
 	customConfig, err := config.New()
@@ -184,21 +249,65 @@ func TestEnableFlagsFromConfigToml(t *testing.T) {
 
 // when calling this function, make sure to add the defer clean up as the below example
 // ```go
-// createConfigToml(t)
-// defer os.RemoveAll(".chef-workstation") // clean up
+// createUserConfigToml(t)
+// defer os.RemoveAll(config.DefaultChefWorkstationDirectory) // clean up
 // ```
-func createConfigToml(t *testing.T) {
-	if err := os.MkdirAll(".chef-workstation", os.ModePerm); err != nil {
+func createUserConfigToml(t *testing.T) {
+	if err := os.MkdirAll(config.DefaultChefWorkstationDirectory, os.ModePerm); err != nil {
 		t.Fatal(err)
 	}
 
-	creds := []byte(`
+	var (
+		featuresList = []byte(`
 [features]
 all = false
 analyze = true
 xyz = false
 `)
-	err := ioutil.WriteFile(".chef-workstation/config.toml", creds, 0666)
+		userConfigFile = filepath.Join(
+			config.DefaultChefWorkstationDirectory,
+			config.DefaultChefWSUserConfigFile,
+		)
+	)
+	err := ioutil.WriteFile(userConfigFile, featuresList, 0666)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+// when calling this function, make sure to add the defer clean up as the below example
+// ```go
+// createAppConfigToml(t)
+// defer os.RemoveAll(config.DefaultChefWorkstationDirectory) // clean up
+// ```
+func createAppConfigToml(t *testing.T) {
+	if err := os.MkdirAll(config.DefaultChefWorkstationDirectory, os.ModePerm); err != nil {
+		t.Fatal(err)
+	}
+
+	var (
+		featuresList = []byte(`
+[features]
+all = false
+analyze = true
+xyz = false
+`)
+		userConfigFile = filepath.Join(
+			config.DefaultChefWorkstationDirectory,
+			config.DefaultChefWSUserConfigFile,
+		)
+		appConfigFile = filepath.Join(
+			config.DefaultChefWorkstationDirectory,
+			config.DefaultChefWSAppConfigFile,
+		)
+	)
+	err := ioutil.WriteFile(appConfigFile, featuresList, 0666)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// create an empty user config to avoid failures on loading the config
+	err = ioutil.WriteFile(userConfigFile, []byte(``), 0666)
 	if err != nil {
 		t.Fatal(err)
 	}

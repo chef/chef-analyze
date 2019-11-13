@@ -22,16 +22,27 @@ package config
 //
 
 const (
-	ConfigTomlNotFoundErr = `
-  config.toml file not found. (default: $HOME/.chef-workstation/config.toml)
+	UserConfigTomlNotFoundErr = `
+  ` + DefaultChefWSUserConfigFile + ` file not found. (default: $HOME/.chef-workstation/` + DefaultChefWSUserConfigFile + `)
 
   setup your local configuration file by following this documentation:
     - https://www.chef.sh/docs/reference/config/
 `
-	MalformedConfigTomlFileErr = `
-  unable to parse config.toml file.
+	UserConfigTomlMalformedErr = `
+  unable to parse ` + DefaultChefWSUserConfigFile + ` file.
 
   verify the format of the configuration file by following this documentation:
+    - https://www.chef.sh/docs/reference/config/
+`
+	AppConfigTomlNotFoundErr = `
+  ` + DefaultChefWSAppConfigFile + ` file not found. (default: $HOME/.chef-workstation/` + DefaultChefWSAppConfigFile + `)
+
+  verify that the Chef Workstation App is runnig on your local workstation.
+`
+	AppConfigTomlMalformedErr = `
+  unable to parse ` + DefaultChefWSAppConfigFile + ` file.
+
+  there must be a problem with the Chef Workstation App, verify the format of the configuration by following this documentation:
     - https://www.chef.sh/docs/reference/config/
 `
 )
