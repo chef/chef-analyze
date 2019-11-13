@@ -20,10 +20,9 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/chef/go-libs/credentials"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-
-	"github.com/chef/chef-analyze/pkg/credentials"
 )
 
 var (

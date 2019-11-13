@@ -21,11 +21,11 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/chef/chef-analyze/pkg/credentials"
-	"github.com/chef/chef-analyze/pkg/reporting"
 	chef "github.com/chef/go-chef"
-
+	"github.com/chef/go-libs/credentials"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/chef/chef-analyze/pkg/reporting"
 )
 
 type PartialSearchMock struct {
