@@ -28,6 +28,8 @@ github.com/chef/go-chef v0.3.1-0.20191022192238-9a61e1963868/go.mod h1:ft8oU7s0k
 github.com/chef/go-libs v0.0.0-20191031070545-88d2a92a72ff h1:sEokVvmTbFl0u+IIscCmgbmKB/yf5zQROFyp2BF5Ifs=
 github.com/chef/go-libs v0.0.0-20191113010729-ededa9d73dcd h1:qEff+QJUYS0ge9Nw+3YQucVnufGuy/2SyQ36ZVJs30I=
 github.com/chef/go-libs v0.0.0-20191113010729-ededa9d73dcd/go.mod h1:aGHwP5PXYdD0hVq+jodILnSqB/b04EhS/XCoqhE2PrA=
+github.com/chef/go-libs v0.0.0-20191113210636-f7d3e0e776b7 h1:kd4XW/opzHHutif5Ayls9rxM3gUsA+uVKcdUvWe4niU=
+github.com/chef/go-libs v0.0.0-20191113210636-f7d3e0e776b7/go.mod h1:aGHwP5PXYdD0hVq+jodILnSqB/b04EhS/XCoqhE2PrA=
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
 github.com/cockroachdb/apd v1.1.0/go.mod h1:8Sl8LxpKi29FqWXR16WEFZRNSz3SoPzUzeMeY4+DwBQ=
 github.com/cockroachdb/cockroach-go v0.0.0-20181001143604-e0a95dfd547c/go.mod h1:XGLbWH/ujMcbPbhZq52Nv6UrCghb1yGn//133kEsvDk=

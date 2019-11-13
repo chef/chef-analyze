@@ -2,7 +2,7 @@
 github.com/BurntSushi/toml
 # github.com/chef/go-chef v0.3.1-0.20191022192238-9a61e1963868
 github.com/chef/go-chef
-# github.com/chef/go-libs v0.0.0-20191113010729-ededa9d73dcd
+# github.com/chef/go-libs v0.0.0-20191113210636-f7d3e0e776b7
 github.com/chef/go-libs/config
 github.com/chef/go-libs/credentials
 # github.com/davecgh/go-spew v1.1.1
