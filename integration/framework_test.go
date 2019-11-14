@@ -45,7 +45,28 @@ import (
 //      "EXITCODE is not the expected one")
 //  }
 //
-func ChefAnalyze(args ...string) (stdout bytes.Buffer, stderr bytes.Buffer, exitcode int) {
+func ChefAnalyze(args ...string) (bytes.Buffer, bytes.Buffer, int) {
+	// We are goin to enable the feature flag by default, this will avoid us
+	// to add it on every single integration test
+	//
+	// TODO @afiune delete this when we release chef-analyze to the users.
+	//      (that is, when no feature flag is needed anymore)
+	os.Setenv("CHEF_FEAT_ANALYZE", "true")
+
+	return runChefAnalyzeCmd(args...)
+}
+
+func ChefAnalyzeNoFeatureFlag(args ...string) (bytes.Buffer, bytes.Buffer, int) {
+	// Function that runs a chef-analyze command without the feature flag enabled
+	//
+	// TODO @afiune delete this when we release chef-analyze to the users.
+	//      (that is, when no feature flag is needed anymore)
+	os.Setenv("CHEF_FEAT_ANALYZE", "")
+
+	return runChefAnalyzeCmd(args...)
+}
+
+func runChefAnalyzeCmd(args ...string) (stdout bytes.Buffer, stderr bytes.Buffer, exitcode int) {
 	cmd := exec.Command(findChefAnalyzeBinary(), args...)
 	cmd.Env = os.Environ()
 	cmd.Stdout = &stdout
