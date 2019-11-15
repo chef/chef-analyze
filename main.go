@@ -17,13 +17,24 @@
 package main
 
 import (
+	"fmt"
 	"os"
+
+	"github.com/chef/go-libs/featflag"
 
 	"github.com/chef/chef-analyze/cmd"
 )
 
 func main() {
-	if err := cmd.Execute(); err != nil {
-		os.Exit(-1)
+	if featflag.ChefFeatAnalyze.Enabled() {
+		if err := cmd.Execute(); err != nil {
+			os.Exit(-1)
+		}
+	} else {
+		fmt.Printf("`%s` is experimental and in development.\n\n", featflag.ChefFeatAnalyze.Key())
+		fmt.Printf("Temporarily enable `%s` with the environment variable:\n", featflag.ChefFeatAnalyze.Key())
+		fmt.Printf("\t%s=true\n\n", featflag.ChefFeatAnalyze.Env())
+		fmt.Printf("Or, permanently by modifying $HOME/.chef-workstation/config.toml with:\n")
+		fmt.Printf("\t[features]\n\t%s = true\n", featflag.ChefFeatAnalyze.Key())
 	}
 }
