@@ -11,3 +11,9 @@ coverage/
 
 # all arch binaries
 bin/
+
+# Top level bin, for when building without Habitat.
+chef-analyze
+
+# working directory that can be created by analyze
+.analyze-cache/

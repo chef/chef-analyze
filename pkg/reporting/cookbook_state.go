@@ -73,7 +73,8 @@ func downloadCookbooks(cbi PartialCookbookInterface, searcher PartialSearchInter
 	// Second pass: let's pack them up into returnable form.
 	for cookbookName, cookbookVersions := range cookbooks {
 		for _, ver := range cookbookVersions.Versions {
-			err := cbi.DownloadTo(cookbookName, ver.Version, "analyze-cache")
+			// TODO - cbi.DownloadTo returns path so we don't have to know how it builds them
+			err := cbi.DownloadTo(cookbookName, ver.Version, ".analyze-cache/cookbooks")
 			progress.Increment()
 			if err != nil {
 				numVersions -= 1 // We use this later to make progress accurate for our second pass
@@ -81,7 +82,7 @@ func downloadCookbooks(cbi PartialCookbookInterface, searcher PartialSearchInter
 			} else {
 				nodesUsing, _ := nodesUsingCookbookVersion(searcher, cookbookName, ver.Version)
 				dlRecord := CookbookStateRecord{Name: cookbookName,
-					path:    fmt.Sprintf("analyze-cache/%v-%v", cookbookName, ver.Version),
+					path:    fmt.Sprintf(".analyze-cache/cookbooks/%v-%v", cookbookName, ver.Version),
 					Version: ver.Version,
 					Nodes:   nodesUsing,
 				}
