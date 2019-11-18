@@ -1,3 +1,9 @@
+package reporting
+
+const (
+	// This is a ruby formatter that works with Cookstyle to output
+	// the results as a simple set of values: num-errors-found num-correctable-errors-found
+	correctableCountCookstyleFormatterRb = `
 require 'json'
 
 module Local
@@ -10,7 +16,6 @@ module Local
       @correctable_count = 0
       @registry = RuboCop::Cop::Registry.new(RuboCop::Cop::Cop.all)
     end
-
 
     def file_finished(_file, offenses)
       @offense_count += offenses.count
@@ -26,3 +31,5 @@ module Local
     end
   end
 end
+`
+)
