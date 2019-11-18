@@ -2,7 +2,6 @@ package reporting
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"strings"
@@ -15,12 +14,14 @@ import (
 )
 
 type CookbookStateRecord struct {
-	Name            string
-	Version         string
-	Violations      int
-	Autocorrectable int
-	Nodes           []string
-	path            string
+	Name             string
+	Version          string
+	Violations       int
+	Autocorrectable  int
+	Nodes            []string
+	path             string
+	CBDownloadError  error
+	UsageLookupError error
 }
 
 type PartialCookbookInterface interface {
@@ -59,46 +60,58 @@ func CookbookState(cfg *Reporting, cbi PartialCookbookInterface, searcher Partia
 	}
 	defer os.Remove(formatterPath)
 
-	runCookstyle(cbStates, len(cbStates), formatterPath)
+	runCookstyle(cbStates, formatterPath)
 
 	return cbStates, nil
 }
+
 func downloadCookbooks(cbi PartialCookbookInterface, searcher PartialSearchInterface, cookbooks chef.CookbookListResult, numVersions int) ([]*CookbookStateRecord, error) {
+	var cbState *CookbookStateRecord
 	// Ultimately, progress tracking and output lives with caller. While we work out
 	// those details, it lives here.
 	progress := pb.StartNew(numVersions)
-
-	cbStates := make([]*CookbookStateRecord, 0, numVersions)
-
+	cbStates := make([]*CookbookStateRecord, numVersions, numVersions)
+	var index int
 	// Second pass: let's pack them up into returnable form.
 	for cookbookName, cookbookVersions := range cookbooks {
 		for _, ver := range cookbookVersions.Versions {
-			// TODO - cbi.DownloadTo returns path so we don't have to know how it builds them
-			err := cbi.DownloadTo(cookbookName, ver.Version, ".analyze-cache/cookbooks")
-			progress.Increment()
-			if err != nil {
-				numVersions -= 1 // We use this later to make progress accurate for our second pass
-				defer log.Print(err)
-			} else {
-				nodesUsing, _ := nodesUsingCookbookVersion(searcher, cookbookName, ver.Version)
-				dlRecord := CookbookStateRecord{Name: cookbookName,
-					path:    fmt.Sprintf(".analyze-cache/cookbooks/%v-%v", cookbookName, ver.Version),
-					Version: ver.Version,
-					Nodes:   nodesUsing,
-				}
-				cbStates = append(cbStates, &dlRecord)
+			cbState = &CookbookStateRecord{Name: cookbookName,
+				path:    fmt.Sprintf(".analyze-cache/cookbooks/%v-%v", cookbookName, ver.Version),
+				Version: ver.Version,
 			}
+
+			nodes, err := nodesUsingCookbookVersion(searcher, cookbookName, ver.Version)
+			if err != nil {
+				cbState.UsageLookupError = err
+			} else {
+				cbState.Nodes = nodes
+			}
+
+			err = cbi.DownloadTo(cookbookName, ver.Version, ".analyze-cache/cookbooks")
+			if err != nil {
+				cbState.CBDownloadError = err
+			}
+			cbStates[index] = cbState
+			index++
+
+			progress.Increment()
 		}
 	}
 	progress.Finish()
 	return cbStates, nil
 }
 
-func runCookstyle(cbStates []*CookbookStateRecord, numVersions int, formatterPath string) {
-	progress := pb.StartNew(numVersions)
+func runCookstyle(cbStates []*CookbookStateRecord, formatterPath string) {
+	progress := pb.StartNew(len(cbStates))
 	for _, cb := range cbStates {
-		cmd := exec.Command("/opt/chef-workstation/bin/cookstyle", "--require", formatterPath, "--format", "Local::CorrectableCountFormatter")
 		progress.Increment()
+		// If we could not download the complete cookbook, we can't provide
+		// an accurate set of results
+		if cb.CBDownloadError != nil {
+			continue
+		}
+
+		cmd := exec.Command("/opt/chef-workstation/bin/cookstyle", "--require", formatterPath, "--format", "Local::CorrectableCountFormatter")
 		cmd.Dir = cb.path
 		// Note that err will often be non-nil because cookstyle will exit with exit code 1 when violations are found.
 		// TODO allow that error through, and log the others

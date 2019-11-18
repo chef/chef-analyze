@@ -19,6 +19,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/chef/go-libs/credentials"
 	"github.com/olekukonko/tablewriter"
@@ -135,11 +136,38 @@ func init() {
 // TODO different output depending on flags or TTY?
 
 func writeCookbookStateReport(records []*reporting.CookbookStateRecord) {
+	var downloadErrors strings.Builder
+	var usageFetchErrors strings.Builder
 	for _, record := range records {
-		fmt.Printf("%v (%v): %v violations, %v auto-correctable, %v nodes affected\n",
-			record.Name, record.Version, record.Violations, record.Autocorrectable, len(record.Nodes))
+		var str strings.Builder
+
+		str.WriteString(fmt.Sprintf("%v (%v) ", record.Name, record.Version))
+		if record.CBDownloadError == nil {
+			str.WriteString(fmt.Sprintf("%v violations, %v auto-correctable, ", record.Violations, record.Autocorrectable))
+		} else {
+			str.WriteString("violations unknown - see end of report, ")
+			downloadErrors.WriteString(fmt.Sprintf(" - %s (%s): %v\n", record.Name, record.Version, record.CBDownloadError))
+		}
+
+		if record.UsageLookupError == nil {
+			str.WriteString(fmt.Sprintf("%v nodes affected", len(record.Nodes)))
+		} else {
+			str.WriteString("node count unknown - see end of report ")
+			downloadErrors.WriteString(fmt.Sprintf(" - %s (%s): %v\n", record.Name, record.Version, record.UsageLookupError))
+		}
+		fmt.Println(str.String())
+	}
+
+	if downloadErrors.Len() > 0 {
+		fmt.Println("Cookbook download errors that prevent violation information from being shown:")
+		fmt.Print(downloadErrors.String())
+	}
+	if usageFetchErrors.Len() > 0 {
+		fmt.Println("Node usage check errors that prevent usage information from being shown:")
+		fmt.Print(usageFetchErrors.String())
 	}
 }
+
 func writeNodeReport(records []reporting.NodeReportItem) {
 	table := tablewriter.NewWriter(os.Stdout)
 	table.SetHeader([]string{"Node Name", "Chef Version", "OS", "OS Version", "Cookbooks"})
