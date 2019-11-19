@@ -155,15 +155,16 @@ func writeCookbookStateReport(records []*reporting.CookbookStateRecord) {
 			str.WriteString("node count unknown - see end of report ")
 			downloadErrors.WriteString(fmt.Sprintf(" - %s (%s): %v\n", record.Name, record.Version, record.UsageLookupError))
 		}
+
 		fmt.Println(str.String())
 	}
 
 	if downloadErrors.Len() > 0 {
-		fmt.Println("Cookbook download errors that prevent violation information from being shown:")
+		fmt.Println("Cookbook download errors prevented me from scanning some cookbooks:")
 		fmt.Print(downloadErrors.String())
 	}
 	if usageFetchErrors.Len() > 0 {
-		fmt.Println("Node usage check errors that prevent usage information from being shown:")
+		fmt.Println("Node usage check errors prevented me from getting the number of nodes using some cookbooks:")
 		fmt.Print(usageFetchErrors.String())
 	}
 }

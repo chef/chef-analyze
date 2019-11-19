@@ -18,11 +18,8 @@ package reporting
 
 import (
 	"fmt"
+	"log"
 	"os"
-	"os/exec"
-	"strings"
-
-	"strconv"
 
 	chef "github.com/chef/go-chef"
 	"github.com/cheggaaa/pb/v3"
@@ -114,6 +111,7 @@ func downloadCookbooks(cbi CookbookInterface, searcher SearchInterface, cookbook
 
 func runCookstyle(cbStates []*CookbookStateRecord, formatterPath string) {
 	progress := pb.StartNew(len(cbStates))
+	runner := ExecCommandRunner{}
 	for _, cb := range cbStates {
 		progress.Increment()
 		// If we could not download the complete cookbook, we can't provide
@@ -121,15 +119,19 @@ func runCookstyle(cbStates []*CookbookStateRecord, formatterPath string) {
 		if cb.CBDownloadError != nil {
 			continue
 		}
-
-		cmd := exec.Command("/opt/chef-workstation/bin/cookstyle", "--require", formatterPath, "--format", "Local::CorrectableCountFormatter")
-		cmd.Dir = cb.path
-		// Note that err will often be non-nil because cookstyle will exit with exit code 1 when violations are found.
-		// TODO allow that error through, and log the others
-		out, _ := cmd.Output()
-		returns := strings.Split(string(out), " ")
-		cb.Violations, _ = strconv.Atoi(returns[0])
-		cb.Autocorrectable, _ = strconv.Atoi(returns[1])
+		cookstyleResults, err := RunCookstyle(cb.path, runner)
+		if err != nil {
+			// TODO - unlikely, but if it can actually happen we should capture this
+			//        potential failure in results too, eg cb.ViolationCheckError = err
+			log.Print(err)
+			continue
+		}
+		for _, csr := range cookstyleResults {
+			cb.Violations += 1
+			if csr.Correctable {
+				cb.Autocorrectable += 1
+			}
+		}
 	}
 	progress.Finish()
 }
