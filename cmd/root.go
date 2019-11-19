@@ -30,7 +30,7 @@ var (
 		credsFile     string
 		clientName    string
 		clientKey     string
-		chefServerUrl string
+		chefServerURL string
 		profile       string
 		noSSLverify   bool
 	}
@@ -68,7 +68,7 @@ func init() {
 		"Chef Infra Server API client key",
 	)
 	rootCmd.PersistentFlags().StringVarP(
-		&globalFlags.chefServerUrl,
+		&globalFlags.chefServerURL,
 		"chef_server_url", "s", "",
 		"Chef Infra Server URL",
 	)
@@ -130,7 +130,7 @@ func initConfig() {
 // this tool to work, with or without credentials config
 // TODO @afiune revisit
 func hasMinimumParams() bool {
-	if globalFlags.chefServerUrl != "" &&
+	if globalFlags.chefServerURL != "" &&
 		globalFlags.clientName != "" &&
 		globalFlags.clientKey != "" {
 		return true
@@ -157,8 +157,8 @@ func overrideCredentials() credentials.OverrideFunc {
 		if globalFlags.clientKey != "" {
 			c.ClientKey = globalFlags.clientKey
 		}
-		if globalFlags.chefServerUrl != "" {
-			c.ChefServerUrl = globalFlags.chefServerUrl
+		if globalFlags.chefServerURL != "" {
+			c.ChefServerUrl = globalFlags.chefServerURL
 		}
 	}
 }

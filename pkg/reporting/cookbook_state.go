@@ -37,10 +37,40 @@ type CookbookStateRecord struct {
 	UsageLookupError error
 }
 
-func CookbookState(cfg *Reporting, cbi CookbookInterface, searcher SearchInterface) ([]*CookbookStateRecord, error) {
+func CookbookState(cfg *Reporting, cbi CookbookInterface, searcher PartialSearchInterface, includeUnboundCookbooks bool) ([]*CookbookStateRecord, error) {
 	fmt.Println("Finding available cookbooks...") // c <- ProgressUpdate(Event: COOKBOOK_FETCH)
 	// Version limit of "0" means fetch all
 	results, err := cbi.ListAvailableVersions("0")
+	if includeUnboundCookbooks == false {
+		boundCookbooks := make(chef.CookbookListResult, len(results))
+		for cookbookName, cookbookVersions := range results {
+			for _, cookbookVersion := range cookbookVersions.Versions {
+				// filter cookbooks down to only ones that are assigned to a cookbook
+				var (
+					query = map[string]interface{}{
+						"nodes": []string{"nodes"},
+					}
+				)
+
+				pres, err := searcher.PartialExec("node", fmt.Sprintf("cookbooks_%s_version:%s", cookbookName, cookbookVersion.Version), query)
+				if err != nil {
+					return nil, errors.Wrap(err, "unable to get cookbook usage information")
+				}
+				// If there are no nodes with this cookbook, remove that version
+				if l := len(pres.Rows); l > 0 {
+					fmt.Printf("%d nodes found for %s(%s)\n", l, cookbookName, cookbookVersion.Version)
+					if cb, found := boundCookbooks[cookbookName]; found {
+						cb.Versions = append(boundCookbooks[cookbookName].Versions, chef.CookbookVersion{Url: cookbookVersion.Url, Version: cookbookVersion.Version})
+					} else {
+						boundCookbooks[cookbookName] = chef.CookbookVersions{Url: cookbookVersions.Url, Versions: []chef.CookbookVersion{chef.CookbookVersion{Url: cookbookVersion.Url, Version: cookbookVersion.Version}}}
+					}
+				} else {
+					fmt.Printf("No nodes found for %s(%s)\n", cookbookName, cookbookVersion.Version)
+				}
+			}
+		}
+		results = boundCookbooks
+	}
 
 	if err != nil {
 		return nil, errors.Wrap(err, "Unable to retrieve cookbooks")
@@ -50,8 +80,8 @@ func CookbookState(cfg *Reporting, cbi CookbookInterface, searcher SearchInterfa
 	//             and allocate results
 	numVersions := 0
 	for _, versions := range results {
-		for _, _ = range versions.Versions {
-			numVersions += 1
+		for range versions.Versions {
+			numVersions++
 		}
 	}
 

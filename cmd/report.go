@@ -86,6 +86,11 @@ var (
 			return nil
 		},
 	}
+	cookbookStateFlags struct {
+		verbose                 bool
+		includeUnboundCookbooks bool
+		format                  string
+	}
 	cookbookStateCmd = &cobra.Command{
 		Use:   "cookbook-state",
 		Short: "Generates cookbook report that shows current remediation state and usage",
@@ -110,7 +115,7 @@ var (
 				return err
 			}
 
-			results, err := reporting.CookbookState(cfg, chefClient.Cookbooks, chefClient.Search)
+			results, err := reporting.CookbookState(cfg, chefClient.Cookbooks, chefClient.Search, cookbookStateFlags.includeUnboundCookbooks)
 			if err != nil {
 				return err
 			} else {
@@ -124,6 +129,21 @@ var (
 )
 
 func init() {
+	cookbookStateCmd.PersistentFlags().BoolVarP(
+		&cookbookStateFlags.verbose,
+		"verbose", "v", false,
+		"Include verbose information about cookbook violations",
+	)
+	cookbookStateCmd.PersistentFlags().BoolVarP(
+		&cookbookStateFlags.includeUnboundCookbooks,
+		"unbound", "u", true,
+		"Include cookbooks and versions that are not applied to any nodes",
+	)
+	cookbookStateCmd.PersistentFlags().StringVarP(
+		&cookbookStateFlags.format,
+		"format", "f", "txt",
+		"Output format - txt is human readable, csv is machine readable",
+	)
 	// adds the cookbooks command as a sub-command of the report command
 	// => chef-analyze report cookbooks
 	reportCmd.AddCommand(reportCookbooksCmd)
