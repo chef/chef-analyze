@@ -1,3 +1,19 @@
+//
+// Copyright 2019 Chef Software, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+
 package reporting
 
 import (
@@ -24,12 +40,7 @@ type CookbookStateRecord struct {
 	UsageLookupError error
 }
 
-type PartialCookbookInterface interface {
-	ListAvailableVersions(numVersions string) (chef.CookbookListResult, error)
-	DownloadTo(name, version, localDir string) error
-}
-
-func CookbookState(cfg *Reporting, cbi PartialCookbookInterface, searcher PartialSearchInterface) ([]*CookbookStateRecord, error) {
+func CookbookState(cfg *Reporting, cbi CookbookInterface, searcher SearchInterface) ([]*CookbookStateRecord, error) {
 	fmt.Println("Finding available cookbooks...") // c <- ProgressUpdate(Event: COOKBOOK_FETCH)
 	// Version limit of "0" means fetch all
 	results, err := cbi.ListAvailableVersions("0")
@@ -65,7 +76,7 @@ func CookbookState(cfg *Reporting, cbi PartialCookbookInterface, searcher Partia
 	return cbStates, nil
 }
 
-func downloadCookbooks(cbi PartialCookbookInterface, searcher PartialSearchInterface, cookbooks chef.CookbookListResult, numVersions int) ([]*CookbookStateRecord, error) {
+func downloadCookbooks(cbi CookbookInterface, searcher SearchInterface, cookbooks chef.CookbookListResult, numVersions int) ([]*CookbookStateRecord, error) {
 	var cbState *CookbookStateRecord
 	// Ultimately, progress tracking and output lives with caller. While we work out
 	// those details, it lives here.
@@ -122,7 +133,7 @@ func runCookstyle(cbStates []*CookbookStateRecord, formatterPath string) {
 	}
 	progress.Finish()
 }
-func nodesUsingCookbookVersion(searcher PartialSearchInterface, cookbook string, version string) ([]string, error) {
+func nodesUsingCookbookVersion(searcher SearchInterface, cookbook string, version string) ([]string, error) {
 	var (
 		query = map[string]interface{}{
 			"name": []string{"name"},

@@ -17,26 +17,14 @@
 package reporting_test
 
 import (
-	"encoding/json"
 	"fmt"
 	"testing"
 
-	chef "github.com/chef/go-chef"
 	"github.com/chef/go-libs/credentials"
 	"github.com/stretchr/testify/assert"
 
 	subject "github.com/chef/chef-analyze/pkg/reporting"
 )
-
-type PartialSearchMock struct {
-	desiredError   error
-	desiredResults chef.SearchResult
-}
-
-func (psm PartialSearchMock) PartialExec(idx, statement string,
-	params map[string]interface{}) (res chef.SearchResult, err error) {
-	return psm.desiredResults, psm.desiredError
-}
 
 func TestNodes(t *testing.T) {
 	creds := credentials.Credentials{}
@@ -135,21 +123,4 @@ func testValidResultsWithNulls(t *testing.T, cfg *subject.Reporting) {
 			assert.Truef(t, found, "Did not find expected NodeReportItem %s", e.Name)
 		}
 	}
-}
-
-func makeMockSearch(searchResultJSON string, desiredError error) PartialSearchMock {
-	var convertedSearchResult []interface{}
-	if desiredError == nil {
-		rawRows := json.RawMessage(searchResultJSON)
-		bytes, err := rawRows.MarshalJSON()
-		if err != nil {
-			panic(err)
-		}
-		err = json.Unmarshal(bytes, &convertedSearchResult)
-		if err != nil {
-			panic(err)
-		}
-	}
-	result := chef.SearchResult{Rows: convertedSearchResult}
-	return PartialSearchMock{desiredError: desiredError, desiredResults: result}
 }
