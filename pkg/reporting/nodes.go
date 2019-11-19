@@ -21,8 +21,6 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-
-	chef "github.com/chef/go-chef"
 )
 
 type CookbookVersion struct {
@@ -42,10 +40,6 @@ type NodeReportItem struct {
 	CookbookVersions []CookbookVersion
 }
 
-type PartialSearchInterface interface {
-	PartialExec(idx, statement string, params map[string]interface{}) (res chef.SearchResult, err error)
-}
-
 func (nri *NodeReportItem) Array() []string {
 	var cookbooks []string
 	for _, v := range nri.CookbookVersions {
@@ -63,7 +57,7 @@ func (nri *NodeReportItem) Array() []string {
 //        cfg which includes the client, but did not want to create a full mock interface for
 //        chef.client here - that belongs in go-chef, where it can be maintained alongside
 //        any interface changes that originate there.
-func Nodes(cfg *Reporting, searcher PartialSearchInterface) ([]NodeReportItem, error) {
+func Nodes(cfg *Reporting, searcher SearchInterface) ([]NodeReportItem, error) {
 	var (
 		query = map[string]interface{}{
 			"name":         []string{"name"},
