@@ -2,12 +2,12 @@
 github.com/BurntSushi/toml
 # github.com/VividCortex/ewma v1.1.1
 github.com/VividCortex/ewma
-# github.com/chef/go-chef v0.3.1-0.20191112182338-bdcfc81b4cca
+# github.com/chef/go-chef v0.0.0-20191115205148-7ac24fba7a27
 github.com/chef/go-chef
 # github.com/chef/go-libs v0.0.0-20191113223254-d2a05fa5636d
-github.com/chef/go-libs/config
-github.com/chef/go-libs/credentials
 github.com/chef/go-libs/featflag
+github.com/chef/go-libs/credentials
+github.com/chef/go-libs/config
 # github.com/cheggaaa/pb/v3 v3.0.2
 github.com/cheggaaa/pb/v3
 github.com/cheggaaa/pb/v3/termutil
@@ -19,13 +19,13 @@ github.com/fatih/color
 github.com/fsnotify/fsnotify
 # github.com/hashicorp/hcl v1.0.0
 github.com/hashicorp/hcl
+github.com/hashicorp/hcl/hcl/printer
 github.com/hashicorp/hcl/hcl/ast
 github.com/hashicorp/hcl/hcl/parser
-github.com/hashicorp/hcl/hcl/printer
-github.com/hashicorp/hcl/hcl/scanner
-github.com/hashicorp/hcl/hcl/strconv
 github.com/hashicorp/hcl/hcl/token
 github.com/hashicorp/hcl/json/parser
+github.com/hashicorp/hcl/hcl/scanner
+github.com/hashicorp/hcl/hcl/strconv
 github.com/hashicorp/hcl/json/scanner
 github.com/hashicorp/hcl/json/token
 # github.com/inconshreveable/mousetrap v1.0.0

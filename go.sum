@@ -25,8 +25,11 @@ github.com/browsh-org/browsh v1.6.4/go.mod h1:MjLfKPf8Yv3u/FE4qXloGm7VW8BgsdGlD/
 github.com/buger/goterm v0.0.0-20181115115552-c206103e1f37/go.mod h1:u9UyCz2eTrSGy6fbupqJ54eY5c4IC8gREQ1053dK12U=
 github.com/cenkalti/backoff v2.1.1+incompatible/go.mod h1:90ReRw6GdpyfrHakVjL/QHaoyV4aDUVVkXQJJJ3NXXM=
 github.com/cespare/xxhash v1.1.0/go.mod h1:XrSqR1VqqWfGrhpAt58auRo0WTKS1nRRg3ghfAqPWnc=
+github.com/chef/go-chef v0.0.0-20191115205148-7ac24fba7a27 h1:XGQlXv6Gwd2+tBBXrp+xzy681ler8dIwZhmOsBO+sX8=
+github.com/chef/go-chef v0.0.0-20191115205148-7ac24fba7a27/go.mod h1:ft8oU7s0ktse9xzZO4n8wxTz6EKx+V+fuhYxktqXvG8=
 github.com/chef/go-chef v0.3.1-0.20191022192238-9a61e1963868 h1:4U7jq8F5DTpcHKgSIAbHg2sXAOvIYo9Wr9J+sKkjus4=
 github.com/chef/go-chef v0.3.1-0.20191022192238-9a61e1963868/go.mod h1:ft8oU7s0ktse9xzZO4n8wxTz6EKx+V+fuhYxktqXvG8=
+github.com/chef/go-chef v0.3.1-0.20191112182338-7ac24fba7a27/go.mod h1:ft8oU7s0ktse9xzZO4n8wxTz6EKx+V+fuhYxktqXvG8=
 github.com/chef/go-chef v0.3.1-0.20191112182338-bdcfc81b4cca h1:nm0Sjwg/HypBQfxvCIAjjS21PEmT9+o4DOh+rLtj7+Q=
 github.com/chef/go-chef v0.3.1-0.20191112182338-bdcfc81b4cca/go.mod h1:ft8oU7s0ktse9xzZO4n8wxTz6EKx+V+fuhYxktqXvG8=
 github.com/chef/go-libs v0.0.0-20191031070545-88d2a92a72ff h1:sEokVvmTbFl0u+IIscCmgbmKB/yf5zQROFyp2BF5Ifs=

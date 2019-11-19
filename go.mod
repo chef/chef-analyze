@@ -6,7 +6,7 @@ require (
 	github.com/axw/gocov v1.0.0 // indirect
 	github.com/browsh-org/browsh v1.6.4 // indirect
 	github.com/buger/goterm v0.0.0-20181115115552-c206103e1f37 // indirect
-	github.com/chef/go-chef v0.3.1-0.20191112182338-bdcfc81b4cca
+	github.com/chef/go-chef v0.0.0-20191115205148-7ac24fba7a27
 	github.com/chef/go-libs v0.0.0-20191113223254-d2a05fa5636d
 	github.com/cheggaaa/pb/v3 v3.0.2
 	github.com/google/uuid v1.1.1 // indirect
