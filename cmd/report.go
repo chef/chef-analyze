@@ -87,7 +87,7 @@ var (
 		},
 	}
 	cookbookStateFlags struct {
-		verbose                 bool
+		detailed                bool
 		includeUnboundCookbooks bool
 		format                  string
 	}
@@ -130,9 +130,9 @@ var (
 
 func init() {
 	cookbookStateCmd.PersistentFlags().BoolVarP(
-		&cookbookStateFlags.verbose,
-		"verbose", "v", false,
-		"Include verbose information about cookbook violations",
+		&cookbookStateFlags.detailed,
+		"detailed", "d", false,
+		"Include detailed information about cookbook violations",
 	)
 	cookbookStateCmd.PersistentFlags().BoolVarP(
 		&cookbookStateFlags.includeUnboundCookbooks,
@@ -162,11 +162,11 @@ func writeCookbookStateReport(records []*reporting.CookbookStateRecord) {
 		var str strings.Builder
 
 		str.WriteString(fmt.Sprintf("%v (%v) ", record.Name, record.Version))
-		if record.CBDownloadError == nil {
-			str.WriteString(fmt.Sprintf("%v violations, %v auto-correctable, ", record.Violations, record.Autocorrectable))
+		if record.DownloadError == nil {
+			str.WriteString(fmt.Sprintf("%v violations, %v auto-correctable, ", record.NumOffenses(), record.NumCorrectable()))
 		} else {
 			str.WriteString("violations unknown - see end of report, ")
-			downloadErrors.WriteString(fmt.Sprintf(" - %s (%s): %v\n", record.Name, record.Version, record.CBDownloadError))
+			downloadErrors.WriteString(fmt.Sprintf(" - %s (%s): %v\n", record.Name, record.Version, record.DownloadError))
 		}
 
 		if record.UsageLookupError == nil {
@@ -187,6 +187,10 @@ func writeCookbookStateReport(records []*reporting.CookbookStateRecord) {
 		fmt.Println("Node usage check errors prevented me from getting the number of nodes using some cookbooks:")
 		fmt.Print(usageFetchErrors.String())
 	}
+}
+
+func writeDetailedCookbookStateReport(records []*reporting.CookbookStateRecord) {
+	fmt.Println("foo")
 }
 
 func writeNodeReport(records []reporting.NodeReportItem) {

@@ -18,7 +18,6 @@ package reporting
 
 import (
 	"fmt"
-	"log"
 	"os"
 
 	chef "github.com/chef/go-chef"
@@ -29,49 +28,33 @@ import (
 type CookbookStateRecord struct {
 	Name             string
 	Version          string
-	Violations       int
-	Autocorrectable  int
+	Offenses         []CookstyleOffense
 	Nodes            []string
 	path             string
-	CBDownloadError  error
+	DownloadError    error
 	UsageLookupError error
+	CookstyleError   error
 }
 
-func CookbookState(cfg *Reporting, cbi CookbookInterface, searcher PartialSearchInterface, includeUnboundCookbooks bool) ([]*CookbookStateRecord, error) {
+func (r CookbookStateRecord) NumOffenses() int {
+	return len(r.Offenses)
+}
+
+func (r CookbookStateRecord) NumCorrectable() int {
+	i := 0
+	for _, o := range r.Offenses {
+		if o.Correctable {
+			i++
+		}
+	}
+	return i
+}
+
+func CookbookState(cfg *Reporting, cbi CookbookInterface, searcher SearchInterface, includeUnboundCookbooks bool) ([]*CookbookStateRecord, error) {
 	fmt.Println("Finding available cookbooks...") // c <- ProgressUpdate(Event: COOKBOOK_FETCH)
 	// Version limit of "0" means fetch all
-	results, err := cbi.ListAvailableVersions("0")
-	if includeUnboundCookbooks == false {
-		boundCookbooks := make(chef.CookbookListResult, len(results))
-		for cookbookName, cookbookVersions := range results {
-			for _, cookbookVersion := range cookbookVersions.Versions {
-				// filter cookbooks down to only ones that are assigned to a cookbook
-				var (
-					query = map[string]interface{}{
-						"nodes": []string{"nodes"},
-					}
-				)
-
-				pres, err := searcher.PartialExec("node", fmt.Sprintf("cookbooks_%s_version:%s", cookbookName, cookbookVersion.Version), query)
-				if err != nil {
-					return nil, errors.Wrap(err, "unable to get cookbook usage information")
-				}
-				// If there are no nodes with this cookbook, remove that version
-				if l := len(pres.Rows); l > 0 {
-					fmt.Printf("%d nodes found for %s(%s)\n", l, cookbookName, cookbookVersion.Version)
-					if cb, found := boundCookbooks[cookbookName]; found {
-						cb.Versions = append(boundCookbooks[cookbookName].Versions, chef.CookbookVersion{Url: cookbookVersion.Url, Version: cookbookVersion.Version})
-					} else {
-						boundCookbooks[cookbookName] = chef.CookbookVersions{Url: cookbookVersions.Url, Versions: []chef.CookbookVersion{chef.CookbookVersion{Url: cookbookVersion.Url, Version: cookbookVersion.Version}}}
-					}
-				} else {
-					fmt.Printf("No nodes found for %s(%s)\n", cookbookName, cookbookVersion.Version)
-				}
-			}
-		}
-		results = boundCookbooks
-	}
-
+	// results, err := cbi.ListAvailableVersions("0")
+	results, err := cbi.ListAvailableVersions("")
 	if err != nil {
 		return nil, errors.Wrap(err, "Unable to retrieve cookbooks")
 	}
@@ -86,106 +69,95 @@ func CookbookState(cfg *Reporting, cbi CookbookInterface, searcher PartialSearch
 	}
 
 	fmt.Println("Downloading cookbooks...")
-	cbStates, err := downloadCookbooks(cbi, searcher, results, numVersions)
+	cbStates, err := downloadCookbooks(cbi, searcher, results, numVersions, includeUnboundCookbooks)
 	if err != nil {
 		return cbStates, err
 	}
 
 	fmt.Println("Analyzing cookbooks...")
-	formatterPath, err := createTempFileWithContent(correctableCountCookstyleFormatterRb)
-	if err != nil {
-		return cbStates, err
-	}
-	defer os.Remove(formatterPath)
-
-	runCookstyle(cbStates, formatterPath)
+	runCookstyle(cbStates)
 
 	return cbStates, nil
 }
 
-func downloadCookbooks(cbi CookbookInterface, searcher SearchInterface, cookbooks chef.CookbookListResult, numVersions int) ([]*CookbookStateRecord, error) {
-	var cbState *CookbookStateRecord
-	// Ultimately, progress tracking and output lives with caller. While we work out
-	// those details, it lives here.
-	progress := pb.StartNew(numVersions)
-	cbStates := make([]*CookbookStateRecord, numVersions, numVersions)
-	var index int
-	// Second pass: let's pack them up into returnable form.
-	for cookbookName, cookbookVersions := range cookbooks {
-		for _, ver := range cookbookVersions.Versions {
-			cbState = &CookbookStateRecord{Name: cookbookName,
-				path:    fmt.Sprintf(".analyze-cache/cookbooks/%v-%v", cookbookName, ver.Version),
-				Version: ver.Version,
-			}
-
-			nodes, err := nodesUsingCookbookVersion(searcher, cookbookName, ver.Version)
-			if err != nil {
-				cbState.UsageLookupError = err
-			} else {
-				cbState.Nodes = nodes
-			}
-
-			err = cbi.DownloadTo(cookbookName, ver.Version, ".analyze-cache/cookbooks")
-			if err != nil {
-				cbState.CBDownloadError = err
-			}
-			cbStates[index] = cbState
-			index++
-
-			progress.Increment()
-		}
-	}
-	progress.Finish()
-	return cbStates, nil
-}
-
-func runCookstyle(cbStates []*CookbookStateRecord, formatterPath string) {
-	progress := pb.StartNew(len(cbStates))
-	runner := ExecCommandRunner{}
-	for _, cb := range cbStates {
-		progress.Increment()
-		// If we could not download the complete cookbook, we can't provide
-		// an accurate set of results
-		if cb.CBDownloadError != nil {
-			continue
-		}
-		cookstyleResults, err := RunCookstyle(cb.path, runner)
-		if err != nil {
-			// TODO - unlikely, but if it can actually happen we should capture this
-			//        potential failure in results too, eg cb.ViolationCheckError = err
-			log.Print(err)
-			continue
-		}
-		for _, file := range cookstyleResults.Files {
-			for _, offense := range file.Offenses {
-
-				cb.Violations += 1
-				if offense.Correctable {
-					cb.Autocorrectable += 1
-				}
-			}
-		}
-	}
-	progress.Finish()
-}
-func nodesUsingCookbookVersion(searcher SearchInterface, cookbook string, version string) ([]string, error) {
+func downloadCookbooks(cbi CookbookInterface, searcher SearchInterface, cookbooks chef.CookbookListResult, numVersions int, includeUnboundCookbooks bool) ([]*CookbookStateRecord, error) {
 	var (
 		query = map[string]interface{}{
 			"name": []string{"name"},
 		}
+		cbState *CookbookStateRecord
 	)
 
-	pres, err := searcher.PartialExec("node", fmt.Sprintf("cookbooks_%s_version:%s", cookbook, version), query)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to get cookbook usage information")
-	}
-	results := make([]string, 0, len(pres.Rows))
-	for _, element := range pres.Rows {
-		v := element.(map[string]interface{})["data"].(map[string]interface{})
-		if v != nil {
-			results = append(results, safeStringFromMap(v, "name"))
+	// Ultimately, progress tracking and output lives with caller. While we work out
+	// those details, it lives here.
+	progress := pb.StartNew(numVersions)
+	cbStates := make([]*CookbookStateRecord, 0, numVersions)
+
+	// Second pass: let's pack them up into returnable form.
+	for cookbookName, cookbookVersions := range cookbooks {
+		for _, cookbookVersion := range cookbookVersions.Versions {
+			dirName := fmt.Sprintf(".analyze-cache/cookbooks/%v-%v", cookbookName, cookbookVersion.Version)
+			cbState = &CookbookStateRecord{Name: cookbookName,
+				path:    dirName,
+				Version: cookbookVersion.Version,
+			}
+
+			// TODO add pagination
+			pres, err := searcher.PartialExec("node", fmt.Sprintf("cookbooks_%s_version:%s", cookbookName, cookbookVersion.Version), query)
+			if err != nil {
+				cbState.UsageLookupError = err
+				cbStates = append(cbStates, cbState)
+				progress.Increment()
+				continue
+			}
+			if numNodes := len(pres.Rows); numNodes > 0 || includeUnboundCookbooks {
+				if _, err := os.Stat("./" + dirName); os.IsNotExist(err) {
+					// TODO - cbi.DownloadTo returns path so we don't have to know how it builds them
+					err := cbi.DownloadTo(cookbookName, cookbookVersion.Version, ".analyze-cache/cookbooks")
+					if err != nil {
+						cbState.DownloadError = err
+						cbStates = append(cbStates, cbState)
+						continue
+					}
+				}
+				nodesUsing := make([]string, 0, numNodes)
+				for _, element := range pres.Rows {
+					v := element.(map[string]interface{})["data"].(map[string]interface{})
+					if v != nil {
+						nodesUsing = append(nodesUsing, safeStringFromMap(v, "name"))
+					}
+				}
+				cbState.Nodes = nodesUsing
+				cbStates = append(cbStates, cbState)
+				progress.Increment()
+			} else {
+				progress.Increment()
+				continue
+			}
 		}
 	}
+	progress.Finish()
+	return cbStates, nil
+}
 
-	return results, nil
+func runCookstyle(cbStates []*CookbookStateRecord) {
+	progress := pb.StartNew(len(cbStates))
+	runner := ExecCommandRunner{}
+	for _, cb := range cbStates {
+		progress.Increment()
+		// an accurate set of results
+		if cb.DownloadError != nil {
+			continue
+		}
+		cookstyleOffenses, err := RunCookstyle(cb.path, runner)
+		if err != nil {
+			cb.CookstyleError = err
+			continue
+		}
+
+		for _, o := range cookstyleOffenses {
+			cb.Offenses = append(cb.Offenses, o)
+		}
+	}
+	progress.Finish()
 }

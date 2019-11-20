@@ -5,7 +5,8 @@ import (
 	"os/exec"
 )
 
-type Offense struct {
+
+type CookstyleOffense struct {
 	Severity    string `json:"severity"`
 	Message     string `json:"message"`
 	CopName     string `json:"cop_name"`
@@ -33,7 +34,7 @@ type CookstyleResult struct {
 	}
 	Files []struct {
 		Path     string    `json:"path"`
-		Offenses []Offense `json:"offenses"`
+		Offenses []CookstyleOffense `json:"offenses"`
 	}
 }
 
@@ -50,10 +51,11 @@ func (er ExecCommandRunner) Run(workingDir string, name string, arg ...string) (
 	return cmd.Output()
 }
 
-func RunCookstyle(workingDir string, runner CommandRunner) (CookstyleResult, error) {
+func RunCookstyle(workingDir string, runner CommandRunner) ([]CookstyleResult, error) {
 	var csr CookstyleResult
 	// TODO - this will only work on *nix flavors - platform resolution of binaries is a shared thing we need.
-	output, err := runner.Run(workingDir, "/opt/chef-workstation/bin/cookstyle", "--format", "json")
+	// output, err := runner.Run(workingDir, "/opt/chef-workstation/bin/cookstyle", "--format", "json")
+	output, err := runner.Run("/Users/tball/github/cookstyle", "bundle", "exec", "cookstyle", "--format", "json", workingDir)
 	if exitError, ok := err.(*exec.ExitError); ok {
 		// https://docs.rubocop.org/en/latest/basic_usage/#exit-codes
 		// exit code of 1 is ok , it means some violations were found
@@ -63,6 +65,7 @@ func RunCookstyle(workingDir string, runner CommandRunner) (CookstyleResult, err
 	} else if err != nil {
 		return csr, err
 	}
+	var csr []CookstyleResult
 
 	err = json.Unmarshal(output, &csr)
 	if err != nil {
