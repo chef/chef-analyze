@@ -5,7 +5,6 @@ import (
 	"os/exec"
 )
 
-
 type CookstyleOffense struct {
 	Severity    string `json:"severity"`
 	Message     string `json:"message"`
@@ -24,6 +23,11 @@ type CookstyleOffense struct {
 	}
 }
 
+type CookbookFile struct {
+	Path     string             `json:"path"`
+	Offenses []CookstyleOffense `json:"offenses"`
+}
+
 type CookstyleResult struct {
 	Metadata struct {
 		RubocopVersion string `json:"rubocop_version"`
@@ -32,10 +36,7 @@ type CookstyleResult struct {
 		RubyPatchlevel string `json:"ruby_patchlevel"`
 		RubyPlatform   string `json:"ruby_platform"`
 	}
-	Files []struct {
-		Path     string    `json:"path"`
-		Offenses []CookstyleOffense `json:"offenses"`
-	}
+	Files []CookbookFile `json:"files"`
 }
 
 // Should these live here?
@@ -51,11 +52,12 @@ func (er ExecCommandRunner) Run(workingDir string, name string, arg ...string) (
 	return cmd.Output()
 }
 
-func RunCookstyle(workingDir string, runner CommandRunner) ([]CookstyleResult, error) {
+func RunCookstyle(workingDir string, runner CommandRunner) (CookstyleResult, error) {
 	var csr CookstyleResult
 	// TODO - this will only work on *nix flavors - platform resolution of binaries is a shared thing we need.
 	// output, err := runner.Run(workingDir, "/opt/chef-workstation/bin/cookstyle", "--format", "json")
-	output, err := runner.Run("/Users/tball/github/cookstyle", "bundle", "exec", "cookstyle", "--format", "json", workingDir)
+	// fmt.Println("bundle exec cookstyle --format json " + workingDir)
+	output, err := runner.Run("/Users/tball/github/cookstyle", "bundle", "exec", "cookstyle", "--format", "json", "/Users/tball/github/chef-analyze/"+workingDir)
 	if exitError, ok := err.(*exec.ExitError); ok {
 		// https://docs.rubocop.org/en/latest/basic_usage/#exit-codes
 		// exit code of 1 is ok , it means some violations were found
@@ -65,7 +67,6 @@ func RunCookstyle(workingDir string, runner CommandRunner) ([]CookstyleResult, e
 	} else if err != nil {
 		return csr, err
 	}
-	var csr []CookstyleResult
 
 	err = json.Unmarshal(output, &csr)
 	if err != nil {

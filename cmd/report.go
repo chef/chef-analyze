@@ -17,6 +17,7 @@
 package cmd
 
 import (
+	"encoding/csv"
 	"fmt"
 	"os"
 	"strings"
@@ -118,6 +119,13 @@ var (
 			results, err := reporting.CookbookState(cfg, chefClient.Cookbooks, chefClient.Search, cookbookStateFlags.includeUnboundCookbooks)
 			if err != nil {
 				return err
+			}
+			if cookbookStateFlags.detailed {
+				if cookbookStateFlags.format == "csv" {
+					writeDetailedCSV(results)
+				} else {
+					writeDetailedCookbookStateReport(results)
+				}
 			} else {
 				writeCookbookStateReport(results)
 			}
@@ -158,29 +166,34 @@ func init() {
 func writeCookbookStateReport(records []*reporting.CookbookStateRecord) {
 	var downloadErrors strings.Builder
 	var usageFetchErrors strings.Builder
+	var cookstyleErrors strings.Builder
 	for _, record := range records {
 		var str strings.Builder
 
 		str.WriteString(fmt.Sprintf("%v (%v) ", record.Name, record.Version))
-		if record.DownloadError == nil {
-			str.WriteString(fmt.Sprintf("%v violations, %v auto-correctable, ", record.NumOffenses(), record.NumCorrectable()))
-		} else {
-			str.WriteString("violations unknown - see end of report, ")
+		if record.DownloadError != nil {
+			str.WriteString("could not download cookbook - see end of report, ")
 			downloadErrors.WriteString(fmt.Sprintf(" - %s (%s): %v\n", record.Name, record.Version, record.DownloadError))
+		} else if record.CookstyleError != nil {
+			str.WriteString("could not run Cookstyle - see end of report ")
+			cookstyleErrors.WriteString(fmt.Sprintf(" - %s (%s): %v\n", record.Name, record.Version, record.CookstyleError))
+		} else if record.UsageLookupError != nil {
+			str.WriteString("violations unknown - see end of report, ")
+			usageFetchErrors.WriteString(fmt.Sprintf(" - %s (%s): %v\n", record.Name, record.Version, record.UsageLookupError))
 		}
 
-		if record.UsageLookupError == nil {
-			str.WriteString(fmt.Sprintf("%v nodes affected", len(record.Nodes)))
-		} else {
-			str.WriteString("node count unknown - see end of report ")
-			downloadErrors.WriteString(fmt.Sprintf(" - %s (%s): %v\n", record.Name, record.Version, record.UsageLookupError))
-		}
+		str.WriteString(fmt.Sprintf("%v violations, %v auto-correctable, ", record.NumOffenses(), record.NumCorrectable()))
+		str.WriteString(fmt.Sprintf("%v nodes affected", len(record.Nodes)))
 
 		fmt.Println(str.String())
 	}
 
 	if downloadErrors.Len() > 0 {
 		fmt.Println("Cookbook download errors prevented me from scanning some cookbooks:")
+		fmt.Print(downloadErrors.String())
+	}
+	if cookstyleErrors.Len() > 0 {
+		fmt.Println("Cookstyle execution errors prevented me from scanning some cookbooks:")
 		fmt.Print(downloadErrors.String())
 	}
 	if usageFetchErrors.Len() > 0 {
@@ -190,7 +203,94 @@ func writeCookbookStateReport(records []*reporting.CookbookStateRecord) {
 }
 
 func writeDetailedCookbookStateReport(records []*reporting.CookbookStateRecord) {
-	fmt.Println("foo")
+	var downloadErrors strings.Builder
+	var usageFetchErrors strings.Builder
+	var cookstyleErrors strings.Builder
+	for _, record := range records {
+		var str strings.Builder
+
+		str.WriteString(fmt.Sprintf("%v (%v)\nNodesAffected: ", record.Name, record.Version))
+		str.WriteString(strings.Join(record.Nodes, ", ") + "\n")
+		str.WriteString("Files and offenses:\n")
+		for _, f := range record.Files {
+			if len(f.Offenses) == 0 {
+				continue
+			}
+			str.WriteString(fmt.Sprintf("%s:\n", f.Path))
+			for _, o := range f.Offenses {
+				str.WriteString(fmt.Sprintf("\t%s (%t) %s\n", o.CopName, o.Correctable, o.Message))
+			}
+		}
+		if record.DownloadError != nil {
+			str.WriteString("could not download cookbook - see end of report, ")
+			downloadErrors.WriteString(fmt.Sprintf(" - %s (%s): %v\n", record.Name, record.Version, record.DownloadError))
+		} else if record.CookstyleError != nil {
+			str.WriteString("could not run Cookstyle - see end of report, ")
+			cookstyleErrors.WriteString(fmt.Sprintf(" - %s (%s): %v\n", record.Name, record.Version, record.CookstyleError))
+		} else if record.UsageLookupError != nil {
+			str.WriteString("violations unknown - see end of report, ")
+			usageFetchErrors.WriteString(fmt.Sprintf(" - %s (%s): %v\n", record.Name, record.Version, record.UsageLookupError))
+		}
+
+		str.WriteString(fmt.Sprintf("%v violations, %v auto-correctable, ", record.NumOffenses(), record.NumCorrectable()))
+		str.WriteString(fmt.Sprintf("%v nodes affected", len(record.Nodes)))
+
+		fmt.Println(str.String())
+	}
+
+	if downloadErrors.Len() > 0 {
+		fmt.Println("Cookbook download errors prevented me from scanning some cookbooks:")
+		fmt.Print(downloadErrors.String())
+	}
+	if cookstyleErrors.Len() > 0 {
+		fmt.Println("Cookstyle execution errors prevented me from scanning some cookbooks:")
+		fmt.Print(downloadErrors.String())
+	}
+	if usageFetchErrors.Len() > 0 {
+		fmt.Println("Node usage check errors prevented me from getting the number of nodes using some cookbooks:")
+		fmt.Print(usageFetchErrors.String())
+	}
+}
+
+func writeDetailedCSV(records []*reporting.CookbookStateRecord) {
+	var str strings.Builder
+	csvWriter := csv.NewWriter(&str)
+	csvWriter.Write([]string{"Cookbook Name", "Version", "File", "Offense", "Automatically Correctable", "Message", "Nodes"})
+	for _, record := range records {
+		firstRow := []string{record.Name, record.Version, "", "", "", "", strings.Join(record.Nodes, " ")}
+		firstRowPopulated := false
+		for _, file := range record.Files {
+			if len(file.Offenses) == 0 {
+				continue
+			}
+			if firstRowPopulated == false {
+				firstRow[2] = file.Path
+				firstOffense := file.Offenses[0]
+				file.Offenses = file.Offenses[1:]
+				firstRow[3] = firstOffense.CopName
+				if firstOffense.Correctable {
+					firstRow[4] = "Y"
+				} else {
+					firstRow[4] = "N"
+				}
+				firstRow[5] = firstOffense.Message
+				csvWriter.Write(firstRow)
+				firstRowPopulated = true
+			} else {
+				for _, offense := range file.Offenses {
+					row := []string{"", "", "", offense.CopName, "", offense.Message, ""}
+					if offense.Correctable {
+						row[4] = "Y"
+					} else {
+						row[4] = "N"
+					}
+					csvWriter.Write(row)
+				}
+			}
+		}
+	}
+	csvWriter.Flush()
+	fmt.Println(str.String())
 }
 
 func writeNodeReport(records []reporting.NodeReportItem) {

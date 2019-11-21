@@ -28,7 +28,7 @@ import (
 type CookbookStateRecord struct {
 	Name             string
 	Version          string
-	Offenses         []CookstyleOffense
+	Files            []CookbookFile
 	Nodes            []string
 	path             string
 	DownloadError    error
@@ -37,14 +37,20 @@ type CookbookStateRecord struct {
 }
 
 func (r CookbookStateRecord) NumOffenses() int {
-	return len(r.Offenses)
+	i := 0
+	for _, f := range r.Files {
+		i += len(f.Offenses)
+	}
+	return i
 }
 
 func (r CookbookStateRecord) NumCorrectable() int {
 	i := 0
-	for _, o := range r.Offenses {
-		if o.Correctable {
-			i++
+	for _, f := range r.Files {
+		for _, o := range f.Offenses {
+			if o.Correctable {
+				i++
+			}
 		}
 	}
 	return i
@@ -53,8 +59,7 @@ func (r CookbookStateRecord) NumCorrectable() int {
 func CookbookState(cfg *Reporting, cbi CookbookInterface, searcher SearchInterface, includeUnboundCookbooks bool) ([]*CookbookStateRecord, error) {
 	fmt.Println("Finding available cookbooks...") // c <- ProgressUpdate(Event: COOKBOOK_FETCH)
 	// Version limit of "0" means fetch all
-	// results, err := cbi.ListAvailableVersions("0")
-	results, err := cbi.ListAvailableVersions("")
+	results, err := cbi.ListAvailableVersions("0")
 	if err != nil {
 		return nil, errors.Wrap(err, "Unable to retrieve cookbooks")
 	}
@@ -149,15 +154,16 @@ func runCookstyle(cbStates []*CookbookStateRecord) {
 		if cb.DownloadError != nil {
 			continue
 		}
-		cookstyleOffenses, err := RunCookstyle(cb.path, runner)
+		cookstyleResults, err := RunCookstyle(cb.path, runner)
 		if err != nil {
 			cb.CookstyleError = err
 			continue
 		}
 
-		for _, o := range cookstyleOffenses {
-			cb.Offenses = append(cb.Offenses, o)
+		for _, file := range cookstyleResults.Files {
+			cb.Files = append(cb.Files, file)
 		}
+
 	}
 	progress.Finish()
 }
