@@ -18,6 +18,7 @@ package reporting
 
 import (
 	"fmt"
+	"log"
 	"os"
 
 	chef "github.com/chef/go-chef"
@@ -56,7 +57,7 @@ func (r CookbookStateRecord) NumCorrectable() int {
 	return i
 }
 
-func CookbookState(cfg *Reporting, cbi CookbookInterface, searcher SearchInterface, includeUnboundCookbooks bool) ([]*CookbookStateRecord, error) {
+func CookbookState(cfg *Reporting, cbi CookbookInterface, searcher SearchInterface, runner ExecCookstyleRunner, includeUnboundCookbooks bool) ([]*CookbookStateRecord, error) {
 	fmt.Println("Finding available cookbooks...") // c <- ProgressUpdate(Event: COOKBOOK_FETCH)
 	// Version limit of "0" means fetch all
 	results, err := cbi.ListAvailableVersions("0")
@@ -83,7 +84,6 @@ func CookbookState(cfg *Reporting, cbi CookbookInterface, searcher SearchInterfa
 	runCookstyle(cbStates)
 
 	return cbStates, nil
-}
 
 func downloadCookbooks(cbi CookbookInterface, searcher SearchInterface, cookbooks chef.CookbookListResult, numVersions int, includeUnboundCookbooks bool) ([]*CookbookStateRecord, error) {
 	var (
@@ -145,9 +145,8 @@ func downloadCookbooks(cbi CookbookInterface, searcher SearchInterface, cookbook
 	return cbStates, nil
 }
 
-func runCookstyle(cbStates []*CookbookStateRecord) {
+func runCookstyle(cbStates []*CookbookStateRecord, runner CookstyleRunner) {
 	progress := pb.StartNew(len(cbStates))
-	runner := ExecCommandRunner{}
 	for _, cb := range cbStates {
 		progress.Increment()
 		// an accurate set of results
@@ -167,3 +166,4 @@ func runCookstyle(cbStates []*CookbookStateRecord) {
 	}
 	progress.Finish()
 }
+

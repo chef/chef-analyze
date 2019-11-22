@@ -116,7 +116,7 @@ var (
 				return err
 			}
 
-			results, err := reporting.CookbookState(cfg, chefClient.Cookbooks, chefClient.Search, cookbookStateFlags.includeUnboundCookbooks)
+			results, err := reporting.CookbookState(cfg, chefClient.Cookbooks, chefClient.Search, reporting.ExecCookstyleRunner{}, cookbookStateFlags.includeUnboundCookbooks)
 			if err != nil {
 				return err
 			}
@@ -158,6 +158,8 @@ func init() {
 	// adds the nodes command as a sub-command of the report command
 	// => chef-analyze report nodes
 	reportCmd.AddCommand(reportNodesCmd)
+	// adds the cookbook-state command as a sub-command of the report command
+	// => chef-analyze report nodes
 	reportCmd.AddCommand(cookbookStateCmd)
 }
 
@@ -238,6 +240,7 @@ func writeDetailedCookbookStateReport(records []*reporting.CookbookStateRecord) 
 		fmt.Println(str.String())
 	}
 
+	fmt.Println()
 	if downloadErrors.Len() > 0 {
 		fmt.Println("Cookbook download errors prevented me from scanning some cookbooks:")
 		fmt.Print(downloadErrors.String())
@@ -246,6 +249,8 @@ func writeDetailedCookbookStateReport(records []*reporting.CookbookStateRecord) 
 		fmt.Println("Cookstyle execution errors prevented me from scanning some cookbooks:")
 		fmt.Print(downloadErrors.String())
 	}
+	// TODO - Same here.  This woul donly happy because of an API failure.  They can't fix the API failure,
+	//        and these errors won't really explain that very well in any case.
 	if usageFetchErrors.Len() > 0 {
 		fmt.Println("Node usage check errors prevented me from getting the number of nodes using some cookbooks:")
 		fmt.Print(usageFetchErrors.String())

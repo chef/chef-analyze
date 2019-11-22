@@ -40,38 +40,35 @@ type CookstyleResult struct {
 }
 
 // Should these live here?
-type CommandRunner interface {
-	Run(workingDir string, name string, arg ...string) ([]byte, error)
+type CookstyleRunner interface {
+	Run(workingDir string) ([]byte, error)
 }
 
-type ExecCommandRunner struct{}
+type ExecCookstyleRunner struct{}
 
-func (er ExecCommandRunner) Run(workingDir string, name string, arg ...string) ([]byte, error) {
-	cmd := exec.Command(name, arg...)
+func (er ExecCookstyleRunner) Run(workingDir string) ([]byte, error) {
+	cmd := exec.Command("cookstyle", "--format", "json")
 	cmd.Dir = workingDir
 	return cmd.Output()
 }
 
-func RunCookstyle(workingDir string, runner CommandRunner) (CookstyleResult, error) {
-	var csr CookstyleResult
-	// TODO - this will only work on *nix flavors - platform resolution of binaries is a shared thing we need.
-	// output, err := runner.Run(workingDir, "/opt/chef-workstation/bin/cookstyle", "--format", "json")
-	// fmt.Println("bundle exec cookstyle --format json " + workingDir)
-	output, err := runner.Run("/Users/tball/github/cookstyle", "bundle", "exec", "cookstyle", "--format", "json", "/Users/tball/github/chef-analyze/"+workingDir)
+func RunCookstyle(workingDir string, runner CookstyleRunner) (*CookstyleResult, error) {
+	output, err := runner.Run(workingDir)
 	if exitError, ok := err.(*exec.ExitError); ok {
 		// https://docs.rubocop.org/en/latest/basic_usage/#exit-codes
 		// exit code of 1 is ok , it means some violations were found
 		if exitError.ExitCode() != 1 {
-			return csr, err
+			return nil, err
 		}
 	} else if err != nil {
-		return csr, err
+		return nil, err
 	}
 
+	var csr CookstyleResult
 	err = json.Unmarshal(output, &csr)
 	if err != nil {
-		return csr, err
+		return nil, err
 	}
 
-	return csr, nil
+	return &csr, nil
 }
