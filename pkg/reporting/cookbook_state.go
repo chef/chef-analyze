@@ -121,7 +121,6 @@ func runCookstyle(cbStates []*CookbookStateRecord, runner CommandRunner) {
 		}
 		for _, file := range cookstyleResults.Files {
 			for _, offense := range file.Offenses {
-
 				cb.Violations += 1
 				if offense.Correctable {
 					cb.Autocorrectable += 1

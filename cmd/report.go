@@ -130,6 +130,8 @@ func init() {
 	// adds the nodes command as a sub-command of the report command
 	// => chef-analyze report nodes
 	reportCmd.AddCommand(reportNodesCmd)
+	// adds the cookbook-state command as a sub-command of the report command
+	// => chef-analyze report nodes
 	reportCmd.AddCommand(cookbookStateCmd)
 }
 
@@ -159,6 +161,7 @@ func writeCookbookStateReport(records []*reporting.CookbookStateRecord) {
 		fmt.Println(str.String())
 	}
 
+	fmt.Println()
 	if downloadErrors.Len() > 0 {
 		fmt.Println("Cookbook download errors prevented me from scanning some cookbooks:")
 		fmt.Print(downloadErrors.String())
