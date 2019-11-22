@@ -50,24 +50,24 @@ func (er ExecCommandRunner) Run(workingDir string, name string, arg ...string) (
 	return cmd.Output()
 }
 
-func RunCookstyle(workingDir string, runner CommandRunner) (CookstyleResult, error) {
-	var csr CookstyleResult
+func RunCookstyle(workingDir string, runner CommandRunner) (*CookstyleResult, error) {
 	// TODO - this will only work on *nix flavors - platform resolution of binaries is a shared thing we need.
 	output, err := runner.Run(workingDir, "/opt/chef-workstation/bin/cookstyle", "--format", "json")
 	if exitError, ok := err.(*exec.ExitError); ok {
 		// https://docs.rubocop.org/en/latest/basic_usage/#exit-codes
 		// exit code of 1 is ok , it means some violations were found
 		if exitError.ExitCode() != 1 {
-			return csr, err
+			return nil, err
 		}
 	} else if err != nil {
-		return csr, err
+		return nil, err
 	}
 
+	var csr CookstyleResult
 	err = json.Unmarshal(output, &csr)
 	if err != nil {
-		return csr, err
+		return nil, err
 	}
 
-	return csr, nil
+	return &csr, nil
 }
