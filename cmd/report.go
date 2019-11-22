@@ -110,7 +110,7 @@ var (
 				return err
 			}
 
-			results, err := reporting.CookbookState(cfg, chefClient.Cookbooks, chefClient.Search, reporting.ExecCommandRunner{})
+			results, err := reporting.CookbookState(cfg, chefClient.Cookbooks, chefClient.Search, reporting.ExecCookstyleRunner{})
 			if err != nil {
 				return err
 			} else {

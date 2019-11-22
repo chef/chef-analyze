@@ -36,7 +36,7 @@ type CookbookStateRecord struct {
 	UsageLookupError error
 }
 
-func CookbookState(cfg *Reporting, cbi CookbookInterface, searcher SearchInterface, runner ExecCommandRunner) ([]*CookbookStateRecord, error) {
+func CookbookState(cfg *Reporting, cbi CookbookInterface, searcher SearchInterface, runner ExecCookstyleRunner) ([]*CookbookStateRecord, error) {
 	fmt.Println("Finding available cookbooks...") // c <- ProgressUpdate(Event: COOKBOOK_FETCH)
 	// Version limit of "0" means fetch all
 	results, err := cbi.ListAvailableVersions("0")
@@ -103,7 +103,7 @@ func downloadCookbooks(cbi CookbookInterface, searcher SearchInterface, cookbook
 	return cbStates, nil
 }
 
-func runCookstyle(cbStates []*CookbookStateRecord, runner CommandRunner) {
+func runCookstyle(cbStates []*CookbookStateRecord, runner CookstyleRunner) {
 	progress := pb.StartNew(len(cbStates))
 	for _, cb := range cbStates {
 		progress.Increment()
