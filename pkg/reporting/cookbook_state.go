@@ -19,7 +19,6 @@ package reporting
 import (
 	"fmt"
 	"log"
-	"os"
 
 	chef "github.com/chef/go-chef"
 	"github.com/cheggaaa/pb/v3"
@@ -37,7 +36,7 @@ type CookbookStateRecord struct {
 	UsageLookupError error
 }
 
-func CookbookState(cfg *Reporting, cbi CookbookInterface, searcher SearchInterface) ([]*CookbookStateRecord, error) {
+func CookbookState(cfg *Reporting, cbi CookbookInterface, searcher SearchInterface, runner ExecCommandRunner) ([]*CookbookStateRecord, error) {
 	fmt.Println("Finding available cookbooks...") // c <- ProgressUpdate(Event: COOKBOOK_FETCH)
 	// Version limit of "0" means fetch all
 	results, err := cbi.ListAvailableVersions("0")
@@ -62,13 +61,8 @@ func CookbookState(cfg *Reporting, cbi CookbookInterface, searcher SearchInterfa
 	}
 
 	fmt.Println("Analyzing cookbooks...")
-	formatterPath, err := createTempFileWithContent(correctableCountCookstyleFormatterRb)
-	if err != nil {
-		return cbStates, err
-	}
-	defer os.Remove(formatterPath)
 
-	runCookstyle(cbStates, formatterPath)
+	runCookstyle(cbStates, runner)
 
 	return cbStates, nil
 }
@@ -109,9 +103,8 @@ func downloadCookbooks(cbi CookbookInterface, searcher SearchInterface, cookbook
 	return cbStates, nil
 }
 
-func runCookstyle(cbStates []*CookbookStateRecord, formatterPath string) {
+func runCookstyle(cbStates []*CookbookStateRecord, runner CommandRunner) {
 	progress := pb.StartNew(len(cbStates))
-	runner := ExecCommandRunner{}
 	for _, cb := range cbStates {
 		progress.Increment()
 		// If we could not download the complete cookbook, we can't provide
@@ -138,6 +131,7 @@ func runCookstyle(cbStates []*CookbookStateRecord, formatterPath string) {
 	}
 	progress.Finish()
 }
+
 func nodesUsingCookbookVersion(searcher SearchInterface, cookbook string, version string) ([]string, error) {
 	var (
 		query = map[string]interface{}{
