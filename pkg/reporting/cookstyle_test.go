@@ -15,7 +15,7 @@ func TestRunCookstyle(t *testing.T) {
 											 { "path" : "/path/to/file2.rb", "offenses" : [] }
                      ]}`
 
-	runner := MockCommandRunner{desiredOutput: []byte(desiredOutput), desiredError: nil}
+	runner := MockCookstyleRunner{desiredOutput: []byte(desiredOutput), desiredError: nil}
 	result, err := subject.RunCookstyle("workingDir", runner)
 
 	// There is not much value in testing the functionality of json.Unmarshal
@@ -47,7 +47,7 @@ func TestRunCookstyle_withViolations(t *testing.T) {
 											 }
                      ]}`
 
-	runner := MockCommandRunner{desiredOutput: []byte(desiredOutput), desiredError: nil}
+	runner := MockCookstyleRunner{desiredOutput: []byte(desiredOutput), desiredError: nil}
 	result, err := subject.RunCookstyle("workingDir", runner)
 	assert.Nil(t, err)
 	assert.NotNil(t, result)
@@ -56,18 +56,18 @@ func TestRunCookstyle_withViolations(t *testing.T) {
 func TestRunCookstyle_withOtherErrors(t *testing.T) {
 	desiredErr := fmt.Errorf("Test error")
 
-	runner := MockCommandRunner{desiredOutput: []byte(`{}`), desiredError: desiredErr}
+	runner := MockCookstyleRunner{desiredOutput: []byte(`{}`), desiredError: desiredErr}
 	result, err := subject.RunCookstyle("workingDir", runner)
 	assert.Nil(t, result)
 	assert.Error(t, err)
 
 }
 
-type MockCommandRunner struct {
+type MockCookstyleRunner struct {
 	desiredOutput []byte
 	desiredError  error
 }
 
-func (mcr MockCommandRunner) Run(workingDir string, name string, arg ...string) ([]byte, error) {
+func (mcr MockCookstyleRunner) Run(workingDir string) ([]byte, error) {
 	return mcr.desiredOutput, mcr.desiredError
 }

@@ -38,21 +38,20 @@ type CookstyleResult struct {
 }
 
 // Should these live here?
-type CommandRunner interface {
-	Run(workingDir string, name string, arg ...string) ([]byte, error)
+type CookstyleRunner interface {
+	Run(workingDir string) ([]byte, error)
 }
 
-type ExecCommandRunner struct{}
+type ExecCookstyleRunner struct{}
 
-func (er ExecCommandRunner) Run(workingDir string, name string, arg ...string) ([]byte, error) {
-	cmd := exec.Command(name, arg...)
+func (er ExecCookstyleRunner) Run(workingDir string) ([]byte, error) {
+	cmd := exec.Command("cookstyle", "--format", "json")
 	cmd.Dir = workingDir
 	return cmd.Output()
 }
 
-func RunCookstyle(workingDir string, runner CommandRunner) (*CookstyleResult, error) {
-	// TODO - this will only work on *nix flavors - platform resolution of binaries is a shared thing we need.
-	output, err := runner.Run(workingDir, "cookstyle", "--format", "json")
+func RunCookstyle(workingDir string, runner CookstyleRunner) (*CookstyleResult, error) {
+	output, err := runner.Run(workingDir)
 	if exitError, ok := err.(*exec.ExitError); ok {
 		// https://docs.rubocop.org/en/latest/basic_usage/#exit-codes
 		// exit code of 1 is ok , it means some violations were found
