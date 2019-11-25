@@ -18,7 +18,6 @@ package reporting
 
 import (
 	"fmt"
-	"log"
 	"os"
 
 	chef "github.com/chef/go-chef"
@@ -65,6 +64,14 @@ func CookbookState(cfg *Reporting, cbi CookbookInterface, searcher SearchInterfa
 		return nil, errors.Wrap(err, "Unable to retrieve cookbooks")
 	}
 
+	i := 0
+	for k := range results {
+		if i > 20 {
+			delete(results, k)
+		}
+		i++
+	}
+
 	// First pass: get totals so we can accurately report progress
 	//             and allocate results
 	numVersions := 0
@@ -81,9 +88,10 @@ func CookbookState(cfg *Reporting, cbi CookbookInterface, searcher SearchInterfa
 	}
 
 	fmt.Println("Analyzing cookbooks...")
-	runCookstyle(cbStates)
+	runCookstyle(cbStates, runner)
 
 	return cbStates, nil
+}
 
 func downloadCookbooks(cbi CookbookInterface, searcher SearchInterface, cookbooks chef.CookbookListResult, numVersions int, includeUnboundCookbooks bool) ([]*CookbookStateRecord, error) {
 	var (
@@ -166,4 +174,3 @@ func runCookstyle(cbStates []*CookbookStateRecord, runner CookstyleRunner) {
 	}
 	progress.Finish()
 }
-
