@@ -116,18 +116,18 @@ var (
 				return err
 			}
 
-			results, err := reporting.CookbookState(cfg, chefClient.Cookbooks, chefClient.Search, reporting.ExecCookstyleRunner{}, cookbookStateFlags.includeUnboundCookbooks)
+			cookbookState, err := reporting.NewCookbookState(chefClient.Cookbooks, chefClient.Search, reporting.ExecCookstyleRunner{}, cookbookStateFlags.includeUnboundCookbooks)
 			if err != nil {
 				return err
 			}
 			if cookbookStateFlags.detailed {
 				if cookbookStateFlags.format == "csv" {
-					writeDetailedCSV(results)
+					writeDetailedCSV(cookbookState.Records)
 				} else {
-					writeDetailedCookbookStateReport(results)
+					writeDetailedCookbookStateReport(cookbookState.Records)
 				}
 			} else {
-				writeCookbookStateReport(results)
+				writeCookbookStateReport(cookbookState.Records)
 			}
 
 			return nil
