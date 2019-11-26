@@ -25,6 +25,8 @@ import (
 	"github.com/pkg/errors"
 )
 
+const analyzeCacheDir = ".analyze-cache"
+
 type CookbookState struct {
 	Records        []*CookbookStateRecord
 	TotalCookbooks int
@@ -122,7 +124,7 @@ func (cbs *CookbookState) downloadCookbook(cookbookName, version string, progres
 	defer wg.Done()
 
 	cbState := &CookbookStateRecord{Name: cookbookName,
-		path:    fmt.Sprintf(".analyze-cache/cookbooks/%v-%v", cookbookName, version),
+		path:    fmt.Sprintf("%s/cookbooks/%v-%v", analyzeCacheDir, cookbookName, version),
 		Version: version,
 	}
 
@@ -133,7 +135,7 @@ func (cbs *CookbookState) downloadCookbook(cookbookName, version string, progres
 		cbState.Nodes = nodes
 	}
 
-	err = cbs.Cookbooks.DownloadTo(cookbookName, version, ".analyze-cache/cookbooks")
+	err = cbs.Cookbooks.DownloadTo(cookbookName, version, fmt.Sprintf("%s/cookbooks", analyzeCacheDir))
 	if err != nil {
 		cbState.DownloadError = err
 	}

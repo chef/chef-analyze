@@ -30,6 +30,7 @@ clean:
 	rm -rf bin/
 	rm -rf results/
 	rm -rf coverage/
+	rm -rf .analyze-cache/
 
 edit:
 	$(EDITOR) Makefile
