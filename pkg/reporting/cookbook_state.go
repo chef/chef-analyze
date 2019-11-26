@@ -19,11 +19,20 @@ package reporting
 import (
 	"fmt"
 	"log"
+	"sync"
 
 	chef "github.com/chef/go-chef"
 	"github.com/cheggaaa/pb/v3"
 	"github.com/pkg/errors"
 )
+
+type CookbookState struct {
+	Records        []*CookbookStateRecord
+	TotalCookbooks int
+	Cookbooks      CookbookInterface
+	Searcher       SearchInterface
+	Cookstyle      ExecCookstyleRunner
+}
 
 type CookbookStateRecord struct {
 	Name             string
@@ -36,83 +45,95 @@ type CookbookStateRecord struct {
 	UsageLookupError error
 }
 
-func CookbookState(cfg *Reporting, cbi CookbookInterface, searcher SearchInterface, runner ExecCookstyleRunner) ([]*CookbookStateRecord, error) {
+func NewCookbookState(cbi CookbookInterface, searcher SearchInterface, runner ExecCookstyleRunner) (*CookbookState, error) {
 	fmt.Println("Finding available cookbooks...") // c <- ProgressUpdate(Event: COOKBOOK_FETCH)
 	// Version limit of "0" means fetch all
 	results, err := cbi.ListAvailableVersions("0")
-
 	if err != nil {
-		return nil, errors.Wrap(err, "Unable to retrieve cookbooks")
+		return nil, errors.Wrap(err, "unable to retrieve cookbooks")
 	}
 
-	// First pass: get totals so we can accurately report progress
-	//             and allocate results
-	numVersions := 0
+	// get totals so we can accurately report progress and allocate results
+	totalCookbooks := 0
 	for _, versions := range results {
-		for _, _ = range versions.Versions {
-			numVersions += 1
-		}
+		totalCookbooks += len(versions.Versions)
+	}
+
+	cookbookState := &CookbookState{
+		Records:        make([]*CookbookStateRecord, totalCookbooks, totalCookbooks),
+		TotalCookbooks: totalCookbooks,
+		Cookbooks:      cbi,
+		Searcher:       searcher,
+		Cookstyle:      runner,
 	}
 
 	fmt.Println("Downloading cookbooks...")
-	cbStates, err := downloadCookbooks(cbi, searcher, results, numVersions)
-	if err != nil {
-		return cbStates, err
-	}
+	cookbookState.downloadCookbooks(results)
 
 	fmt.Println("Analyzing cookbooks...")
+	cookbookState.runCookstyle()
 
-	runCookstyle(cbStates, runner)
-
-	return cbStates, nil
+	return cookbookState, nil
 }
 
-func downloadCookbooks(cbi CookbookInterface, searcher SearchInterface, cookbooks chef.CookbookListResult, numVersions int) ([]*CookbookStateRecord, error) {
-	var cbState *CookbookStateRecord
-	// Ultimately, progress tracking and output lives with caller. While we work out
-	// those details, it lives here.
-	progress := pb.StartNew(numVersions)
-	cbStates := make([]*CookbookStateRecord, numVersions, numVersions)
-	var index int
-	// Second pass: let's pack them up into returnable form.
+// start a progress bar, launch all downloads in parallel and wait for all goroutines to finish
+func (cbs *CookbookState) downloadCookbooks(cookbooks chef.CookbookListResult) {
+	var (
+		index    int
+		wg       sync.WaitGroup
+		progress = pb.StartNew(cbs.TotalCookbooks)
+	)
+
+	wg.Add(cbs.TotalCookbooks)
+
 	for cookbookName, cookbookVersions := range cookbooks {
 		for _, ver := range cookbookVersions.Versions {
-			cbState = &CookbookStateRecord{Name: cookbookName,
-				path:    fmt.Sprintf(".analyze-cache/cookbooks/%v-%v", cookbookName, ver.Version),
-				Version: ver.Version,
-			}
-
-			nodes, err := nodesUsingCookbookVersion(searcher, cookbookName, ver.Version)
-			if err != nil {
-				cbState.UsageLookupError = err
-			} else {
-				cbState.Nodes = nodes
-			}
-
-			err = cbi.DownloadTo(cookbookName, ver.Version, ".analyze-cache/cookbooks")
-			if err != nil {
-				cbState.CBDownloadError = err
-			}
-			cbStates[index] = cbState
+			// @afiune we might want to launch batches of goroutines, say 100 downloads at once
+			go cbs.downloadCookbook(cookbookName, ver.Version, progress, index, &wg)
 			index++
-
-			progress.Increment()
 		}
 	}
+
+	wg.Wait()
+
 	progress.Finish()
-	return cbStates, nil
 }
 
-func runCookstyle(cbStates []*CookbookStateRecord, runner CookstyleRunner) {
-	progress := pb.StartNew(len(cbStates))
-	for _, cb := range cbStates {
+func (cbs *CookbookState) downloadCookbook(cookbookName, version string, progress *pb.ProgressBar, index int, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	cbState := &CookbookStateRecord{Name: cookbookName,
+		path:    fmt.Sprintf(".analyze-cache/cookbooks/%v-%v", cookbookName, version),
+		Version: version,
+	}
+
+	nodes, err := nodesUsingCookbookVersion(cbs.Searcher, cookbookName, version)
+	if err != nil {
+		cbState.UsageLookupError = err
+	} else {
+		cbState.Nodes = nodes
+	}
+
+	err = cbs.Cookbooks.DownloadTo(cookbookName, version, ".analyze-cache/cookbooks")
+	if err != nil {
+		cbState.CBDownloadError = err
+	}
+
+	cbs.Records[index] = cbState
+	progress.Increment()
+}
+
+func (cbs *CookbookState) runCookstyle() {
+	progress := pb.StartNew(cbs.TotalCookbooks)
+
+	for _, cb := range cbs.Records {
 		progress.Increment()
 		// If we could not download the complete cookbook, we can't provide
 		// an accurate set of results
 		if cb.CBDownloadError != nil {
 			continue
 		}
-		cookstyleResults, err := RunCookstyle(cb.path, runner)
+		cookstyleResults, err := RunCookstyle(cb.path, cbs.Cookstyle)
 		if err != nil {
 			// TODO - unlikely, but if it can actually happen we should capture this
 			//        potential failure in results too, eg cb.ViolationCheckError = err
@@ -128,6 +149,7 @@ func runCookstyle(cbStates []*CookbookStateRecord, runner CookstyleRunner) {
 			}
 		}
 	}
+
 	progress.Finish()
 }
 
