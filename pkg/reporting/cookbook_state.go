@@ -31,6 +31,9 @@ const (
 
 	// maximum number of parallel downloads at once
 	MaxParallelDownloads = 100
+
+	// maximum number of parallel cookstyle analysis at once
+	MaxParallelCookstyleAnalysis = 100
 )
 
 type CookbookState struct {
@@ -100,12 +103,12 @@ func NewCookbookState(cbi CookbookInterface, searcher SearchInterface, runner Ex
 	cookbookState.downloadCookbooks(results)
 
 	fmt.Println("Analyzing cookbooks...")
-	cookbookState.runCookstyle()
+	cookbookState.analyzeCookbooks()
 
 	return cookbookState, nil
 }
 
-// start a progress bar, launch all downloads in parallel and wait for all goroutines to finish
+// start a progress bar, launch batches of parallel downloads and wait for all goroutines to finish
 func (cbs *CookbookState) downloadCookbooks(cookbooks chef.CookbookListResult) {
 	var (
 		index      int
@@ -129,12 +132,13 @@ func (cbs *CookbookState) downloadCookbooks(cookbooks chef.CookbookListResult) {
 		}
 	}
 
-	// make sure there are no other processes running
+	// make sure there are no more processes running
 	wg.Wait()
 	progress.Finish()
 }
 
 func (cbs *CookbookState) downloadCookbook(cookbookName, version string, progress *pb.ProgressBar, index int, wg *sync.WaitGroup) {
+	defer progress.Increment()
 	defer wg.Done()
 
 	cbState := &CookbookStateRecord{Name: cookbookName,
@@ -153,7 +157,6 @@ func (cbs *CookbookState) downloadCookbook(cookbookName, version string, progres
 
 	// when there are no nodes using this cookbook and the skip unused flag was provided, exit without downloading
 	if len(nodes) == 0 && cbs.SkipUnused {
-		progress.Increment()
 		return
 	}
 
@@ -161,38 +164,56 @@ func (cbs *CookbookState) downloadCookbook(cookbookName, version string, progres
 	if err != nil {
 		cbState.DownloadError = err
 	}
-	progress.Increment()
 }
 
-func (cbs *CookbookState) runCookstyle() {
-	progress := pb.StartNew(cbs.TotalCookbooks)
+// start a progress bar, launch batches of parallel analysis and wait for all goroutines to finish
+func (cbs *CookbookState) analyzeCookbooks() {
+	var (
+		goroutines int
+		wg         sync.WaitGroup
+		progress   = pb.StartNew(cbs.TotalCookbooks)
+	)
 
 	for _, cb := range cbs.Records {
-		progress.Increment()
+		wg.Add(1)
+		go cbs.runCookstyleFor(cb, progress, &wg)
+		goroutines++
 
-		// an accurate set of results
-		if cb.DownloadError != nil {
-			continue
+		if goroutines >= MaxParallelCookstyleAnalysis {
+			// wait for the batch of goroutines to finish, then continue
+			wg.Wait()
+			goroutines = 0
 		}
-
-		// skip unused cookbooks
-		if len(cb.Nodes) == 0 && cbs.SkipUnused {
-			continue
-		}
-
-		cookstyleResults, err := RunCookstyle(cb.path, cbs.Cookstyle)
-		if err != nil {
-			cb.CookstyleError = err
-			continue
-		}
-
-		for _, file := range cookstyleResults.Files {
-			cb.Files = append(cb.Files, file)
-		}
-
 	}
 
+	// make sure there are no more processes running
+	wg.Wait()
 	progress.Finish()
+}
+
+func (cbs *CookbookState) runCookstyleFor(cb *CookbookStateRecord, progress *pb.ProgressBar, wg *sync.WaitGroup) {
+	defer progress.Increment()
+	defer wg.Done()
+
+	// an accurate set of results
+	if cb.DownloadError != nil {
+		return
+	}
+
+	// skip unused cookbooks
+	if len(cb.Nodes) == 0 && cbs.SkipUnused {
+		return
+	}
+
+	cookstyleResults, err := RunCookstyle(cb.path, cbs.Cookstyle)
+	if err != nil {
+		cb.CookstyleError = err
+		return
+	}
+
+	for _, file := range cookstyleResults.Files {
+		cb.Files = append(cb.Files, file)
+	}
 }
 
 func (cbs *CookbookState) nodesUsingCookbookVersion(cookbook string, version string) ([]string, error) {
@@ -206,7 +227,6 @@ func (cbs *CookbookState) nodesUsingCookbookVersion(cookbook string, version str
 		return nil, errors.Wrap(err, "unable to get cookbook usage information")
 	}
 
-	// @afiune what is this skipUnused?
 	results := make([]string, 0, len(pres.Rows))
 	for _, element := range pres.Rows {
 		v := element.(map[string]interface{})["data"].(map[string]interface{})
