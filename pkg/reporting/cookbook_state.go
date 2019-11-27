@@ -21,7 +21,6 @@ import (
 	"sync"
 
 	chef "github.com/chef/go-chef"
-	"github.com/cheggaaa/pb/v3"
 	"github.com/pkg/errors"
 )
 
@@ -36,13 +35,42 @@ const (
 	MaxParallelCookstyleAnalysis = 100
 )
 
+const (
+	CBStateActionStarted = iota
+	CBStateActionComplete
+	CBStateActionError
+)
+const (
+	CBStateJobFetch = iota
+	CBStateJobDownload
+	CBStateJobCookstyle
+)
+
+type ItemUpdate struct {
+	Action int
+	Item   *CookbookStateRecord
+}
+
+type JobUpdate struct {
+	JobEvent int
+	Action   int
+	Count    int
+	Err      error
+}
+
 type CookbookState struct {
 	Records        []*CookbookStateRecord
 	TotalCookbooks int
 	SkipUnused     bool
-	Cookbooks      CookbookInterface
-	Searcher       SearchInterface
-	Cookstyle      CookstyleRunner
+	// TODO _ should we make these private? Caller shouldn't need them.
+	Cookbooks CookbookInterface
+	Searcher  SearchInterface
+	Cookstyle CookstyleRunner
+	// Status         struct {
+	JobCompletion   chan *JobUpdate
+	DownloadStatus  chan *ItemUpdate
+	CookstyleStatus chan *ItemUpdate
+	//	}
 }
 
 type CookbookStateRecord struct {
@@ -76,12 +104,27 @@ func (r *CookbookStateRecord) NumCorrectable() int {
 	return i
 }
 
-func NewCookbookState(cbi CookbookInterface, searcher SearchInterface, skipUnused bool) (*CookbookState, error) {
-	fmt.Println("Finding available cookbooks...") // c <- ProgressUpdate(Event: COOKBOOK_FETCH)
-	// Version limit of "0" means fetch all
-	results, err := cbi.ListAvailableVersions("0")
+func NewCookbookState(cbi CookbookInterface, searcher SearchInterface, skipUnused bool) *CookbookState {
+	return &CookbookState{
+		Cookbooks:       cbi,
+		Searcher:        searcher,
+		Cookstyle:       NewCookstyleRunner(),
+		SkipUnused:      skipUnused,
+		JobCompletion:   make(chan *JobUpdate),
+		DownloadStatus:  make(chan *ItemUpdate),
+		CookstyleStatus: make(chan *ItemUpdate),
+	}
+}
+
+func (cbs *CookbookState) Run() error {
+
+	cbs.jobStatusUpdate(CBStateJobFetch, CBStateActionStarted, 0, nil)
+
+	results, err := cbs.Cookbooks.ListAvailableVersions("0")
+	// TODO - lets pass error in the error update.
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to retrieve cookbooks")
+		cbs.jobStatusUpdate(CBStateJobFetch, CBStateActionError, 0, err)
+		return errors.Wrap(err, "unable to retrieve cookbooks")
 	}
 
 	// get totals so we can accurately report progress and allocate results
@@ -90,37 +133,41 @@ func NewCookbookState(cbi CookbookInterface, searcher SearchInterface, skipUnuse
 		totalCookbooks += len(versions.Versions)
 	}
 
-	cookbookState := &CookbookState{
-		Records:        make([]*CookbookStateRecord, totalCookbooks, totalCookbooks),
-		TotalCookbooks: totalCookbooks,
-		Cookbooks:      cbi,
-		Searcher:       searcher,
-		Cookstyle:      NewCookstyleRunner(),
-		SkipUnused:     skipUnused,
-	}
+	cbs.Records = make([]*CookbookStateRecord, totalCookbooks, totalCookbooks)
+	cbs.TotalCookbooks = totalCookbooks
+	cbs.jobStatusUpdate(CBStateJobFetch, CBStateActionComplete, totalCookbooks, nil)
 
-	fmt.Println("Downloading cookbooks...")
-	cookbookState.downloadCookbooks(results)
+	cbs.downloadCookbooks(results, totalCookbooks)
 
-	fmt.Println("Analyzing cookbooks...")
-	cookbookState.analyzeCookbooks()
+	cbs.analyzeCookbooks()
+	return nil
+}
 
-	return cookbookState, nil
+func (cbs *CookbookState) jobStatusUpdate(event int, action int, count int, err error) {
+	cbs.JobCompletion <- &JobUpdate{event, action, count, err}
+}
+
+func (cbs *CookbookState) downloadStatusUpdate(action int, cbState *CookbookStateRecord) {
+	cbs.DownloadStatus <- &ItemUpdate{action, cbState}
+}
+
+func (cbs *CookbookState) analyzeStatusUpdate(action int, cbState *CookbookStateRecord) {
+	cbs.CookstyleStatus <- &ItemUpdate{action, cbState}
 }
 
 // start a progress bar, launch batches of parallel downloads and wait for all goroutines to finish
-func (cbs *CookbookState) downloadCookbooks(cookbooks chef.CookbookListResult) {
+func (cbs *CookbookState) downloadCookbooks(cookbooks chef.CookbookListResult, totalCookbooks int) {
 	var (
 		index      int
 		goroutines int
 		wg         sync.WaitGroup
-		progress   = pb.StartNew(cbs.TotalCookbooks)
 	)
 
+	cbs.jobStatusUpdate(CBStateJobDownload, CBStateActionStarted, totalCookbooks, nil)
 	for cookbookName, cookbookVersions := range cookbooks {
 		for _, ver := range cookbookVersions.Versions {
 			wg.Add(1)
-			go cbs.downloadCookbook(cookbookName, ver.Version, progress, index, &wg)
+			go cbs.downloadCookbook(cookbookName, ver.Version, index, &wg)
 			goroutines++
 			index++
 
@@ -131,26 +178,27 @@ func (cbs *CookbookState) downloadCookbooks(cookbooks chef.CookbookListResult) {
 			}
 		}
 	}
-
+	defer cbs.jobStatusUpdate(CBStateJobDownload, CBStateActionComplete, totalCookbooks, nil)
 	// make sure there are no more processes running
 	wg.Wait()
-	progress.Finish()
 }
+func (cbs *CookbookState) downloadCookbook(cookbookName, version string, index int, wg *sync.WaitGroup) {
 
-func (cbs *CookbookState) downloadCookbook(cookbookName, version string, progress *pb.ProgressBar, index int, wg *sync.WaitGroup) {
-	defer progress.Increment()
 	defer wg.Done()
 
 	cbState := &CookbookStateRecord{Name: cookbookName,
 		path:    fmt.Sprintf("%s/cookbooks/%v-%v", AnalyzeCacheDir, cookbookName, version),
 		Version: version,
 	}
+	cbs.downloadStatusUpdate(CBStateActionStarted, cbState)
 
-	// store record
+	exitAction := CBStateActionComplete
+	defer cbs.downloadStatusUpdate(exitAction, cbState)
+
 	cbs.Records[index] = cbState
-
 	nodes, err := cbs.nodesUsingCookbookVersion(cookbookName, version)
 	if err != nil {
+		exitAction = CBStateActionError
 		cbState.UsageLookupError = err
 	}
 	cbState.Nodes = nodes
@@ -171,12 +219,12 @@ func (cbs *CookbookState) analyzeCookbooks() {
 	var (
 		goroutines int
 		wg         sync.WaitGroup
-		progress   = pb.StartNew(cbs.TotalCookbooks)
 	)
 
+	cbs.jobStatusUpdate(CBStateJobCookstyle, CBStateActionStarted, len(cbs.Records), nil)
 	for _, cb := range cbs.Records {
 		wg.Add(1)
-		go cbs.runCookstyleFor(cb, progress, &wg)
+		go cbs.runCookstyleFor(cb, &wg)
 		goroutines++
 
 		if goroutines >= MaxParallelCookstyleAnalysis {
@@ -186,15 +234,17 @@ func (cbs *CookbookState) analyzeCookbooks() {
 		}
 	}
 
+	defer cbs.jobStatusUpdate(CBStateJobCookstyle, CBStateActionComplete, len(cbs.Records), nil)
 	// make sure there are no more processes running
 	wg.Wait()
-	progress.Finish()
 }
 
-func (cbs *CookbookState) runCookstyleFor(cb *CookbookStateRecord, progress *pb.ProgressBar, wg *sync.WaitGroup) {
-	defer progress.Increment()
+func (cbs *CookbookState) runCookstyleFor(cb *CookbookStateRecord, wg *sync.WaitGroup) {
 	defer wg.Done()
 
+	cbs.analyzeStatusUpdate(CBStateActionStarted, cb)
+	exitAction := CBStateActionComplete
+	defer cbs.analyzeStatusUpdate(exitAction, cb)
 	// an accurate set of results
 	if cb.DownloadError != nil {
 		return
@@ -207,6 +257,7 @@ func (cbs *CookbookState) runCookstyleFor(cb *CookbookStateRecord, progress *pb.
 
 	cookstyleResults, err := cbs.Cookstyle.Run(cb.path)
 	if err != nil {
+		exitAction = CBStateActionError
 		cb.CookstyleError = err
 		return
 	}
@@ -214,9 +265,11 @@ func (cbs *CookbookState) runCookstyleFor(cb *CookbookStateRecord, progress *pb.
 	for _, file := range cookstyleResults.Files {
 		cb.Files = append(cb.Files, file)
 	}
+
 }
 
 func (cbs *CookbookState) nodesUsingCookbookVersion(cookbook string, version string) ([]string, error) {
+	// Tell partial search that we only want one field back:
 	query := map[string]interface{}{
 		"name": []string{"name"},
 	}
