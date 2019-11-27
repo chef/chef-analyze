@@ -116,7 +116,7 @@ var (
 				return err
 			}
 
-			cookbookState, err := reporting.NewCookbookState(chefClient.Cookbooks, chefClient.Search, reporting.ExecCookstyleRunner{}, cookbookStateFlags.skipUnused)
+			cookbookState, err := reporting.NewCookbookState(chefClient.Cookbooks, chefClient.Search, cookbookStateFlags.skipUnused)
 			if err != nil {
 				return err
 			}
@@ -327,7 +327,7 @@ func writeErrorBuilders(errBuilders ...strings.Builder) {
 	for _, errBldr := range errBuilders {
 		if errBldr.Len() > 0 {
 			if firstMsg {
-				fmt.Fprintln(os.Stderr, "* ERROR(S) DETAILS:")
+				fmt.Fprintln(os.Stderr, "* ERROR(s) DETAILS:")
 				firstMsg = false
 			}
 			fmt.Fprintln(os.Stderr, errBldr.String())

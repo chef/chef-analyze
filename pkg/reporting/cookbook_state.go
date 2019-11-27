@@ -42,7 +42,7 @@ type CookbookState struct {
 	SkipUnused     bool
 	Cookbooks      CookbookInterface
 	Searcher       SearchInterface
-	Cookstyle      ExecCookstyleRunner
+	Cookstyle      CookstyleRunner
 }
 
 type CookbookStateRecord struct {
@@ -56,7 +56,7 @@ type CookbookStateRecord struct {
 	CookstyleError   error
 }
 
-func (r CookbookStateRecord) NumOffenses() int {
+func (r *CookbookStateRecord) NumOffenses() int {
 	i := 0
 	for _, f := range r.Files {
 		i += len(f.Offenses)
@@ -64,7 +64,7 @@ func (r CookbookStateRecord) NumOffenses() int {
 	return i
 }
 
-func (r CookbookStateRecord) NumCorrectable() int {
+func (r *CookbookStateRecord) NumCorrectable() int {
 	i := 0
 	for _, f := range r.Files {
 		for _, o := range f.Offenses {
@@ -76,7 +76,7 @@ func (r CookbookStateRecord) NumCorrectable() int {
 	return i
 }
 
-func NewCookbookState(cbi CookbookInterface, searcher SearchInterface, runner ExecCookstyleRunner, skipUnused bool) (*CookbookState, error) {
+func NewCookbookState(cbi CookbookInterface, searcher SearchInterface, skipUnused bool) (*CookbookState, error) {
 	fmt.Println("Finding available cookbooks...") // c <- ProgressUpdate(Event: COOKBOOK_FETCH)
 	// Version limit of "0" means fetch all
 	results, err := cbi.ListAvailableVersions("0")
@@ -95,7 +95,7 @@ func NewCookbookState(cbi CookbookInterface, searcher SearchInterface, runner Ex
 		TotalCookbooks: totalCookbooks,
 		Cookbooks:      cbi,
 		Searcher:       searcher,
-		Cookstyle:      runner,
+		Cookstyle:      NewCookstyleRunner(),
 		SkipUnused:     skipUnused,
 	}
 
@@ -205,7 +205,7 @@ func (cbs *CookbookState) runCookstyleFor(cb *CookbookStateRecord, progress *pb.
 		return
 	}
 
-	cookstyleResults, err := RunCookstyle(cb.path, cbs.Cookstyle)
+	cookstyleResults, err := cbs.Cookstyle.Run(cb.path)
 	if err != nil {
 		cb.CookstyleError = err
 		return
