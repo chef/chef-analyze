@@ -165,117 +165,105 @@ func init() {
 }
 
 // TODO different output depending on flags or TTY?
-
 func writeCookbookStateReport(records []*reporting.CookbookStateRecord) {
-	var downloadErrors strings.Builder
-	var usageFetchErrors strings.Builder
-	var cookstyleErrors strings.Builder
+	var (
+		downloadErrors   strings.Builder
+		usageFetchErrors strings.Builder
+		cookstyleErrors  strings.Builder
+	)
 	for _, record := range records {
-		var str strings.Builder
+		var strBuilder strings.Builder
 
 		// skip unused cookbooks
 		if len(record.Nodes) == 0 && cookbookStateFlags.skipUnused {
 			continue
 		}
 
-		str.WriteString(fmt.Sprintf("%v (%v) ", record.Name, record.Version))
+		strBuilder.WriteString(fmt.Sprintf("%v (%v) ", record.Name, record.Version))
+		strBuilder.WriteString(fmt.Sprintf("%v violations, %v auto-correctable, %v nodes affected",
+			record.NumOffenses(), record.NumCorrectable(), len(record.Nodes)),
+		)
+
 		if record.DownloadError != nil {
-			str.WriteString("could not download cookbook - see end of report, ")
+			strBuilder.WriteString("\nERROR: could not download cookbook (see end of report)")
 			downloadErrors.WriteString(fmt.Sprintf(" - %s (%s): %v\n", record.Name, record.Version, record.DownloadError))
 		} else if record.CookstyleError != nil {
-			str.WriteString("could not run Cookstyle - see end of report ")
+			strBuilder.WriteString("\nERROR: could not run cookstyle (see end of report)")
 			cookstyleErrors.WriteString(fmt.Sprintf(" - %s (%s): %v\n", record.Name, record.Version, record.CookstyleError))
 		} else if record.UsageLookupError != nil {
-			str.WriteString("violations unknown - see end of report, ")
+			strBuilder.WriteString("\nERROR: unknown violations (see end of report)")
 			usageFetchErrors.WriteString(fmt.Sprintf(" - %s (%s): %v\n", record.Name, record.Version, record.UsageLookupError))
 		}
 
-		str.WriteString(fmt.Sprintf("%v violations, %v auto-correctable, ", record.NumOffenses(), record.NumCorrectable()))
-		str.WriteString(fmt.Sprintf("%v nodes affected", len(record.Nodes)))
-
-		fmt.Println(str.String())
+		// TODO @afiune write report to disk
+		fmt.Println(strBuilder.String())
 	}
 
-	if downloadErrors.Len() > 0 {
-		fmt.Println("Cookbook download errors prevented me from scanning some cookbooks:")
-		fmt.Print(downloadErrors.String())
-	}
-	if cookstyleErrors.Len() > 0 {
-		fmt.Println("Cookstyle execution errors prevented me from scanning some cookbooks:")
-		fmt.Print(downloadErrors.String())
-	}
-	if usageFetchErrors.Len() > 0 {
-		fmt.Println("Node usage check errors prevented me from getting the number of nodes using some cookbooks:")
-		fmt.Print(usageFetchErrors.String())
-	}
+	writeErrorBuilders(downloadErrors, cookstyleErrors, usageFetchErrors)
 }
 
 func writeDetailedCookbookStateReport(records []*reporting.CookbookStateRecord) {
-	var downloadErrors strings.Builder
-	var usageFetchErrors strings.Builder
-	var cookstyleErrors strings.Builder
+	var (
+		downloadErrors   strings.Builder
+		usageFetchErrors strings.Builder
+		cookstyleErrors  strings.Builder
+	)
 	for _, record := range records {
-		var str strings.Builder
+		var strBuilder strings.Builder
 
 		// skip unused cookbooks
 		if len(record.Nodes) == 0 && cookbookStateFlags.skipUnused {
 			continue
 		}
 
-		str.WriteString(fmt.Sprintf("%v (%v)\nNodesAffected: ", record.Name, record.Version))
+		strBuilder.WriteString(fmt.Sprintf("%v (%v) ", record.Name, record.Version))
+		strBuilder.WriteString(fmt.Sprintf("%v violations, %v auto-correctable, %v nodes affected",
+			record.NumOffenses(), record.NumCorrectable(), len(record.Nodes)),
+		)
+
+		strBuilder.WriteString("\nNodes affected: ")
 		if len(record.Nodes) == 0 {
-			str.WriteString("None\n")
+			strBuilder.WriteString("none")
 		} else {
-			str.WriteString(strings.Join(record.Nodes, ", ") + "\n")
+			strBuilder.WriteString(strings.Join(record.Nodes, ", "))
 		}
-		str.WriteString("Files and offenses:\n")
+		strBuilder.WriteString("\nFiles and offenses:")
 		for _, f := range record.Files {
 			if len(f.Offenses) == 0 {
 				continue
 			}
-			str.WriteString(fmt.Sprintf(" - %s:\n", f.Path))
+			strBuilder.WriteString(fmt.Sprintf("\n - %s:", f.Path))
 			for _, o := range f.Offenses {
-				str.WriteString(fmt.Sprintf("\t%s (%t) %s\n", o.CopName, o.Correctable, o.Message))
+				strBuilder.WriteString(fmt.Sprintf("\n\t%s (%t) %s", o.CopName, o.Correctable, o.Message))
 			}
 		}
+
 		if record.DownloadError != nil {
-			str.WriteString("could not download cookbook - see end of report, ")
+			strBuilder.WriteString("\nERROR: could not download cookbook (see end of report)")
 			downloadErrors.WriteString(fmt.Sprintf(" - %s (%s): %v\n", record.Name, record.Version, record.DownloadError))
 		} else if record.CookstyleError != nil {
-			str.WriteString("could not run Cookstyle - see end of report, ")
+			strBuilder.WriteString("\nERROR: could not run cookstyle (see end of report)")
 			cookstyleErrors.WriteString(fmt.Sprintf(" - %s (%s): %v\n", record.Name, record.Version, record.CookstyleError))
 		} else if record.UsageLookupError != nil {
-			str.WriteString("violations unknown - see end of report, ")
+			strBuilder.WriteString("\nERROR: unknown violations (see end of report)")
 			usageFetchErrors.WriteString(fmt.Sprintf(" - %s (%s): %v\n", record.Name, record.Version, record.UsageLookupError))
 		}
 
-		str.WriteString(fmt.Sprintf("%v violations, %v auto-correctable, ", record.NumOffenses(), record.NumCorrectable()))
-		str.WriteString(fmt.Sprintf("%v nodes affected", len(record.Nodes)))
-
-		fmt.Println(str.String())
+		// TODO @afiune write report to disk
+		fmt.Println(strBuilder.String())
 	}
 
-	fmt.Println()
-	if downloadErrors.Len() > 0 {
-		fmt.Println("Cookbook download errors prevented me from scanning some cookbooks:")
-		fmt.Print(downloadErrors.String())
-	}
-	if cookstyleErrors.Len() > 0 {
-		fmt.Println("Cookstyle execution errors prevented me from scanning some cookbooks:")
-		fmt.Print(downloadErrors.String())
-	}
-	// TODO - Same here.  This woul donly happy because of an API failure.  They can't fix the API failure,
-	//        and these errors won't really explain that very well in any case.
-	if usageFetchErrors.Len() > 0 {
-		fmt.Println("Node usage check errors prevented me from getting the number of nodes using some cookbooks:")
-		fmt.Print(usageFetchErrors.String())
-	}
+	writeErrorBuilders(downloadErrors, cookstyleErrors, usageFetchErrors)
 }
 
 func writeDetailedCSV(records []*reporting.CookbookStateRecord) {
-	var str strings.Builder
-	csvWriter := csv.NewWriter(&str)
+	var (
+		strBuilder strings.Builder
+		csvWriter  = csv.NewWriter(&strBuilder)
+	)
+	// table headers
 	csvWriter.Write([]string{"Cookbook Name", "Version", "File", "Offense", "Automatically Correctable", "Message", "Nodes"})
+
 	for _, record := range records {
 		// skip unused cookbooks
 		if len(record.Nodes) == 0 && cookbookStateFlags.skipUnused {
@@ -315,7 +303,9 @@ func writeDetailedCSV(records []*reporting.CookbookStateRecord) {
 		}
 	}
 	csvWriter.Flush()
-	fmt.Println(str.String())
+
+	// TODO @afiune write report to disk
+	fmt.Println(strBuilder.String())
 }
 
 func writeNodeReport(records []reporting.NodeReportItem) {
@@ -330,4 +320,17 @@ func writeNodeReport(records []reporting.NodeReportItem) {
 		table.Append(record.Array())
 	}
 	table.Render()
+}
+
+func writeErrorBuilders(errBuilders ...strings.Builder) {
+	firstMsg := true
+	for _, errBldr := range errBuilders {
+		if errBldr.Len() > 0 {
+			if firstMsg {
+				fmt.Fprintln(os.Stderr, "* ERROR(S) DETAILS:")
+				firstMsg = false
+			}
+			fmt.Fprintln(os.Stderr, errBldr.String())
+		}
+	}
 }
