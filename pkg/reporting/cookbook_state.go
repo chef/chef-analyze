@@ -30,6 +30,7 @@ const analyzeCacheDir = ".analyze-cache"
 type CookbookState struct {
 	Records        []*CookbookStateRecord
 	TotalCookbooks int
+	SkipUnused     bool
 	Cookbooks      CookbookInterface
 	Searcher       SearchInterface
 	Cookstyle      ExecCookstyleRunner
@@ -66,7 +67,7 @@ func (r CookbookStateRecord) NumCorrectable() int {
 	return i
 }
 
-func NewCookbookState(cbi CookbookInterface, searcher SearchInterface, runner ExecCookstyleRunner, includeUnboundCookbooks bool) (*CookbookState, error) {
+func NewCookbookState(cbi CookbookInterface, searcher SearchInterface, runner ExecCookstyleRunner, skipUnused bool) (*CookbookState, error) {
 	fmt.Println("Finding available cookbooks...") // c <- ProgressUpdate(Event: COOKBOOK_FETCH)
 	// Version limit of "0" means fetch all
 	results, err := cbi.ListAvailableVersions("0")
@@ -86,6 +87,7 @@ func NewCookbookState(cbi CookbookInterface, searcher SearchInterface, runner Ex
 		Cookbooks:      cbi,
 		Searcher:       searcher,
 		Cookstyle:      runner,
+		SkipUnused:     skipUnused,
 	}
 
 	fmt.Println("Downloading cookbooks...")
@@ -128,11 +130,19 @@ func (cbs *CookbookState) downloadCookbook(cookbookName, version string, progres
 		Version: version,
 	}
 
-	nodes, err := nodesUsingCookbookVersion(cbs.Searcher, cookbookName, version)
+	// store record
+	cbs.Records[index] = cbState
+
+	nodes, err := cbs.nodesUsingCookbookVersion(cookbookName, version)
 	if err != nil {
 		cbState.UsageLookupError = err
-	} else {
-		cbState.Nodes = nodes
+	}
+	cbState.Nodes = nodes
+
+	// when there are no nodes using this cookbook and the skip unused flag was provided, exit without downloading
+	if len(nodes) == 0 && cbs.SkipUnused {
+		progress.Increment()
+		return
 	}
 
 	err = cbs.Cookbooks.DownloadTo(cookbookName, version, fmt.Sprintf("%s/cookbooks", analyzeCacheDir))
@@ -140,7 +150,6 @@ func (cbs *CookbookState) downloadCookbook(cookbookName, version string, progres
 		cbState.DownloadError = err
 	}
 
-	cbs.Records[index] = cbState
 	progress.Increment()
 }
 
@@ -149,10 +158,17 @@ func (cbs *CookbookState) runCookstyle() {
 
 	for _, cb := range cbs.Records {
 		progress.Increment()
+
 		// an accurate set of results
 		if cb.DownloadError != nil {
 			continue
 		}
+
+		// skip unused cookbooks
+		if len(cb.Nodes) == 0 && cbs.SkipUnused {
+			continue
+		}
+
 		cookstyleResults, err := RunCookstyle(cb.path, cbs.Cookstyle)
 		if err != nil {
 			cb.CookstyleError = err
@@ -168,20 +184,18 @@ func (cbs *CookbookState) runCookstyle() {
 	progress.Finish()
 }
 
-func nodesUsingCookbookVersion(searcher SearchInterface, cookbook string, version string) ([]string, error) {
-	var (
-		query = map[string]interface{}{
-			"name": []string{"name"},
-		}
-	)
+func (cbs *CookbookState) nodesUsingCookbookVersion(cookbook string, version string) ([]string, error) {
+	query := map[string]interface{}{
+		"name": []string{"name"},
+	}
 
 	// TODO add pagination
-	pres, err := searcher.PartialExec("node", fmt.Sprintf("cookbooks_%s_version:%s", cookbook, version), query)
+	pres, err := cbs.Searcher.PartialExec("node", fmt.Sprintf("cookbooks_%s_version:%s", cookbook, version), query)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to get cookbook usage information")
 	}
 
-	// @afiune what is this includeUnboundCookbooks?
+	// @afiune what is this skipUnused?
 	results := make([]string, 0, len(pres.Rows))
 	for _, element := range pres.Rows {
 		v := element.(map[string]interface{})["data"].(map[string]interface{})

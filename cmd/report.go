@@ -88,9 +88,9 @@ var (
 		},
 	}
 	cookbookStateFlags struct {
-		detailed                bool
-		includeUnboundCookbooks bool
-		format                  string
+		detailed   bool
+		skipUnused bool
+		format     string
 	}
 	cookbookStateCmd = &cobra.Command{
 		Use:   "cookbook-state",
@@ -116,22 +116,23 @@ var (
 				return err
 			}
 
-			cookbookState, err := reporting.NewCookbookState(chefClient.Cookbooks, chefClient.Search, reporting.ExecCookstyleRunner{}, cookbookStateFlags.includeUnboundCookbooks)
+			cookbookState, err := reporting.NewCookbookState(chefClient.Cookbooks, chefClient.Search, reporting.ExecCookstyleRunner{}, cookbookStateFlags.skipUnused)
 			if err != nil {
 				return err
 			}
+
 			if cookbookStateFlags.detailed {
-				if cookbookStateFlags.format == "csv" {
+				switch cookbookStateFlags.format {
+				case "csv":
 					writeDetailedCSV(cookbookState.Records)
-				} else {
+				default:
 					writeDetailedCookbookStateReport(cookbookState.Records)
 				}
-			} else {
-				writeCookbookStateReport(cookbookState.Records)
+				return nil
 			}
 
+			writeCookbookStateReport(cookbookState.Records)
 			return nil
-
 		},
 	}
 )
@@ -140,17 +141,17 @@ func init() {
 	cookbookStateCmd.PersistentFlags().BoolVarP(
 		&cookbookStateFlags.detailed,
 		"detailed", "d", false,
-		"Include detailed information about cookbook violations",
+		"include detailed information about cookbook violations",
 	)
 	cookbookStateCmd.PersistentFlags().BoolVarP(
-		&cookbookStateFlags.includeUnboundCookbooks,
-		"unbound", "u", true,
-		"Include cookbooks and versions that are not applied to any nodes",
+		&cookbookStateFlags.skipUnused,
+		"skip-unused", "u", false,
+		"do not include unused cookbooks and versions that are not applied to any nodes",
 	)
 	cookbookStateCmd.PersistentFlags().StringVarP(
 		&cookbookStateFlags.format,
 		"format", "f", "txt",
-		"Output format - txt is human readable, csv is machine readable",
+		"output format: txt is human readable, csv is machine readable",
 	)
 	// adds the cookbooks command as a sub-command of the report command
 	// => chef-analyze report cookbooks
@@ -171,6 +172,11 @@ func writeCookbookStateReport(records []*reporting.CookbookStateRecord) {
 	var cookstyleErrors strings.Builder
 	for _, record := range records {
 		var str strings.Builder
+
+		// skip unused cookbooks
+		if len(record.Nodes) == 0 && cookbookStateFlags.skipUnused {
+			continue
+		}
 
 		str.WriteString(fmt.Sprintf("%v (%v) ", record.Name, record.Version))
 		if record.DownloadError != nil {
@@ -211,14 +217,23 @@ func writeDetailedCookbookStateReport(records []*reporting.CookbookStateRecord) 
 	for _, record := range records {
 		var str strings.Builder
 
+		// skip unused cookbooks
+		if len(record.Nodes) == 0 && cookbookStateFlags.skipUnused {
+			continue
+		}
+
 		str.WriteString(fmt.Sprintf("%v (%v)\nNodesAffected: ", record.Name, record.Version))
-		str.WriteString(strings.Join(record.Nodes, ", ") + "\n")
+		if len(record.Nodes) == 0 {
+			str.WriteString("None\n")
+		} else {
+			str.WriteString(strings.Join(record.Nodes, ", ") + "\n")
+		}
 		str.WriteString("Files and offenses:\n")
 		for _, f := range record.Files {
 			if len(f.Offenses) == 0 {
 				continue
 			}
-			str.WriteString(fmt.Sprintf("%s:\n", f.Path))
+			str.WriteString(fmt.Sprintf(" - %s:\n", f.Path))
 			for _, o := range f.Offenses {
 				str.WriteString(fmt.Sprintf("\t%s (%t) %s\n", o.CopName, o.Correctable, o.Message))
 			}
@@ -262,6 +277,11 @@ func writeDetailedCSV(records []*reporting.CookbookStateRecord) {
 	csvWriter := csv.NewWriter(&str)
 	csvWriter.Write([]string{"Cookbook Name", "Version", "File", "Offense", "Automatically Correctable", "Message", "Nodes"})
 	for _, record := range records {
+		// skip unused cookbooks
+		if len(record.Nodes) == 0 && cookbookStateFlags.skipUnused {
+			continue
+		}
+
 		firstRow := []string{record.Name, record.Version, "", "", "", "", strings.Join(record.Nodes, " ")}
 		firstRowPopulated := false
 		for _, file := range record.Files {
