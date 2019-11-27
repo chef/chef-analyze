@@ -25,7 +25,13 @@ import (
 	"github.com/pkg/errors"
 )
 
-const analyzeCacheDir = ".analyze-cache"
+const (
+	// cached directory
+	AnalyzeCacheDir = ".analyze-cache"
+
+	// maximum number of parallel downloads at once
+	MaxParallelDownloads = 100
+)
 
 type CookbookState struct {
 	Records        []*CookbookStateRecord
@@ -102,23 +108,29 @@ func NewCookbookState(cbi CookbookInterface, searcher SearchInterface, runner Ex
 // start a progress bar, launch all downloads in parallel and wait for all goroutines to finish
 func (cbs *CookbookState) downloadCookbooks(cookbooks chef.CookbookListResult) {
 	var (
-		index    int
-		wg       sync.WaitGroup
-		progress = pb.StartNew(cbs.TotalCookbooks)
+		index      int
+		goroutines int
+		wg         sync.WaitGroup
+		progress   = pb.StartNew(cbs.TotalCookbooks)
 	)
-
-	wg.Add(cbs.TotalCookbooks)
 
 	for cookbookName, cookbookVersions := range cookbooks {
 		for _, ver := range cookbookVersions.Versions {
-			// @afiune we might want to launch batches of goroutines, say 100 downloads at once
+			wg.Add(1)
 			go cbs.downloadCookbook(cookbookName, ver.Version, progress, index, &wg)
+			goroutines++
 			index++
+
+			// @afiune launch batches of goroutines, say 100 downloads at once
+			if goroutines >= MaxParallelDownloads {
+				wg.Wait()
+				goroutines = 0
+			}
 		}
 	}
 
+	// make sure there are no other processes running
 	wg.Wait()
-
 	progress.Finish()
 }
 
@@ -126,7 +138,7 @@ func (cbs *CookbookState) downloadCookbook(cookbookName, version string, progres
 	defer wg.Done()
 
 	cbState := &CookbookStateRecord{Name: cookbookName,
-		path:    fmt.Sprintf("%s/cookbooks/%v-%v", analyzeCacheDir, cookbookName, version),
+		path:    fmt.Sprintf("%s/cookbooks/%v-%v", AnalyzeCacheDir, cookbookName, version),
 		Version: version,
 	}
 
@@ -145,11 +157,10 @@ func (cbs *CookbookState) downloadCookbook(cookbookName, version string, progres
 		return
 	}
 
-	err = cbs.Cookbooks.DownloadTo(cookbookName, version, fmt.Sprintf("%s/cookbooks", analyzeCacheDir))
+	err = cbs.Cookbooks.DownloadTo(cookbookName, version, fmt.Sprintf("%s/cookbooks", AnalyzeCacheDir))
 	if err != nil {
 		cbState.DownloadError = err
 	}
-
 	progress.Increment()
 }
 
