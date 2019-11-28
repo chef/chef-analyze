@@ -19,6 +19,8 @@ package reporting
 import (
 	"encoding/json"
 	"os/exec"
+
+	"github.com/pkg/errors"
 )
 
 type CookstyleOffense struct {
@@ -70,9 +72,12 @@ func (ecr *CookstyleRunner) Run(workingDir string) (*CookstyleResult, error) {
 	if err != nil {
 		if exitError, ok := err.(*exec.ExitError); ok {
 			// https://docs.rubocop.org/en/latest/basic_usage/#exit-codes
-			// exit code of 1 is ok , it means some violations were found
+			// exit code of 1 is ok, it means some violations were found
 			if exitError.ExitCode() != 1 {
-				return nil, err
+				// we wrap the Stderr into the error message so that callers
+				// don't have to cast this error as an ExitError type again
+				// to access the error message that cookstle sends to Stderr
+				return nil, errors.Wrap(exitError, string(exitError.Stderr))
 			}
 		} else {
 			return nil, err
