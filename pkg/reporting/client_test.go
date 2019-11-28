@@ -33,8 +33,17 @@ func (cm CookbookMock) DownloadTo(name, version, localDir string) error {
 	return cm.desiredDownloadError
 }
 
-func makeMockSearch(searchResultJSON string, desiredError error) SearchMock {
+func newMockCookbook(cookbookList chef.CookbookListResult, desiredErr1, desiredErr2 error) *CookbookMock {
+	return &CookbookMock{
+		desiredCookbookListError: desiredErr1,
+		desiredDownloadError:     desiredErr2,
+		desiredCookbookList:      cookbookList,
+	}
+}
+
+func makeMockSearch(searchResultJSON string, desiredError error) *SearchMock {
 	var convertedSearchResult []interface{}
+
 	if desiredError == nil {
 		rawRows := json.RawMessage(searchResultJSON)
 		bytes, err := rawRows.MarshalJSON()
@@ -46,6 +55,9 @@ func makeMockSearch(searchResultJSON string, desiredError error) SearchMock {
 			panic(err)
 		}
 	}
-	result := chef.SearchResult{Rows: convertedSearchResult}
-	return SearchMock{desiredError: desiredError, desiredResults: result}
+
+	return &SearchMock{
+		desiredError:   desiredError,
+		desiredResults: chef.SearchResult{Rows: convertedSearchResult},
+	}
 }

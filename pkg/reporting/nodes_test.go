@@ -78,12 +78,7 @@ func equalsNodeReportItem(t *testing.T, expected, actual subject.NodeReportItem)
 func testValidResultsWithNulls(t *testing.T, cfg *subject.Reporting) {
 	// It's a little less verbose and a little more readable to format
 	// this as JSON then convert it where we need it than to create it as a golang map.
-	rows := `[
-    { "data" : {"name" : "node1", "chef_version": "12.22", "os" : "windows", "os_version": "10.1",   "cookbooks" : { "mycookbook" : { "version" : "1.0" } } } },
-    { "data" : {"name" : "node2", "chef_version": "13.11", "os" : null,       "os_version":    null, "cookbooks" : { "mycookbook" : { "version" : "1.0" } , "test" : { "version" : "9.9" } } } },
-		{ "data" : {"name" : "node3", "chef_version": "15.00", "os" : "ubuntu", "os_version": "16.04", "cookbooks" : null }}
-	]`
-	mocksearch := makeMockSearch(rows, nil)
+	mocksearch := makeMockSearch(mockedNodesSearchRows(), nil)
 	results, err := subject.Nodes(cfg, mocksearch)
 	if err != nil {
 		panic(err)
@@ -123,4 +118,43 @@ func testValidResultsWithNulls(t *testing.T, cfg *subject.Reporting) {
 			assert.Truef(t, found, "Did not find expected NodeReportItem %s", e.Name)
 		}
 	}
+}
+
+func mockedNodesSearchRows() string {
+	return `[
+  {
+    "data" : {
+      "name" : "node1",
+      "chef_version": "12.22",
+      "os" : "windows",
+      "os_version": "10.1",
+      "cookbooks" : {
+        "mycookbook" : {
+          "version" : "1.0"
+        }
+      }
+    }
+  },
+  {
+    "data" : {
+      "name" : "node2",
+      "chef_version": "13.11",
+      "os" : null,
+      "os_version": null,
+      "cookbooks" : {
+        "mycookbook" : { "version" : "1.0" },
+        "test" : { "version" : "9.9" }
+      }
+    }
+  },
+  {
+    "data" : {
+      "name" : "node3",
+      "chef_version": "15.00",
+      "os" : "ubuntu",
+      "os_version": "16.04",
+      "cookbooks" : null
+    }
+  }
+]`
 }
