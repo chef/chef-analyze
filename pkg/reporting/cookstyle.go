@@ -55,15 +55,11 @@ type CookstyleResult struct {
 	Files []CookbookFile `json:"files"`
 }
 
-type CookstyleRunner interface {
-	Run(workingDir string) (*CookstyleResult, error)
-}
-
-type cookstyleRunner struct {
+type CookstyleRunner struct {
 	Opts []string
 }
 
-func (ecr *cookstyleRunner) Run(workingDir string) (*CookstyleResult, error) {
+func (ecr *CookstyleRunner) Run(workingDir string) (*CookstyleResult, error) {
 	var (
 		cookstyleRes CookstyleResult
 		cmd          = exec.Command("cookstyle", ecr.Opts...)
@@ -91,8 +87,8 @@ func (ecr *cookstyleRunner) Run(workingDir string) (*CookstyleResult, error) {
 	return &cookstyleRes, nil
 }
 
-func NewCookstyleRunner() CookstyleRunner {
-	return &cookstyleRunner{
+func NewCookstyleRunner() *CookstyleRunner {
+	return &CookstyleRunner{
 		Opts: []string{"--format", "json"},
 	}
 }

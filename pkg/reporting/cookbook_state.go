@@ -39,7 +39,7 @@ type CookbookState struct {
 	SkipUnused     bool
 	Cookbooks      CookbookInterface
 	Searcher       SearchInterface
-	Cookstyle      CookstyleRunner
+	Cookstyle      *CookstyleRunner
 	progress       *pb.ProgressBar
 }
 
@@ -230,42 +230,42 @@ func (cbs *CookbookState) nodesUsingCookbookVersion(cookbook string, version str
 func (cbs *CookbookState) analyzeCookbooks() {
 	var (
 		progress = pb.StartNew(cbs.TotalCookbooks)
-		inCh     = make(chan *CookbookStateRecord, MaxParallelWorkers)
+		queueCh  = make(chan *CookbookStateRecord, MaxParallelWorkers)
 	)
 
 	// store the progress bar
 	cbs.progress = progress
 
 	// launch jobs that will be read by the workers (goroutines)
-	go cbs.triggerAnalyzeJobs(inCh)
+	go cbs.triggerAnalyzeJobs(queueCh)
 
-	cbs.createAnalyzeWorkerPool(MaxParallelWorkers, inCh)
+	cbs.createAnalyzeWorkerPool(MaxParallelWorkers, queueCh)
 
 	progress.Finish()
 }
 
-func (cbs *CookbookState) triggerAnalyzeJobs(inCh chan *CookbookStateRecord) {
+func (cbs *CookbookState) triggerAnalyzeJobs(queueCh chan *CookbookStateRecord) {
 	for _, cb := range cbs.Records {
-		inCh <- cb
+		queueCh <- cb
 	}
-	close(inCh)
+	close(queueCh)
 }
 
-func (cbs *CookbookState) createAnalyzeWorkerPool(nWorkers int, inCh chan *CookbookStateRecord) {
+func (cbs *CookbookState) createAnalyzeWorkerPool(nWorkers int, queueCh chan *CookbookStateRecord) {
 	var wg sync.WaitGroup
 
 	for i := 0; i < nWorkers; i++ {
 		wg.Add(1)
-		go cbs.analyzeWorker(inCh, &wg)
+		go cbs.analyzeWorker(queueCh, &wg)
 	}
 
 	wg.Wait()
 }
 
-func (cbs *CookbookState) analyzeWorker(inCh chan *CookbookStateRecord, wg *sync.WaitGroup) {
+func (cbs *CookbookState) analyzeWorker(queueCh chan *CookbookStateRecord, wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	for record := range inCh {
+	for record := range queueCh {
 		cbs.runCookstyleFor(record)
 	}
 }

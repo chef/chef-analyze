@@ -1,0 +1,18 @@
+#!/bin/bash
+
+case "$1" in
+  "syntax-error")
+    echo "{ error }"
+    ;;
+  "known-exit-code-error")
+    echo "{}"
+    exit 1
+    ;;
+  "exit-code-error")
+    printf "ERROR: something happened with cookstyle" >&2
+    exit $2
+    ;;
+  *)
+    echo "{}"
+    ;;
+esac
