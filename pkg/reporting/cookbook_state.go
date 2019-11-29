@@ -30,7 +30,7 @@ const (
 	AnalyzeCacheDir = ".analyze-cache"
 
 	// maximum number of parallel workers at once
-	MaxParallelWorkers = 100
+	MaxParallelWorkers = 50
 )
 
 type CookbookState struct {
@@ -119,8 +119,8 @@ func NewCookbookState(cbi CookbookInterface, searcher SearchInterface, skipUnuse
 func (cbs *CookbookState) downloadCookbooks(cookbooks chef.CookbookListResult) {
 	var (
 		progress = pb.StartNew(cbs.TotalCookbooks)
-		inCh     = make(chan cookbookItem, MaxParallelWorkers)
-		outCh    = make(chan *CookbookStateRecord, MaxParallelWorkers)
+		inCh     = make(chan cookbookItem, MaxParallelWorkers*2)
+		outCh    = make(chan *CookbookStateRecord, MaxParallelWorkers*2)
 		doneCh   = make(chan bool)
 	)
 
