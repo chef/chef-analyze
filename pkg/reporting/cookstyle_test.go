@@ -136,7 +136,7 @@ func setupBinstubsDir() string {
 	return pathEnv
 }
 
-// TODO @afiune I think this should be integration tests instead, I will come back to this
+// TODO @afiune I think these tests should be integration tests instead, let us come back to them
 //func TestRunCookstyle(t *testing.T) {
 //desiredOutput := `{"metadata" : { "rubocop_version" : "0.0", "ruby_engine": "ruby", "ruby_version": "0.0", "ruby_patchlevel": "0", "ruby_platform": ""},
 //"files" : [

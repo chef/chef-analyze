@@ -81,7 +81,7 @@ func (r *CookbookStateRecord) NumCorrectable() int {
 }
 
 func NewCookbookState(cbi CookbookInterface, searcher SearchInterface, skipUnused bool) (*CookbookState, error) {
-	fmt.Println("Finding available cookbooks...") // c <- ProgressUpdate(Event: COOKBOOK_FETCH)
+	fmt.Printf("Finding available cookbooks...") // c <- ProgressUpdate(Event: COOKBOOK_FETCH)
 	// Version limit of "0" means fetch all
 	results, err := cbi.ListAvailableVersions("0")
 	if err != nil {
@@ -93,92 +93,102 @@ func NewCookbookState(cbi CookbookInterface, searcher SearchInterface, skipUnuse
 	for _, versions := range results {
 		totalCookbooks += len(versions.Versions)
 	}
+	fmt.Printf(" (%d)\n", totalCookbooks)
 
-	cookbookState := &CookbookState{
-		Records:        make([]*CookbookStateRecord, 0, totalCookbooks),
-		TotalCookbooks: totalCookbooks,
-		Cookbooks:      cbi,
-		Searcher:       searcher,
-		Cookstyle:      NewCookstyleRunner(),
-		SkipUnused:     skipUnused,
+	var (
+		downloadCh    = make(chan cookbookItem)
+		analyzeCh     = make(chan *CookbookStateRecord)
+		doneCh        = make(chan bool)
+		cookbookState = &CookbookState{
+			Records:        make([]*CookbookStateRecord, 0, totalCookbooks),
+			TotalCookbooks: totalCookbooks,
+			Cookbooks:      cbi,
+			Searcher:       searcher,
+			Cookstyle:      NewCookstyleRunner(),
+			SkipUnused:     skipUnused,
+		}
+	)
+
+	// determine how many workers do we need, by default, the total number of cookbooks
+	numWorkers := totalCookbooks
+	if totalCookbooks > MaxParallelWorkers {
+		// but if the total number of cookbooks is major than
+		// the maximum allowed, set it to the maximum
+		numWorkers = MaxParallelWorkers
 	}
 
-	fmt.Println("Downloading cookbooks...")
-	cookbookState.downloadCookbooks(results)
-
-	// update total cookbooks since we could have reduced the list by the skip-unused flag
-	cookbookState.TotalCookbooks = len(cookbookState.Records)
-
 	fmt.Println("Analyzing cookbooks...")
-	cookbookState.analyzeCookbooks()
+	// start and store a progress bar
+	cookbookState.progress = pb.StartNew(totalCookbooks)
+
+	// launch jobs that will be read by the workers (goroutines)
+	go cookbookState.triggerJobs(results, downloadCh)
+
+	// launch the download workers, these will process downloads and send them to the next
+	// channel to be analyzed, once all messages have been red, it closes the download channel
+	go cookbookState.createDownloadWorkerPool(numWorkers, downloadCh, analyzeCh)
+
+	// launch the analyze workers, these will process analyzis by running cookstyle,
+	// once all messages have been processed, it will send a single message to the done channel
+	go cookbookState.createAnalyzeWorkerPool(numWorkers, analyzeCh, doneCh)
+
+	// wait for a message in from the done channel
+	// to make sure there are no more processes running
+	<-doneCh
+	// make sure the progress bar reports we are done
+	cookbookState.progress.Finish()
 
 	return cookbookState, nil
 }
 
-// start a progress bar, launch batches of parallel downloads and wait for all goroutines to finish
-func (cbs *CookbookState) downloadCookbooks(cookbooks chef.CookbookListResult) {
-	var (
-		progress = pb.StartNew(cbs.TotalCookbooks)
-		inCh     = make(chan cookbookItem, MaxParallelWorkers*2)
-		outCh    = make(chan *CookbookStateRecord, MaxParallelWorkers*2)
-		doneCh   = make(chan bool)
-	)
-
-	// store the progress bar
-	cbs.progress = progress
-
-	// this goroutine is in charge to store the records of the CookbookState
-	go cbs.recordFromCh(outCh, doneCh)
-
-	// launch jobs that will be read by the workers (goroutines)
-	go cbs.triggerDownloadJobs(cookbooks, inCh)
-
-	cbs.createDownloadWorkerPool(MaxParallelWorkers, inCh, outCh)
-
-	// make sure there are no more processes running
-	<-doneCh
-	progress.Finish()
-}
-
-func (cbs *CookbookState) triggerDownloadJobs(cookbooks chef.CookbookListResult, inCh chan cookbookItem) {
+func (cbs *CookbookState) triggerJobs(cookbooks chef.CookbookListResult, inCh chan<- cookbookItem) {
 	for cookbookName, cookbookVersions := range cookbooks {
 		for _, ver := range cookbookVersions.Versions {
 			inCh <- cookbookItem{cookbookName, ver.Version}
 		}
 	}
+	//debug("%s: finished sending jobs", time.Now())
 	close(inCh)
 }
 
-func (cbs *CookbookState) createDownloadWorkerPool(nWorkers int, inCh chan cookbookItem, outCh chan *CookbookStateRecord) {
+func (cbs *CookbookState) createDownloadWorkerPool(nWorkers int, downloadCh chan cookbookItem, analyzeCh chan *CookbookStateRecord) {
 	var wg sync.WaitGroup
 
 	for i := 0; i < nWorkers; i++ {
 		wg.Add(1)
-		go cbs.downloadWorker(inCh, outCh, &wg)
+		go func(inCh <-chan cookbookItem, outCh chan<- *CookbookStateRecord, wg *sync.WaitGroup) {
+			for item := range inCh {
+				cbs.downloadCookbook(item.Name, item.Version, outCh)
+			}
+			wg.Done()
+		}(downloadCh, analyzeCh, &wg)
 	}
 
 	wg.Wait()
-	close(outCh)
+	//debug("%s: finished downloading", time.Now())
+	close(analyzeCh)
 }
 
-func (cbs *CookbookState) downloadWorker(inCh chan cookbookItem, outCh chan *CookbookStateRecord, wg *sync.WaitGroup) {
-	defer wg.Done()
+func (cbs *CookbookState) createAnalyzeWorkerPool(nWorkers int, analyzeCh chan *CookbookStateRecord, doneCh chan<- bool) {
+	var wg sync.WaitGroup
 
-	for cookbook := range inCh {
-		cbs.downloadCookbook(cookbook.Name, cookbook.Version, outCh)
+	for i := 0; i < nWorkers; i++ {
+		wg.Add(1)
+		go func(inCh <-chan *CookbookStateRecord, wg *sync.WaitGroup) {
+			for record := range inCh {
+				cbs.Records = append(cbs.Records, record)
+				cbs.runCookstyleFor(record)
+			}
+			wg.Done()
+		}(analyzeCh, &wg)
 	}
-}
 
-func (cbs *CookbookState) recordFromCh(outCh chan *CookbookStateRecord, doneCh chan bool) {
-	for csr := range outCh {
-		cbs.Records = append(cbs.Records, csr)
-	}
+	wg.Wait()
+	//debug("%s: finished analyze", time.Now())
 	doneCh <- true
 }
 
-func (cbs *CookbookState) downloadCookbook(cookbookName, version string, outCh chan *CookbookStateRecord) {
-	defer cbs.progress.Increment()
-
+func (cbs *CookbookState) downloadCookbook(cookbookName, version string, analyzeCh chan<- *CookbookStateRecord) {
 	cbState := &CookbookStateRecord{Name: cookbookName,
 		path:    fmt.Sprintf("%s/cookbooks/%v-%v", AnalyzeCacheDir, cookbookName, version),
 		Version: version,
@@ -190,8 +200,10 @@ func (cbs *CookbookState) downloadCookbook(cookbookName, version string, outCh c
 	}
 	cbState.Nodes = nodes
 
-	// when there are no nodes using this cookbook and the skip unused flag was provided, exit without downloading
+	// when there are no nodes using this cookbook and the skip unused flag was provided,
+	// exit without downloading and increment the progress bar since we are donw processing
 	if len(nodes) == 0 && cbs.SkipUnused {
+		cbs.progress.Increment()
 		return
 	}
 
@@ -200,8 +212,8 @@ func (cbs *CookbookState) downloadCookbook(cookbookName, version string, outCh c
 		cbState.DownloadError = err
 	}
 
-	// store record
-	outCh <- cbState
+	// move to store and analyze the cookbook record
+	analyzeCh <- cbState
 }
 
 func (cbs *CookbookState) nodesUsingCookbookVersion(cookbook string, version string) ([]string, error) {
@@ -224,50 +236,6 @@ func (cbs *CookbookState) nodesUsingCookbookVersion(cookbook string, version str
 	}
 
 	return results, nil
-}
-
-// start a progress bar, launch batches of parallel analysis and wait for all goroutines to finish
-func (cbs *CookbookState) analyzeCookbooks() {
-	var (
-		progress = pb.StartNew(cbs.TotalCookbooks)
-		queueCh  = make(chan *CookbookStateRecord, MaxParallelWorkers)
-	)
-
-	// store the progress bar
-	cbs.progress = progress
-
-	// launch jobs that will be read by the workers (goroutines)
-	go cbs.triggerAnalyzeJobs(queueCh)
-
-	cbs.createAnalyzeWorkerPool(MaxParallelWorkers, queueCh)
-
-	progress.Finish()
-}
-
-func (cbs *CookbookState) triggerAnalyzeJobs(queueCh chan *CookbookStateRecord) {
-	for _, cb := range cbs.Records {
-		queueCh <- cb
-	}
-	close(queueCh)
-}
-
-func (cbs *CookbookState) createAnalyzeWorkerPool(nWorkers int, queueCh chan *CookbookStateRecord) {
-	var wg sync.WaitGroup
-
-	for i := 0; i < nWorkers; i++ {
-		wg.Add(1)
-		go cbs.analyzeWorker(queueCh, &wg)
-	}
-
-	wg.Wait()
-}
-
-func (cbs *CookbookState) analyzeWorker(queueCh chan *CookbookStateRecord, wg *sync.WaitGroup) {
-	defer wg.Done()
-
-	for record := range queueCh {
-		cbs.runCookstyleFor(record)
-	}
 }
 
 func (cbs *CookbookState) runCookstyleFor(cb *CookbookStateRecord) {

@@ -17,6 +17,7 @@
 package reporting_test
 
 import (
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -63,6 +64,8 @@ func TestCookbookStateEmpty(t *testing.T) {
 // Given a valid set of cookbooks in use by nodes,
 // verify that the result set is as expected.
 func TestCookbookState(t *testing.T) {
+	savedPath := setupBinstubsDir()
+	defer os.Setenv("PATH", savedPath)
 
 	cookbookList := chef.CookbookListResult{
 		"foo": chef.CookbookVersions{
