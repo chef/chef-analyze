@@ -109,6 +109,11 @@ func NewCookbooks(cbi CookbookInterface, searcher SearchInterface, skipUnused bo
 		}
 	)
 
+	if totalCookbooks == 0 {
+		fmt.Println("No cookbooks to analyze")
+		return cookbooksState, nil
+	}
+
 	// determine how many workers do we need, by default, the total number of cookbooks
 	numWorkers := totalCookbooks
 	if totalCookbooks > MaxParallelWorkers {
