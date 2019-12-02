@@ -1,5 +1,6 @@
 //
 // Copyright 2019 Chef Software, Inc.
+// Author: Salim Afiune <afiune@chef.io>
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -193,12 +194,11 @@ func writeDetailedCookbookStateReport(records []*reporting.CookbookRecord) {
 			continue
 		}
 
-		strBuilder.WriteString(fmt.Sprintf("%v (%v) ", record.Name, record.Version))
-		strBuilder.WriteString(fmt.Sprintf("%v violations, %v auto-correctable, %v nodes affected",
-			record.NumOffenses(), record.NumCorrectable(), len(record.Nodes)),
-		)
+		strBuilder.WriteString(fmt.Sprintf("Cookbook: %v (%v)\n", record.Name, record.Version))
+		strBuilder.WriteString(fmt.Sprintf("Violations: %v\n", record.NumOffenses()))
+		strBuilder.WriteString(fmt.Sprintf("Auto correctable: %v\n", record.NumCorrectable()))
 
-		strBuilder.WriteString("\nNodes affected: ")
+		strBuilder.WriteString("Nodes affected: ")
 		if len(record.Nodes) == 0 {
 			strBuilder.WriteString("none")
 		} else {

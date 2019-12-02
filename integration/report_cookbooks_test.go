@@ -27,11 +27,11 @@ func TestReportCommand_Cookbooks(t *testing.T) {
 	out, err, exitcode := ChefAnalyzeWithCredentials("report", "cookbooks")
 	assert.Contains(t,
 		out.String(),
-		"Finding available cookbooks... (0)",
+		"Finding available cookbooks... (0 found)",
 		"STDOUT message doesn't match")
 	assert.Contains(t,
 		out.String(),
-		"No cookbooks to analyze",
+		"No cookbooks available for analysis",
 		"STDOUT message doesn't match")
 	assert.Empty(t,
 		err.String(),

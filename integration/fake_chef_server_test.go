@@ -22,16 +22,17 @@ import (
 	"net/http"
 )
 
-// TODO @afiune populate this response with some nodes
+// TODO @afiune populate this response with some real data
 func nodeSearch(w http.ResponseWriter, req *http.Request) {
 	fmt.Fprintf(w, "{}\n")
 }
 
+// TODO @afiune populate this response with some real data
 func cookbooksList(w http.ResponseWriter, req *http.Request) {
 	fmt.Fprintf(w, "{}\n")
 }
 
-// start a HTTP server listening on localhost:80 to create a face Chef Server
+// start a HTTP server listening on localhost:80 to create a fake Chef Server
 func startFakeChefServer() {
 	// TODO @afiune I think we probably need to have a way to define the responses
 	// that the mocked Chef Server will return, but for now we will hardcode them.

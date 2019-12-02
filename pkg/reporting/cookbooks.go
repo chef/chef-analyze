@@ -1,5 +1,6 @@
 //
 // Copyright 2019 Chef Software, Inc.
+// Author: Salim Afiune <afiune@chef.io>
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -93,7 +94,7 @@ func NewCookbooks(cbi CookbookInterface, searcher SearchInterface, skipUnused bo
 	for _, versions := range results {
 		totalCookbooks += len(versions.Versions)
 	}
-	fmt.Printf(" (%d)\n", totalCookbooks)
+	fmt.Printf(" (%d found)\n", totalCookbooks)
 
 	var (
 		downloadCh     = make(chan cookbookItem)
@@ -110,7 +111,7 @@ func NewCookbooks(cbi CookbookInterface, searcher SearchInterface, skipUnused bo
 	)
 
 	if totalCookbooks == 0 {
-		fmt.Println("No cookbooks to analyze")
+		fmt.Println("No cookbooks available for analysis")
 		return cookbooksState, nil
 	}
 
@@ -156,7 +157,7 @@ func (cbs *CookbooksStatus) triggerJobs(cookbooks chef.CookbookListResult, inCh 
 	close(inCh)
 }
 
-func (cbs *CookbooksStatus) createDownloadWorkerPool(nWorkers int, downloadCh chan cookbookItem, analyzeCh chan *CookbookRecord) {
+func (cbs *CookbooksStatus) createDownloadWorkerPool(nWorkers int, downloadCh <-chan cookbookItem, analyzeCh chan<- *CookbookRecord) {
 	var wg sync.WaitGroup
 
 	for i := 0; i < nWorkers; i++ {
@@ -174,7 +175,7 @@ func (cbs *CookbooksStatus) createDownloadWorkerPool(nWorkers int, downloadCh ch
 	close(analyzeCh)
 }
 
-func (cbs *CookbooksStatus) createAnalyzeWorkerPool(nWorkers int, analyzeCh chan *CookbookRecord, doneCh chan<- bool) {
+func (cbs *CookbooksStatus) createAnalyzeWorkerPool(nWorkers int, analyzeCh <-chan *CookbookRecord, doneCh chan<- bool) {
 	var wg sync.WaitGroup
 
 	for i := 0; i < nWorkers; i++ {
