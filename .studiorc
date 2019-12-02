@@ -76,10 +76,17 @@ function integration_tests() {
   )
 }
 
-# run an example of a go program that leverages the featflag go library
-function featflag_run_example() {
-  install_if_missing core/go go
-  ( cd /src || return 1
-    go run github.com/chef/chef-analyze/pkg/featflag/example
-  )
+document "install_cookstyle" <<DOC
+  Install cookstyle via rubygems
+DOC
+function install_cookstyle() {
+  if cookstyle -h >/dev/null; then
+    return 0
+  fi
+  log_line "Installing cookstyle via rubygems"
+  hab pkg install -b core/ruby
+  hab pkg install -b core/gcc
+  gem install cookstyle
+  RUBY_BIN="$(hab pkg path core/ruby)/bin"
+  export PATH="$RUBY_BIN:$PATH"
 }

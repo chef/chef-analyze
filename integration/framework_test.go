@@ -1,5 +1,6 @@
 //
 // Copyright 2019 Chef Software, Inc.
+// Author: Salim Afiune <afiune@chef.io>
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -46,14 +47,14 @@ import (
 //  }
 //
 func ChefAnalyze(args ...string) (bytes.Buffer, bytes.Buffer, int) {
-	// We are goin to enable the feature flag by default, this will avoid us
+	// We are going to enable the feature flag by default, this will avoid us
 	// to add it on every single integration test
 	//
 	// TODO @afiune delete this when we release chef-analyze to the users.
 	//      (that is, when no feature flag is needed anymore)
 	os.Setenv("CHEF_FEAT_ANALYZE", "true")
 
-	return runChefAnalyzeCmd(args...)
+	return runChefAnalyzeCmd("", args...)
 }
 
 func ChefAnalyzeNoFeatureFlag(args ...string) (bytes.Buffer, bytes.Buffer, int) {
@@ -63,20 +64,52 @@ func ChefAnalyzeNoFeatureFlag(args ...string) (bytes.Buffer, bytes.Buffer, int) 
 	//      (that is, when no feature flag is needed anymore)
 	os.Setenv("CHEF_FEAT_ANALYZE", "")
 
-	return runChefAnalyzeCmd(args...)
+	return runChefAnalyzeCmd("", args...)
 }
 
-func runChefAnalyzeCmd(args ...string) (stdout bytes.Buffer, stderr bytes.Buffer, exitcode int) {
+func ChefAnalyzeWithCredentials(args ...string) (bytes.Buffer, bytes.Buffer, int) {
+	dir := createCredentialsConfig()
+	defer os.RemoveAll(dir)
+
+	// Function that runs a chef-analyze command without the feature flag enabled
+	//
+	// TODO @afiune delete this when we release chef-analyze to the users.
+	//      (that is, when no feature flag is needed anymore)
+	os.Setenv("CHEF_FEAT_ANALYZE", "true")
+
+	return runChefAnalyzeCmd(dir, args...)
+}
+
+func ChefAnalyzeWithHome(dir string, args ...string) (bytes.Buffer, bytes.Buffer, int) {
+	// We are going to enable the feature flag by default, this will avoid us
+	// to add it on every single integration test
+	//
+	// TODO @afiune delete this when we release chef-analyze to the users.
+	//      (that is, when no feature flag is needed anymore)
+	os.Setenv("CHEF_FEAT_ANALYZE", "true")
+
+	return runChefAnalyzeCmd(dir, args...)
+}
+
+func runChefAnalyzeCmd(home string, args ...string) (stdout bytes.Buffer, stderr bytes.Buffer, exitcode int) {
 	cmd := exec.Command(findChefAnalyzeBinary(), args...)
 	cmd.Env = os.Environ()
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
+
+	if len(home) != 0 {
+		cmd.Env = append(os.Environ(),
+			fmt.Sprintf("HOME=%s", home),
+		)
+	}
+
 	exitcode = 0
 	if err := cmd.Run(); err != nil {
 		if exitError, ok := err.(*exec.ExitError); ok {
 			exitcode = exitError.ExitCode()
 		} else {
 			exitcode = 999
+			fmt.Println(stderr)
 			if _, err := stderr.WriteString(err.Error()); err != nil {
 				// we should never get here but if we do, lets print the error
 				fmt.Println(err)

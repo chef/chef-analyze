@@ -1,13 +1,20 @@
 # github.com/BurntSushi/toml v0.3.1
 github.com/BurntSushi/toml
-# github.com/chef/go-chef v0.3.1-0.20191022192238-9a61e1963868
+# github.com/VividCortex/ewma v1.1.1
+github.com/VividCortex/ewma
+# github.com/chef/go-chef v0.0.0-20191115205148-7ac24fba7a27
 github.com/chef/go-chef
 # github.com/chef/go-libs v0.0.0-20191113223254-d2a05fa5636d
 github.com/chef/go-libs/config
 github.com/chef/go-libs/credentials
 github.com/chef/go-libs/featflag
+# github.com/cheggaaa/pb/v3 v3.0.2
+github.com/cheggaaa/pb/v3
+github.com/cheggaaa/pb/v3/termutil
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
+# github.com/fatih/color v1.7.0
+github.com/fatih/color
 # github.com/fsnotify/fsnotify v1.4.7
 github.com/fsnotify/fsnotify
 # github.com/hashicorp/hcl v1.0.0
@@ -25,11 +32,15 @@ github.com/hashicorp/hcl/json/token
 github.com/inconshreveable/mousetrap
 # github.com/magiconair/properties v1.8.1
 github.com/magiconair/properties
+# github.com/mattn/go-colorable v0.1.4
+github.com/mattn/go-colorable
+# github.com/mattn/go-isatty v0.0.10
+github.com/mattn/go-isatty
 # github.com/mattn/go-runewidth v0.0.6
 github.com/mattn/go-runewidth
 # github.com/mitchellh/mapstructure v1.1.2
 github.com/mitchellh/mapstructure
-# github.com/olekukonko/tablewriter v0.0.2
+# github.com/olekukonko/tablewriter v0.0.3
 github.com/olekukonko/tablewriter
 # github.com/pelletier/go-toml v1.6.0
 github.com/pelletier/go-toml
@@ -54,7 +65,7 @@ github.com/spf13/viper
 github.com/stretchr/testify/assert
 # github.com/subosito/gotenv v1.2.0
 github.com/subosito/gotenv
-# golang.org/x/sys v0.0.0-20191113165036-4c7a9d0fe056
+# golang.org/x/sys v0.0.0-20191118133127-cf1e2d577169
 golang.org/x/sys/unix
 # golang.org/x/text v0.3.2
 golang.org/x/text/transform

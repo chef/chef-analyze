@@ -70,6 +70,7 @@ func TestReportingNewDefaultErrorWithoutCredentials(t *testing.T) {
 	//        here (and elsewhere) we should prevent filesystem access in
 	//        unit tests. This looks promising: https://github.com/spf13/afero
 	cfg, err := subject.NewDefault()
+
 	if assert.NotNil(t, err) {
 		assert.Contains(t, err.Error(), "credentials file not found")
 		assert.Contains(t, err.Error(), "default: $HOME/.chef/credentials")
