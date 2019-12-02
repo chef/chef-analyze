@@ -27,6 +27,10 @@ func nodeSearch(w http.ResponseWriter, req *http.Request) {
 	fmt.Fprintf(w, "{}\n")
 }
 
+func cookbooksList(w http.ResponseWriter, req *http.Request) {
+	fmt.Fprintf(w, "{}\n")
+}
+
 // start a HTTP server listening on localhost:80 to create a face Chef Server
 func startFakeChefServer() {
 	// TODO @afiune I think we probably need to have a way to define the responses
@@ -36,7 +40,10 @@ func startFakeChefServer() {
 		fmt.Sprintf("/organizations/%s/search/node", DefaultChefServerOrganization),
 		nodeSearch,
 	)
-
+	http.HandleFunc(
+		fmt.Sprintf("/organizations/%s/cookbooks", DefaultChefServerOrganization),
+		cookbooksList,
+	)
 	// @afiune we use port 80 to use "HTTP" instead of "HTTPS" to avoid signing requests
 	http.ListenAndServe(":80", nil)
 }
