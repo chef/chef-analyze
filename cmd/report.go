@@ -43,15 +43,38 @@ var (
 				globalFlags.profile,
 				overrideCredentials(),
 			)
+
 			if err != nil {
 				return err
 			}
+
 			cfg := &reporting.Reporting{Credentials: creds}
 			if globalFlags.noSSLverify {
 				cfg.NoSSLVerify = true
 			}
 
-			return reporting.Cookbooks(cfg)
+			chefClient, err := reporting.NewChefClient(cfg)
+			if err != nil {
+				return err
+			}
+
+			cookbooksState, err := reporting.NewCookbooks(chefClient.Cookbooks, chefClient.Search, cookbooksFlags.skipUnused)
+			if err != nil {
+				return err
+			}
+
+			if cookbooksFlags.detailed {
+				switch cookbooksFlags.format {
+				case "csv":
+					writeDetailedCSV(cookbooksState.Records)
+				default:
+					writeDetailedCookbookStateReport(cookbooksState.Records)
+				}
+				return nil
+			}
+
+			writeCookbookStateReport(cookbooksState.Records)
+			return nil
 		},
 	}
 	reportNodesCmd = &cobra.Command{
@@ -87,69 +110,26 @@ var (
 			return nil
 		},
 	}
-	cookbookStateFlags struct {
+	cookbooksFlags struct {
 		detailed   bool
 		skipUnused bool
 		format     string
 	}
-	cookbookStateCmd = &cobra.Command{
-		Use:   "cookbook-state",
-		Short: "Generates cookbook report that shows current remediation state and usage",
-		Args:  cobra.NoArgs,
-		RunE: func(_ *cobra.Command, _ []string) error {
-			creds, err := credentials.FromViper(
-				globalFlags.profile,
-				overrideCredentials(),
-			)
-
-			if err != nil {
-				return err
-			}
-
-			cfg := &reporting.Reporting{Credentials: creds}
-			if globalFlags.noSSLverify {
-				cfg.NoSSLVerify = true
-			}
-
-			chefClient, err := reporting.NewChefClient(cfg)
-			if err != nil {
-				return err
-			}
-
-			cookbookState, err := reporting.NewCookbookState(chefClient.Cookbooks, chefClient.Search, cookbookStateFlags.skipUnused)
-			if err != nil {
-				return err
-			}
-
-			if cookbookStateFlags.detailed {
-				switch cookbookStateFlags.format {
-				case "csv":
-					writeDetailedCSV(cookbookState.Records)
-				default:
-					writeDetailedCookbookStateReport(cookbookState.Records)
-				}
-				return nil
-			}
-
-			writeCookbookStateReport(cookbookState.Records)
-			return nil
-		},
-	}
 )
 
 func init() {
-	cookbookStateCmd.PersistentFlags().BoolVarP(
-		&cookbookStateFlags.detailed,
+	reportCookbooksCmd.PersistentFlags().BoolVarP(
+		&cookbooksFlags.detailed,
 		"detailed", "d", false,
 		"include detailed information about cookbook violations",
 	)
-	cookbookStateCmd.PersistentFlags().BoolVarP(
-		&cookbookStateFlags.skipUnused,
+	reportCookbooksCmd.PersistentFlags().BoolVarP(
+		&cookbooksFlags.skipUnused,
 		"skip-unused", "u", false,
 		"do not include unused cookbooks and versions that are not applied to any nodes",
 	)
-	cookbookStateCmd.PersistentFlags().StringVarP(
-		&cookbookStateFlags.format,
+	reportCookbooksCmd.PersistentFlags().StringVarP(
+		&cookbooksFlags.format,
 		"format", "f", "txt",
 		"output format: txt is human readable, csv is machine readable",
 	)
@@ -159,13 +139,10 @@ func init() {
 	// adds the nodes command as a sub-command of the report command
 	// => chef-analyze report nodes
 	reportCmd.AddCommand(reportNodesCmd)
-	// adds the cookbook-state command as a sub-command of the report command
-	// => chef-analyze report nodes
-	reportCmd.AddCommand(cookbookStateCmd)
 }
 
 // TODO different output depending on flags or TTY?
-func writeCookbookStateReport(records []*reporting.CookbookStateRecord) {
+func writeCookbookStateReport(records []*reporting.CookbookRecord) {
 	var (
 		downloadErrors   strings.Builder
 		usageFetchErrors strings.Builder
@@ -175,7 +152,7 @@ func writeCookbookStateReport(records []*reporting.CookbookStateRecord) {
 		var strBuilder strings.Builder
 
 		// skip unused cookbooks
-		if len(record.Nodes) == 0 && cookbookStateFlags.skipUnused {
+		if len(record.Nodes) == 0 && cookbooksFlags.skipUnused {
 			continue
 		}
 
@@ -202,7 +179,7 @@ func writeCookbookStateReport(records []*reporting.CookbookStateRecord) {
 	writeErrorBuilders(downloadErrors, cookstyleErrors, usageFetchErrors)
 }
 
-func writeDetailedCookbookStateReport(records []*reporting.CookbookStateRecord) {
+func writeDetailedCookbookStateReport(records []*reporting.CookbookRecord) {
 	var (
 		downloadErrors   strings.Builder
 		usageFetchErrors strings.Builder
@@ -212,7 +189,7 @@ func writeDetailedCookbookStateReport(records []*reporting.CookbookStateRecord) 
 		var strBuilder strings.Builder
 
 		// skip unused cookbooks
-		if len(record.Nodes) == 0 && cookbookStateFlags.skipUnused {
+		if len(record.Nodes) == 0 && cookbooksFlags.skipUnused {
 			continue
 		}
 
@@ -256,7 +233,7 @@ func writeDetailedCookbookStateReport(records []*reporting.CookbookStateRecord) 
 	writeErrorBuilders(downloadErrors, cookstyleErrors, usageFetchErrors)
 }
 
-func writeDetailedCSV(records []*reporting.CookbookStateRecord) {
+func writeDetailedCSV(records []*reporting.CookbookRecord) {
 	var (
 		strBuilder strings.Builder
 		csvWriter  = csv.NewWriter(&strBuilder)
@@ -266,7 +243,7 @@ func writeDetailedCSV(records []*reporting.CookbookStateRecord) {
 
 	for _, record := range records {
 		// skip unused cookbooks
-		if len(record.Nodes) == 0 && cookbookStateFlags.skipUnused {
+		if len(record.Nodes) == 0 && cookbooksFlags.skipUnused {
 			continue
 		}
 

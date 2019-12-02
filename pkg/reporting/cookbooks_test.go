@@ -17,14 +17,109 @@
 package reporting_test
 
 import (
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
 	subject "github.com/chef/chef-analyze/pkg/reporting"
+	chef "github.com/chef/go-chef"
 )
 
+func TestCookbooksRecordCorrectableAndOffenses(t *testing.T) {
+	csr := subject.CookbookRecord{
+		Files: []subject.CookbookFile{
+			subject.CookbookFile{
+				Offenses: []subject.CookstyleOffense{
+					subject.CookstyleOffense{Correctable: false},
+				},
+			},
+			subject.CookbookFile{
+				Offenses: []subject.CookstyleOffense{
+					subject.CookstyleOffense{Correctable: true},
+					subject.CookstyleOffense{Correctable: false},
+					subject.CookstyleOffense{Correctable: true},
+					subject.CookstyleOffense{Correctable: true},
+				},
+			},
+		},
+	}
+	assert.Equal(t, 3, csr.NumCorrectable())
+	assert.Equal(t, 5, csr.NumOffenses())
+}
+
+func TestCookbooksEmpty(t *testing.T) {
+	c, err := subject.NewCookbooks(
+		newMockCookbook(chef.CookbookListResult{}, nil, nil),
+		makeMockSearch("[]", nil),
+		false,
+	)
+	assert.Nil(t, err)
+	if assert.NotNil(t, c) {
+		assert.Empty(t, c.Records)
+		assert.Equal(t, 0, c.TotalCookbooks)
+	}
+}
+
+// Given a valid set of cookbooks in use by nodes,
+// verify that the result set is as expected.
 func TestCookbooks(t *testing.T) {
-	err := subject.Cookbooks(&subject.Reporting{})
-	assert.NotNil(t, err)
+	savedPath := setupBinstubsDir()
+	defer os.Setenv("PATH", savedPath)
+
+	cookbookList := chef.CookbookListResult{
+		"foo": chef.CookbookVersions{
+			Versions: []chef.CookbookVersion{
+				chef.CookbookVersion{Version: "0.1.0"},
+				chef.CookbookVersion{Version: "0.2.0"},
+				chef.CookbookVersion{Version: "0.3.0"},
+			},
+		},
+		"bar": chef.CookbookVersions{
+			Versions: []chef.CookbookVersion{
+				chef.CookbookVersion{Version: "0.1.0"},
+			},
+		},
+	}
+	c, err := subject.NewCookbooks(
+		// TODO @afiune gotta implement the newMockCookbook desiredCookbookList
+		newMockCookbook(cookbookList, nil, nil),
+		makeMockSearch(mockedNodesSearchRows(), nil),
+		false,
+	)
+	assert.Nil(t, err)
+	if assert.NotNil(t, c) {
+		assert.Equal(t, 4, c.TotalCookbooks)
+		if assert.Equal(t, 4, len(c.Records)) {
+			// we check for only one bar and 3 foo cookbooks
+			var (
+				foo = 0
+				bar = 0
+			)
+
+			for _, rec := range c.Records {
+				switch rec.Name {
+				case "foo":
+					foo++
+				case "bar":
+					bar++
+				default:
+					t.Fatal("unexpected cookbook name")
+				}
+			}
+
+			assert.Equal(t, 3, foo, "unexpected number of cookbooks foo")
+			assert.Equal(t, 1, bar, "unexpected number of cookbooks bar")
+		}
+	}
+}
+
+// Given a failure in downloading a cookbook, verify
+// the result set is as expected
+func TestCookbooks_DownloadErrors(t *testing.T) {
+}
+
+// Given a failure in fetching node usage for a cookbook,
+// the result set is as expected
+func TestCookbooks_UsageStatErrors(t *testing.T) {
 }
