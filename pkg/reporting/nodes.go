@@ -45,29 +45,12 @@ func (nri *NodeReportItem) Array() []string {
 	for _, v := range nri.CookbookVersions {
 		cookbooks = append(cookbooks, v.String())
 	}
-	var chefVersion string
-	if nri.ChefVersion == "" {
-		chefVersion = "-"
-	} else {
-		chefVersion = nri.ChefVersion
+	return []string{nri.Name,
+		nri.ChefVersion,
+		nri.OS,
+		nri.OSVersion,
+		strings.Join(cookbooks, " "),
 	}
-	// This data seems to be all or none - you'll have both OS/Version fields,
-	// or neither.
-	var osInfo string
-	if nri.OS == "" {
-		osInfo = "-"
-	} else {
-		osInfo = fmt.Sprintf("%s v%s", nri.OS, nri.OSVersion)
-	}
-
-	var cbInfo string
-	if len(cookbooks) == 0 {
-		cbInfo = "-"
-	} else {
-		cbInfo = strings.Join(cookbooks, " ")
-	}
-
-	return []string{nri.Name, chefVersion, osInfo, cbInfo}
 }
 
 // NOTE - we no longer need cfg. I'm not sure that this is best - I like having a single
