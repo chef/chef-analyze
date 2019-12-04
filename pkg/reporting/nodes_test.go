@@ -39,16 +39,54 @@ func TestCookbookVersionString(t *testing.T) {
 	assert.Equal(t, cbv.String(), "name(version)")
 }
 
-func TestNodeReportItemArray(t *testing.T) {
+func TestNodeReportItemArray_valid(t *testing.T) {
 	cbv := subject.CookbookVersion{Name: "name", Version: "version"}
 	nri := subject.NodeReportItem{
 		Name:             "name",
-		ChefVersion:      "chefversion",
+		ChefVersion:      "16.01",
 		OS:               "os",
-		OSVersion:        "osversion",
+		OSVersion:        "1.0",
 		CookbookVersions: []subject.CookbookVersion{cbv},
 	}
-	expected := []string{"name", "chefversion", "os", "osversion", "name(version)"}
+	expected := []string{"name", "16.01", "os v1.0", "name(version)"}
+	assert.Equal(t, expected, nri.Array())
+}
+
+func TestNodeReportItemArray_noOS(t *testing.T) {
+	cbv := subject.CookbookVersion{Name: "name", Version: "version"}
+	nri := subject.NodeReportItem{
+		Name:             "name",
+		ChefVersion:      "16.01",
+		OS:               "",
+		OSVersion:        "",
+		CookbookVersions: []subject.CookbookVersion{cbv},
+	}
+	expected := []string{"name", "16.01", "-", "name(version)"}
+	assert.Equal(t, expected, nri.Array())
+}
+
+func TestNodeReportItemArray_noCookbooks(t *testing.T) {
+	nri := subject.NodeReportItem{
+		Name:             "name",
+		ChefVersion:      "16.01",
+		OS:               "os",
+		OSVersion:        "1.0",
+		CookbookVersions: []subject.CookbookVersion{},
+	}
+	expected := []string{"name", "16.01", "os v1.0", "-"}
+	assert.Equal(t, expected, nri.Array())
+}
+
+func TestNodeReportItemArray_noChefVersion(t *testing.T) {
+	cbv := subject.CookbookVersion{Name: "name", Version: "version"}
+	nri := subject.NodeReportItem{
+		Name:             "name",
+		ChefVersion:      "",
+		OS:               "os",
+		OSVersion:        "1.0",
+		CookbookVersions: []subject.CookbookVersion{cbv},
+	}
+	expected := []string{"name", "-", "os v1.0", "name(version)"}
 	assert.Equal(t, expected, nri.Array())
 }
 

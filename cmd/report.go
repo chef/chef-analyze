@@ -23,11 +23,17 @@ import (
 	"os"
 	"strings"
 
+	"golang.org/x/crypto/ssh/terminal"
+
 	"github.com/chef/go-libs/credentials"
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 
 	"github.com/chef/chef-analyze/pkg/reporting"
+)
+
+const (
+	MIN_TERM_WIDTH = 120
 )
 
 var (
@@ -286,17 +292,34 @@ func writeDetailedCSV(records []*reporting.CookbookRecord) {
 }
 
 func writeNodeReport(records []reporting.NodeReportItem) {
+
+	termWidth, _, err := terminal.GetSize(int(os.Stdout.Fd()))
+	if err != nil {
+		termWidth = 120
+	}
+
 	table := tablewriter.NewWriter(os.Stdout)
-	table.SetHeader([]string{"Node Name", "Chef Version", "OS", "OS Version", "Cookbooks"})
-	table.SetReflowDuringAutoWrap(true)
-	table.SetRowLine(true)
 	table.SetAutoWrapText(true)
 	table.SetReflowDuringAutoWrap(true)
-	table.SetBorder(true)
+	table.SetColMinWidth(0, int(float64(termWidth)*0.30)) // fqdns can get pretty long
+	table.SetColMinWidth(1, int(float64(termWidth)*0.10)) // chef version is tiny
+	table.SetColMinWidth(2, int(float64(termWidth)*0.15)) // OS+version string
+	table.SetHeader([]string{"Node Name", "Chef Version", "Operating System", "Cookbooks"})
+	table.SetAutoFormatHeaders(false)
+	table.SetRowLine(false)
+	table.SetColumnSeparator(" ")
+	table.SetBorder(false)
 	for _, record := range records {
 		table.Append(record.Array())
 	}
+
+	fmt.Print("\n")
 	table.Render()
+	if termWidth < MIN_TERM_WIDTH {
+		fmt.Printf("\nNote: If the output above is not formatted correctly,")
+		fmt.Printf("\n      please expand your terminal window to be at least ")
+		fmt.Printf("\n      120 characters wide.")
+	}
 }
 
 func writeErrorBuilders(errBuilders ...strings.Builder) {
