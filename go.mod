@@ -7,7 +7,7 @@ require (
 	github.com/chef/go-libs v0.0.0-20191113223254-d2a05fa5636d
 	github.com/cheggaaa/pb/v3 v3.0.3
 	github.com/mattn/go-colorable v0.1.4 // indirect
-	github.com/olekukonko/tablewriter v0.0.3
+	github.com/olekukonko/tablewriter v0.0.4
 	github.com/pelletier/go-toml v1.6.0 // indirect
 	github.com/pkg/errors v0.8.1
 	github.com/spf13/afero v1.2.2 // indirect
