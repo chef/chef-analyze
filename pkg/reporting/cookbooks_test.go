@@ -64,6 +64,133 @@ func TestCookbooksEmpty(t *testing.T) {
 }
 
 // Given a valid set of cookbooks in use by nodes,
+// And the --only-unused flag is provided,
+// Verify that the result set is as expected.
+func TestCookbooksInUseDisplayOnlyUnused(t *testing.T) {
+	cookbookList := chef.CookbookListResult{
+		"foo": chef.CookbookVersions{
+			Versions: []chef.CookbookVersion{
+				chef.CookbookVersion{Version: "0.1.0"},
+				chef.CookbookVersion{Version: "0.2.0"},
+				chef.CookbookVersion{Version: "0.3.0"},
+			},
+		},
+		"bar": chef.CookbookVersions{
+			Versions: []chef.CookbookVersion{
+				chef.CookbookVersion{Version: "0.1.0"},
+			},
+		},
+	}
+	c, err := subject.NewCookbooks(
+		newMockCookbook(cookbookList, nil, nil),
+		makeMockSearch(mockedNodesSearchRows(), nil), // nodes are found
+		true, // display only unused cookbooks
+	)
+	assert.Nil(t, err)
+	if assert.NotNil(t, c) {
+		assert.Empty(t, c.Records)
+		assert.Equal(t, 4, c.TotalCookbooks)
+	}
+
+	c, err = subject.NewCookbooks(
+		newMockCookbook(cookbookList, nil, nil),
+		makeMockSearch(mockedNodesSearchRows(), nil), // nodes are found
+		false, // display only used cookbooks
+	)
+	assert.Nil(t, err)
+	if assert.NotNil(t, c) {
+		assert.Equal(t, 4, c.TotalCookbooks)
+		if assert.Equal(t, 4, len(c.Records)) {
+			// we check for only one bar and 3 foo cookbooks
+			var (
+				foo = 0
+				bar = 0
+			)
+
+			for _, rec := range c.Records {
+				switch rec.Name {
+				case "foo":
+					foo++
+				case "bar":
+					bar++
+				default:
+					t.Fatal("unexpected cookbook name")
+				}
+
+				assert.NotEmpty(t, rec.Nodes, "nodes should be found")
+			}
+
+			assert.Equal(t, 3, foo, "unexpected number of cookbooks foo")
+			assert.Equal(t, 1, bar, "unexpected number of cookbooks bar")
+		}
+	}
+}
+
+// Given a valid set of cookbooks that are not being used by any node,
+// And the --only-unused flag is provided,
+// Verify that the result set is as expected.
+func TestCookbooksNotUsedDisplayOnlyUnused(t *testing.T) {
+	cookbookList := chef.CookbookListResult{
+		"foo": chef.CookbookVersions{
+			Versions: []chef.CookbookVersion{
+				chef.CookbookVersion{Version: "0.1.0"},
+				chef.CookbookVersion{Version: "0.2.0"},
+				chef.CookbookVersion{Version: "0.3.0"},
+			},
+		},
+		"bar": chef.CookbookVersions{
+			Versions: []chef.CookbookVersion{
+				chef.CookbookVersion{Version: "0.1.0"},
+			},
+		},
+	}
+	c, err := subject.NewCookbooks(
+		newMockCookbook(cookbookList, nil, nil),
+		makeMockSearch("[]", nil), // no nodes are returned
+		true,                      // display only unused cookbooks
+	)
+	assert.Nil(t, err)
+	if assert.NotNil(t, c) {
+		assert.Equal(t, 4, c.TotalCookbooks)
+		if assert.Equal(t, 4, len(c.Records)) {
+			// we check for only one bar and 3 foo cookbooks
+			var (
+				foo = 0
+				bar = 0
+			)
+
+			for _, rec := range c.Records {
+				switch rec.Name {
+				case "foo":
+					foo++
+				case "bar":
+					bar++
+				default:
+					t.Fatal("unexpected cookbook name")
+				}
+
+				assert.Empty(t, rec.Nodes, "no nodes should be found")
+			}
+
+			assert.Equal(t, 3, foo, "unexpected number of cookbooks foo")
+			assert.Equal(t, 1, bar, "unexpected number of cookbooks bar")
+		}
+	}
+
+	c, err = subject.NewCookbooks(
+		newMockCookbook(cookbookList, nil, nil),
+		makeMockSearch("[]", nil), // no nodes are returned
+		false,                     // display only used cookbooks
+	)
+	assert.Nil(t, err)
+	if assert.NotNil(t, c) {
+		assert.Empty(t, c.Records)
+		assert.Equal(t, 4, c.TotalCookbooks)
+	}
+
+}
+
+// Given a valid set of cookbooks in use by nodes,
 // verify that the result set is as expected.
 func TestCookbooks(t *testing.T) {
 	savedPath := setupBinstubsDir()
