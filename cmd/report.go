@@ -39,7 +39,8 @@ violations each cookbook has, which violations can be are auto-corrected and
 the number of nodes using each cookbook.
 
 These reports could take a long time to run depending on the number of cookbooks
-to analyze and therefore reports will be stored in a cache directory (.analyze-cache/).
+to analyze and therefore reports will be written to disk. The location will be
+provided when the report is generated.
 `,
 		RunE: func(_ *cobra.Command, _ []string) error {
 			creds, err := credentials.FromViper(
