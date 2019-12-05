@@ -27,7 +27,7 @@ func TestReportCommand_Nodes(t *testing.T) {
 	out, err, exitcode := ChefAnalyzeWithCredentials("report", "nodes")
 	assert.Contains(t,
 		out.String(),
-		"NODE NAME | CHEF VERSION | OS | OS VERSION | COOKBOOKS",
+		"Node Name                 Chef Version    Operating System    Cookbooks",
 		"STDOUT message doesn't match")
 	assert.Empty(t,
 		err.String(),
