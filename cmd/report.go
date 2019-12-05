@@ -34,6 +34,13 @@ var (
 		Use:   "cookbooks",
 		Short: "Generates a cookbook oriented report",
 		Args:  cobra.NoArgs,
+		Long: `Generates cookbook oriented reports containing details about the number of
+violations each cookbook has, which violations can be are auto-corrected and
+the number of nodes using each cookbook.
+
+These reports could take a long time to run depending on the number of cookbooks
+to analyze and therefore reports will be stored in a cache directory (.analyze-cache/).
+`,
 		RunE: func(_ *cobra.Command, _ []string) error {
 			creds, err := credentials.FromViper(
 				globalFlags.profile,
@@ -57,7 +64,7 @@ var (
 			cookbooksState, err := reporting.NewCookbooks(
 				chefClient.Cookbooks,
 				chefClient.Search,
-				cookbooksFlags.skipUnused,
+				cookbooksFlags.onlyUnused,
 			)
 			if err != nil {
 				return err
@@ -107,16 +114,16 @@ var (
 		},
 	}
 	cookbooksFlags struct {
-		skipUnused bool
+		onlyUnused bool
 		format     string
 	}
 )
 
 func init() {
 	reportCookbooksCmd.PersistentFlags().BoolVarP(
-		&cookbooksFlags.skipUnused,
-		"skip-unused", "u", false,
-		"do not include unused cookbooks and versions that are not applied to any nodes",
+		&cookbooksFlags.onlyUnused,
+		"only-unused", "u", false,
+		"generate a report with only cookbooks that are not applied to any node",
 	)
 	reportCookbooksCmd.PersistentFlags().StringVarP(
 		&cookbooksFlags.format,

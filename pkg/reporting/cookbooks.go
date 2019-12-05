@@ -37,7 +37,7 @@ const (
 type CookbooksStatus struct {
 	Records        []*CookbookRecord
 	TotalCookbooks int
-	SkipUnused     bool
+	OnlyUnused     bool
 	Cookbooks      CookbookInterface
 	Searcher       SearchInterface
 	Cookstyle      *CookstyleRunner
@@ -81,7 +81,7 @@ func (r *CookbookRecord) NumCorrectable() int {
 	return i
 }
 
-func NewCookbooks(cbi CookbookInterface, searcher SearchInterface, skipUnused bool) (*CookbooksStatus, error) {
+func NewCookbooks(cbi CookbookInterface, searcher SearchInterface, onlyUnused bool) (*CookbooksStatus, error) {
 	fmt.Printf("Finding available cookbooks...") // c <- ProgressUpdate(Event: COOKBOOK_FETCH)
 	// Version limit of "0" means fetch all
 	results, err := cbi.ListAvailableVersions("0")
@@ -110,7 +110,7 @@ func NewCookbooks(cbi CookbookInterface, searcher SearchInterface, skipUnused bo
 			Cookbooks:      cbi,
 			Searcher:       searcher,
 			Cookstyle:      NewCookstyleRunner(),
-			SkipUnused:     skipUnused,
+			OnlyUnused:     onlyUnused,
 		}
 	)
 
@@ -210,11 +210,20 @@ func (cbs *CookbooksStatus) downloadCookbook(cookbookName, version string, analy
 	}
 	cbState.Nodes = nodes
 
-	// when there are no nodes using this cookbook and the skip unused flag was provided,
-	// exit without downloading and increment the progress bar since we are donw processing
-	if len(nodes) == 0 && cbs.SkipUnused {
-		cbs.progress.Increment()
-		return
+	// by default we report only cookbooks that are being used by one or more nodes,
+	// but we also provide a way to report the opposite, that is, only unused cookbooks
+	if cbs.OnlyUnused {
+		// report only unused cookbooks
+		if len(nodes) > 0 {
+			cbs.progress.Increment()
+			return
+		}
+	} else {
+		// report only cookbooks being used
+		if len(nodes) == 0 {
+			cbs.progress.Increment()
+			return
+		}
 	}
 
 	err = cbs.Cookbooks.DownloadTo(cookbookName, version, fmt.Sprintf("%s/cookbooks", AnalyzeCacheDir))
