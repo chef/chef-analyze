@@ -18,7 +18,6 @@ package reporting
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/pkg/errors"
 )
@@ -40,24 +39,11 @@ type NodeReportItem struct {
 	CookbookVersions []CookbookVersion
 }
 
-func (nri *NodeReportItem) Array() []string {
-	var cookbooks []string
-	for _, v := range nri.CookbookVersions {
-		cookbooks = append(cookbooks, v.String())
-	}
-	return []string{nri.Name,
-		nri.ChefVersion,
-		nri.OS,
-		nri.OSVersion,
-		strings.Join(cookbooks, " "),
-	}
-}
-
 // NOTE - we no longer need cfg. I'm not sure that this is best - I like having a single
 //        cfg which includes the client, but did not want to create a full mock interface for
 //        chef.client here - that belongs in go-chef, where it can be maintained alongside
 //        any interface changes that originate there.
-func Nodes(cfg *Reporting, searcher SearchInterface) ([]NodeReportItem, error) {
+func Nodes(cfg *Reporting, searcher SearchInterface) ([]*NodeReportItem, error) {
 	var (
 		query = map[string]interface{}{
 			"name":         []string{"name"},
@@ -77,14 +63,14 @@ func Nodes(cfg *Reporting, searcher SearchInterface) ([]NodeReportItem, error) {
 	// 	view all nodes in the result set, the actual returned number will be lower than
 	// 	the value of Rows.
 
-	results := make([]NodeReportItem, 0, len(pres.Rows))
+	results := make([]*NodeReportItem, 0, len(pres.Rows))
 	for _, element := range pres.Rows {
 
 		// cookbook version arrives as [ NAME : { version: VERSION } - we extract that here.
 		v := element.(map[string]interface{})["data"].(map[string]interface{})
 
 		if v != nil {
-			item := NodeReportItem{
+			item := &NodeReportItem{
 				Name:        safeStringFromMap(v, "name"),
 				OS:          safeStringFromMap(v, "os"),
 				OSVersion:   safeStringFromMap(v, "os_version"),
