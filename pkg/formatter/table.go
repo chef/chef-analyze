@@ -18,23 +18,79 @@
 package formatter
 
 import (
+	"fmt"
 	"os"
+	"strings"
 
 	"github.com/olekukonko/tablewriter"
 
 	"github.com/chef/chef-analyze/pkg/reporting"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
-func WriteNodeReport(records []reporting.NodeReportItem) {
+const (
+	MinTermWidth          = 120
+	EmptyValuePlaceholder = "-"
+)
+
+func WriteNodeReport(records []*reporting.NodeReportItem) {
+	termWidth, _, err := terminal.GetSize(int(os.Stdout.Fd()))
+	if err != nil {
+		termWidth = MinTermWidth
+	}
+
 	table := tablewriter.NewWriter(os.Stdout)
-	table.SetHeader([]string{"Node Name", "Chef Version", "OS", "OS Version", "Cookbooks"})
-	table.SetReflowDuringAutoWrap(true)
-	table.SetRowLine(true)
 	table.SetAutoWrapText(true)
 	table.SetReflowDuringAutoWrap(true)
-	table.SetBorder(true)
+	table.SetColMinWidth(0, int(float64(termWidth)*0.30)) // fqdns can get pretty long
+	table.SetColMinWidth(1, int(float64(termWidth)*0.10)) // chef version is tiny
+	table.SetColMinWidth(2, int(float64(termWidth)*0.15)) // OS+version string
+	// Help prevent any one column from expanding to fill all available space:
+	table.SetColWidth(int(float64(termWidth) * 0.35))
+	table.SetHeader([]string{"Node Name", "Chef Version", "Operating System", "Cookbooks"})
+	table.SetAutoFormatHeaders(false) // Don't make our headers capitalize
+	table.SetRowLine(false)           // don't show row seps
+	table.SetColumnSeparator(" ")
+	table.SetBorder(false)
 	for _, record := range records {
-		table.Append(record.Array())
+		table.Append(NodeReportItemToArray(record))
 	}
+
+	fmt.Print("\n")
 	table.Render()
+	if termWidth < MinTermWidth {
+		fmt.Print("\nNote:  If the report is not formatted correctly, please")
+		fmt.Print("\n       please expand your terminal window to be at least")
+		fmt.Printf("\n       %v characters wide.\n", MinTermWidth)
+	}
+}
+
+func NodeReportItemToArray(nri *reporting.NodeReportItem) []string {
+	var cookbooks []string
+	for _, v := range nri.CookbookVersions {
+		cookbooks = append(cookbooks, v.String())
+	}
+	var chefVersion string
+	if nri.ChefVersion == "" {
+		chefVersion = EmptyValuePlaceholder
+	} else {
+		chefVersion = nri.ChefVersion
+	}
+	// This data seems to be all or none - you'll have both OS/Version fields,
+	// or neither.
+	var osInfo string
+	if nri.OS == "" {
+		osInfo = EmptyValuePlaceholder
+	} else {
+		osInfo = fmt.Sprintf("%s v%s", nri.OS, nri.OSVersion)
+	}
+
+	var cbInfo string
+	if len(cookbooks) == 0 {
+		cbInfo = EmptyValuePlaceholder
+	} else {
+		cbInfo = strings.Join(cookbooks, " ")
+	}
+
+	return []string{nri.Name, chefVersion, osInfo, cbInfo}
 }

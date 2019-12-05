@@ -39,19 +39,6 @@ func TestCookbookVersionString(t *testing.T) {
 	assert.Equal(t, cbv.String(), "name(version)")
 }
 
-func TestNodeReportItemArray(t *testing.T) {
-	cbv := subject.CookbookVersion{Name: "name", Version: "version"}
-	nri := subject.NodeReportItem{
-		Name:             "name",
-		ChefVersion:      "chefversion",
-		OS:               "os",
-		OSVersion:        "osversion",
-		CookbookVersions: []subject.CookbookVersion{cbv},
-	}
-	expected := []string{"name", "chefversion", "os", "osversion", "name(version)"}
-	assert.Equal(t, expected, nri.Array())
-}
-
 func testErrorResult(t *testing.T, cfg *subject.Reporting) {
 	expectedError := fmt.Errorf("error here")
 	mocksearch := makeMockSearch("", expectedError)
@@ -67,7 +54,7 @@ func equalsCookbookVersionsArray(t *testing.T, expected, actual []subject.Cookbo
 	}
 }
 
-func equalsNodeReportItem(t *testing.T, expected, actual subject.NodeReportItem) {
+func equalsNodeReportItem(t *testing.T, expected *subject.NodeReportItem, actual *subject.NodeReportItem) {
 	assert.Equal(t, expected.Name, actual.Name)
 	assert.Equal(t, expected.ChefVersion, actual.ChefVersion)
 	assert.Equal(t, expected.OS, actual.OS)
@@ -90,18 +77,18 @@ func testValidResultsWithNulls(t *testing.T, cfg *subject.Reporting) {
 
 	// TODO - should we test one field or record at a time, or is it safe practice to compare the full results?
 	//        there are a lot of things packed into this test if we compare full results.
-	expected := []subject.NodeReportItem{
-		subject.NodeReportItem{Name: "node1", ChefVersion: "12.22", OS: "windows", OSVersion: "10.1",
+	expected := []*subject.NodeReportItem{
+		&subject.NodeReportItem{Name: "node1", ChefVersion: "12.22", OS: "windows", OSVersion: "10.1",
 			CookbookVersions: []subject.CookbookVersion{
 				subject.CookbookVersion{Name: "mycookbook", Version: "1.0"}},
 		},
-		subject.NodeReportItem{Name: "node2", ChefVersion: "13.11", OS: "", OSVersion: "",
+		&subject.NodeReportItem{Name: "node2", ChefVersion: "13.11", OS: "", OSVersion: "",
 			CookbookVersions: []subject.CookbookVersion{
 				subject.CookbookVersion{Name: "mycookbook", Version: "1.0"},
 				subject.CookbookVersion{Name: "test", Version: "9.9"},
 			},
 		},
-		subject.NodeReportItem{Name: "node3", ChefVersion: "15.00", OS: "ubuntu", OSVersion: "16.04",
+		&subject.NodeReportItem{Name: "node3", ChefVersion: "15.00", OS: "ubuntu", OSVersion: "16.04",
 			CookbookVersions: nil},
 	}
 
