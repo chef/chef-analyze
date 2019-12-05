@@ -86,6 +86,10 @@ func NewCookbooks(cbi CookbookInterface, searcher SearchInterface, skipUnused bo
 	// Version limit of "0" means fetch all
 	results, err := cbi.ListAvailableVersions("0")
 	if err != nil {
+		// carrier return so we output the actual error message on a new line
+		// why? because of the Printf above.
+		// TODO delete this once we have a progress update
+		fmt.Println(" (-)")
 		return nil, errors.Wrap(err, "unable to retrieve cookbooks")
 	}
 

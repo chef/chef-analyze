@@ -18,15 +18,10 @@
 package cmd
 
 import (
-	"encoding/csv"
-	"fmt"
-	"os"
-	"strings"
-
 	"github.com/chef/go-libs/credentials"
-	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 
+	"github.com/chef/chef-analyze/pkg/formatter"
 	"github.com/chef/chef-analyze/pkg/reporting"
 )
 
@@ -59,23 +54,23 @@ var (
 				return err
 			}
 
-			cookbooksState, err := reporting.NewCookbooks(chefClient.Cookbooks, chefClient.Search, cookbooksFlags.skipUnused)
+			cookbooksState, err := reporting.NewCookbooks(
+				chefClient.Cookbooks,
+				chefClient.Search,
+				cookbooksFlags.skipUnused,
+			)
 			if err != nil {
 				return err
 			}
 
-			if cookbooksFlags.detailed {
-				switch cookbooksFlags.format {
-				case "csv":
-					writeDetailedCSV(cookbooksState.Records)
-				default:
-					writeDetailedCookbookStateReport(cookbooksState.Records)
-				}
-				return nil
-			}
+			formatter.PrintCookbooksReportSummary(cookbooksState.Records)
 
-			writeCookbookStateReport(cookbooksState.Records)
-			return nil
+			switch cookbooksFlags.format {
+			case "csv":
+				return formatter.StoreCookbooksReportCSV(cookbooksState.Records)
+			default:
+				return formatter.StoreCookbooksReportTXT(cookbooksState.Records)
+			}
 		},
 	}
 	reportNodesCmd = &cobra.Command{
@@ -107,23 +102,17 @@ var (
 				return err
 			}
 
-			writeNodeReport(results)
+			formatter.WriteNodeReport(results)
 			return nil
 		},
 	}
 	cookbooksFlags struct {
-		detailed   bool
 		skipUnused bool
 		format     string
 	}
 )
 
 func init() {
-	reportCookbooksCmd.PersistentFlags().BoolVarP(
-		&cookbooksFlags.detailed,
-		"detailed", "d", false,
-		"include detailed information about cookbook violations",
-	)
 	reportCookbooksCmd.PersistentFlags().BoolVarP(
 		&cookbooksFlags.skipUnused,
 		"skip-unused", "u", false,
@@ -140,174 +129,4 @@ func init() {
 	// adds the nodes command as a sub-command of the report command
 	// => chef-analyze report nodes
 	reportCmd.AddCommand(reportNodesCmd)
-}
-
-// TODO different output depending on flags or TTY?
-func writeCookbookStateReport(records []*reporting.CookbookRecord) {
-	var (
-		downloadErrors   strings.Builder
-		usageFetchErrors strings.Builder
-		cookstyleErrors  strings.Builder
-	)
-	for _, record := range records {
-		var strBuilder strings.Builder
-
-		// skip unused cookbooks
-		if len(record.Nodes) == 0 && cookbooksFlags.skipUnused {
-			continue
-		}
-
-		strBuilder.WriteString(fmt.Sprintf("%v (%v) ", record.Name, record.Version))
-		strBuilder.WriteString(fmt.Sprintf("%v violations, %v auto-correctable, %v nodes affected",
-			record.NumOffenses(), record.NumCorrectable(), len(record.Nodes)),
-		)
-
-		if record.DownloadError != nil {
-			strBuilder.WriteString("\nERROR: could not download cookbook (see end of report)")
-			downloadErrors.WriteString(fmt.Sprintf(" - %s (%s): %v\n", record.Name, record.Version, record.DownloadError))
-		} else if record.CookstyleError != nil {
-			strBuilder.WriteString("\nERROR: could not run cookstyle (see end of report)")
-			cookstyleErrors.WriteString(fmt.Sprintf(" - %s (%s): %v\n", record.Name, record.Version, record.CookstyleError))
-		} else if record.UsageLookupError != nil {
-			strBuilder.WriteString("\nERROR: unknown violations (see end of report)")
-			usageFetchErrors.WriteString(fmt.Sprintf(" - %s (%s): %v\n", record.Name, record.Version, record.UsageLookupError))
-		}
-
-		// TODO @afiune write report to disk
-		fmt.Println(strBuilder.String())
-	}
-
-	writeErrorBuilders(downloadErrors, cookstyleErrors, usageFetchErrors)
-}
-
-func writeDetailedCookbookStateReport(records []*reporting.CookbookRecord) {
-	var (
-		downloadErrors   strings.Builder
-		usageFetchErrors strings.Builder
-		cookstyleErrors  strings.Builder
-	)
-	for _, record := range records {
-		var strBuilder strings.Builder
-
-		// skip unused cookbooks
-		if len(record.Nodes) == 0 && cookbooksFlags.skipUnused {
-			continue
-		}
-
-		strBuilder.WriteString(fmt.Sprintf("Cookbook: %v (%v)\n", record.Name, record.Version))
-		strBuilder.WriteString(fmt.Sprintf("Violations: %v\n", record.NumOffenses()))
-		strBuilder.WriteString(fmt.Sprintf("Auto correctable: %v\n", record.NumCorrectable()))
-
-		strBuilder.WriteString("Nodes affected: ")
-		if len(record.Nodes) == 0 {
-			strBuilder.WriteString("none")
-		} else {
-			strBuilder.WriteString(strings.Join(record.Nodes, ", "))
-		}
-		strBuilder.WriteString("\nFiles and offenses:")
-		for _, f := range record.Files {
-			if len(f.Offenses) == 0 {
-				continue
-			}
-			strBuilder.WriteString(fmt.Sprintf("\n - %s:", f.Path))
-			for _, o := range f.Offenses {
-				strBuilder.WriteString(fmt.Sprintf("\n\t%s (%t) %s", o.CopName, o.Correctable, o.Message))
-			}
-		}
-
-		if record.DownloadError != nil {
-			strBuilder.WriteString("\nERROR: could not download cookbook (see end of report)")
-			downloadErrors.WriteString(fmt.Sprintf(" - %s (%s): %v\n", record.Name, record.Version, record.DownloadError))
-		} else if record.CookstyleError != nil {
-			strBuilder.WriteString("\nERROR: could not run cookstyle (see end of report)")
-			cookstyleErrors.WriteString(fmt.Sprintf(" - %s (%s): %v\n", record.Name, record.Version, record.CookstyleError))
-		} else if record.UsageLookupError != nil {
-			strBuilder.WriteString("\nERROR: unknown violations (see end of report)")
-			usageFetchErrors.WriteString(fmt.Sprintf(" - %s (%s): %v\n", record.Name, record.Version, record.UsageLookupError))
-		}
-
-		// TODO @afiune write report to disk
-		fmt.Println(strBuilder.String())
-	}
-
-	writeErrorBuilders(downloadErrors, cookstyleErrors, usageFetchErrors)
-}
-
-func writeDetailedCSV(records []*reporting.CookbookRecord) {
-	var (
-		strBuilder strings.Builder
-		csvWriter  = csv.NewWriter(&strBuilder)
-	)
-	// table headers
-	csvWriter.Write([]string{"Cookbook Name", "Version", "File", "Offense", "Automatically Correctable", "Message", "Nodes"})
-
-	for _, record := range records {
-		// skip unused cookbooks
-		if len(record.Nodes) == 0 && cookbooksFlags.skipUnused {
-			continue
-		}
-
-		firstRow := []string{record.Name, record.Version, "", "", "", "", strings.Join(record.Nodes, " ")}
-		firstRowPopulated := false
-		for _, file := range record.Files {
-			if len(file.Offenses) == 0 {
-				continue
-			}
-			if firstRowPopulated == false {
-				firstRow[2] = file.Path
-				firstOffense := file.Offenses[0]
-				file.Offenses = file.Offenses[1:]
-				firstRow[3] = firstOffense.CopName
-				if firstOffense.Correctable {
-					firstRow[4] = "Y"
-				} else {
-					firstRow[4] = "N"
-				}
-				firstRow[5] = firstOffense.Message
-				csvWriter.Write(firstRow)
-				firstRowPopulated = true
-			} else {
-				for _, offense := range file.Offenses {
-					row := []string{"", "", "", offense.CopName, "", offense.Message, ""}
-					if offense.Correctable {
-						row[4] = "Y"
-					} else {
-						row[4] = "N"
-					}
-					csvWriter.Write(row)
-				}
-			}
-		}
-	}
-	csvWriter.Flush()
-
-	// TODO @afiune write report to disk
-	fmt.Println(strBuilder.String())
-}
-
-func writeNodeReport(records []reporting.NodeReportItem) {
-	table := tablewriter.NewWriter(os.Stdout)
-	table.SetHeader([]string{"Node Name", "Chef Version", "OS", "OS Version", "Cookbooks"})
-	table.SetReflowDuringAutoWrap(true)
-	table.SetRowLine(true)
-	table.SetAutoWrapText(true)
-	table.SetReflowDuringAutoWrap(true)
-	table.SetBorder(true)
-	for _, record := range records {
-		table.Append(record.Array())
-	}
-	table.Render()
-}
-
-func writeErrorBuilders(errBuilders ...strings.Builder) {
-	firstMsg := true
-	for _, errBldr := range errBuilders {
-		if errBldr.Len() > 0 {
-			if firstMsg {
-				fmt.Fprintln(os.Stderr, "* ERROR(s) DETAILS:")
-				firstMsg = false
-			}
-			fmt.Fprintln(os.Stderr, errBldr.String())
-		}
-	}
 }
