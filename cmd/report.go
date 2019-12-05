@@ -21,6 +21,7 @@ import (
 	"github.com/chef/go-libs/credentials"
 	"github.com/spf13/cobra"
 
+	"github.com/chef/chef-analyze/pkg/formatter"
 	"github.com/chef/chef-analyze/pkg/reporting"
 )
 
@@ -62,13 +63,13 @@ var (
 				return err
 			}
 
-			PrintCookbooksReportSummary(cookbooksState.Records)
+			formatter.PrintCookbooksReportSummary(cookbooksState.Records)
 
 			switch cookbooksFlags.format {
 			case "csv":
-				return StoreCookbooksReportCSV(cookbooksState.Records)
+				return formatter.StoreCookbooksReportCSV(cookbooksState.Records)
 			default:
-				return StoreCookbooksReportTXT(cookbooksState.Records)
+				return formatter.StoreCookbooksReportTXT(cookbooksState.Records)
 			}
 		},
 	}
@@ -101,7 +102,7 @@ var (
 				return err
 			}
 
-			writeNodeReport(results)
+			formatter.WriteNodeReport(results)
 			return nil
 		},
 	}
