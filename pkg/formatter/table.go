@@ -53,7 +53,7 @@ func WriteNodeReport(records []*reporting.NodeReportItem) {
 	table.SetColumnSeparator(" ")
 	table.SetBorder(false)
 	for _, record := range records {
-		table.Append(nodeReportItemToArray(record))
+		table.Append(NodeReportItemToArray(record))
 	}
 
 	fmt.Print("\n")
@@ -65,7 +65,7 @@ func WriteNodeReport(records []*reporting.NodeReportItem) {
 	}
 }
 
-func nodeReportItemToArray(nri *reporting.NodeReportItem) []string {
+func NodeReportItemToArray(nri *reporting.NodeReportItem) []string {
 	var cookbooks []string
 	for _, v := range nri.CookbookVersions {
 		cookbooks = append(cookbooks, v.String())
