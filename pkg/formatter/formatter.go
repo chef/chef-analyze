@@ -31,7 +31,7 @@ const AnalyzeCacheDir = ".analyze-cache"
 func PrintCookbooksReportSummary(records []*reporting.CookbookRecord) {
 	if len(records) == 0 {
 		// TODO @afiune what is the right text here?
-		fmt.Println("No cookbooks were found to analyze")
+		fmt.Println("There are no cookbook records to generate a report")
 		return
 	}
 
