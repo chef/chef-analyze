@@ -21,10 +21,11 @@ import (
 	"os"
 	"testing"
 
+	chef "github.com/chef/go-chef"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 
 	subject "github.com/chef/chef-analyze/pkg/reporting"
-	chef "github.com/chef/go-chef"
 )
 
 func TestCookbooksRecordCorrectableAndOffenses(t *testing.T) {
@@ -113,6 +114,20 @@ func TestCookbooks(t *testing.T) {
 			assert.Equal(t, 1, bar, "unexpected number of cookbooks bar")
 		}
 	}
+}
+
+// Given a failure trying to get the list of cookbooks,
+// verify the result set is as expected
+func TestCookbooks_ListCookbooksErrors(t *testing.T) {
+	c, err := subject.NewCookbooks(
+		newMockCookbook(chef.CookbookListResult{}, errors.New("i/o timeout"), nil),
+		makeMockSearch("[]", nil),
+		false,
+	)
+	if assert.NotNil(t, err) {
+		assert.Equal(t, "unable to retrieve cookbooks: i/o timeout", err.Error())
+	}
+	assert.Nil(t, c)
 }
 
 // Given a failure in downloading a cookbook, verify
