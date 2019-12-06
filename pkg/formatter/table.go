@@ -18,6 +18,7 @@
 package formatter
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"strings"
@@ -33,35 +34,50 @@ const (
 	EmptyValuePlaceholder = "-"
 )
 
+var (
+	NodeReportHeader = []string{"Node Name", "Chef Version", "Operating System", "Cookbooks"}
+)
+
 func WriteNodeReport(records []*reporting.NodeReportItem) {
 	termWidth, _, err := terminal.GetSize(int(os.Stdout.Fd()))
 	if err != nil {
 		termWidth = MinTermWidth
 	}
+	buffer := bytes.NewBufferString("")
 
-	table := tablewriter.NewWriter(os.Stdout)
+	// Let's look at content to pre-determine the best column widths
+	table := tablewriter.NewWriter(buffer)
 	table.SetAutoWrapText(true)
 	table.SetReflowDuringAutoWrap(true)
-	table.SetColMinWidth(0, int(float64(termWidth)*0.30)) // fqdns can get pretty long
-	table.SetColMinWidth(1, int(float64(termWidth)*0.10)) // chef version is tiny
-	table.SetColMinWidth(2, int(float64(termWidth)*0.15)) // OS+version string
-	// Help prevent any one column from expanding to fill all available space:
-	table.SetColWidth(int(float64(termWidth) * 0.35))
-	table.SetHeader([]string{"Node Name", "Chef Version", "Operating System", "Cookbooks"})
-	table.SetAutoFormatHeaders(false) // Don't make our headers capitalize
+	table.SetHeader(NodeReportHeader)
+	table.SetAutoFormatHeaders(false) // Don't make our headers capitalized
 	table.SetRowLine(false)           // don't show row seps
 	table.SetColumnSeparator(" ")
 	table.SetBorder(false)
+
+	// sets max for each col to 30 chars. This is not strictly enforced - unwrappable content will
+	// expand beyond this limit.
+	table.SetColWidth(MinTermWidth / len(NodeReportHeader))
+
 	for _, record := range records {
 		table.Append(NodeReportItemToArray(record))
 	}
 
 	fmt.Print("\n")
 	table.Render()
-	if termWidth < MinTermWidth {
-		fmt.Print("\nNote:  If the report is not formatted correctly, please")
-		fmt.Print("\n       please expand your terminal window to be at least")
-		fmt.Printf("\n       %v characters wide.\n", MinTermWidth)
+
+	// A bit of a hack to find the actual width of the string used to render a line
+	// of the table. We get the first line only  - this is the minimum width needed
+	// to avoid wrapping  the teriminal line and making the table look bad.
+	// multibyte characters accounted for by using DisplayWidth.
+	bufStr := buffer.String()
+	lines := strings.SplitN(bufStr, "\n", 2)
+	width := tablewriter.DisplayWidth(lines[0])
+
+	fmt.Printf(bufStr)
+	if termWidth < width {
+		fmt.Print("\nNote:  To view the report with correct formatting, please expand")
+		fmt.Printf("\n       your terminal window to be at least %v characters wide\n", width)
 	}
 }
 
