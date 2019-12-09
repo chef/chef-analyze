@@ -34,9 +34,7 @@ const (
 	EmptyValuePlaceholder = "-"
 )
 
-var (
-	NodeReportHeader = []string{"Node Name", "Chef Version", "Operating System", "Cookbooks"}
-)
+var NodeReportHeader = []string{"Node Name", "Chef Version", "Operating System", "Cookbooks"}
 
 func WriteNodeReport(records []*reporting.NodeReportItem) {
 	termWidth, _, err := terminal.GetSize(int(os.Stdout.Fd()))
@@ -51,7 +49,7 @@ func WriteNodeReport(records []*reporting.NodeReportItem) {
 	table.SetReflowDuringAutoWrap(true)
 	table.SetHeader(NodeReportHeader)
 	table.SetAutoFormatHeaders(false) // Don't make our headers capitalized
-	table.SetRowLine(false)           // don't show row seps
+	table.SetRowLine(true)            // don't show row seps
 	table.SetColumnSeparator(" ")
 	table.SetBorder(false)
 
