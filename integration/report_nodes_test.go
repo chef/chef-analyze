@@ -27,16 +27,8 @@ func TestReportCommand_Nodes(t *testing.T) {
 	out, err, exitcode := ChefAnalyzeWithCredentials("report", "nodes")
 	assert.Contains(t,
 		out.String(),
-		"Node Name", "stdout missing Node Name header")
-	assert.Contains(t,
-		out.String(),
-		"Chef Version", "stdout missing Chef Version header")
-	assert.Contains(t,
-		out.String(),
-		"Operating System", "stdout missing Operating System header")
-	assert.Contains(t,
-		out.String(),
-		"Cookbooks", "stdout missing Operating System header")
+		"No nodes found to analyze.",
+		"STDOUT message doesn't match")
 	assert.Empty(t,
 		err.String(),
 		"STDERR should be empty")
