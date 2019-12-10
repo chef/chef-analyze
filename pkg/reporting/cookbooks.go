@@ -186,8 +186,10 @@ func (cbs *CookbooksStatus) createAnalyzeWorkerPool(nWorkers int, analyzeCh <-ch
 		wg.Add(1)
 		go func(inCh <-chan *CookbookRecord, wg *sync.WaitGroup) {
 			for record := range inCh {
-				cbs.Records = append(cbs.Records, record)
-				cbs.runCookstyleFor(record)
+				if record.DownloadError == nil && record.UsageLookupError == nil {
+					cbs.Records = append(cbs.Records, record)
+					cbs.runCookstyleFor(record)
+				}
 			}
 			wg.Done()
 		}(analyzeCh, &wg)
@@ -228,7 +230,7 @@ func (cbs *CookbooksStatus) downloadCookbook(cookbookName, version string, analy
 
 	err = cbs.Cookbooks.DownloadTo(cookbookName, version, fmt.Sprintf("%s/cookbooks", AnalyzeCacheDir))
 	if err != nil {
-		cbState.DownloadError = err
+		cbState.DownloadError = errors.Wrapf(err, "unable to download cookbook %s", cookbookName)
 	}
 
 	// move to store and analyze the cookbook record
@@ -243,9 +245,10 @@ func (cbs *CookbooksStatus) nodesUsingCookbookVersion(cookbook string, version s
 	// TODO add pagination
 	pres, err := cbs.Searcher.PartialExec("node", fmt.Sprintf("cookbooks_%s_version:%s", cookbook, version), query)
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to get cookbook usage information")
+		err = errors.Wrap(err, "unable to get cookbook usage information")
 	}
 
+	// If the error is unrelated to returning any results we want to parse them and return them.
 	results := make([]string, 0, len(pres.Rows))
 	for _, element := range pres.Rows {
 		v := element.(map[string]interface{})["data"].(map[string]interface{})
@@ -254,7 +257,7 @@ func (cbs *CookbooksStatus) nodesUsingCookbookVersion(cookbook string, version s
 		}
 	}
 
-	return results, nil
+	return results, err
 }
 
 func (cbs *CookbooksStatus) runCookstyleFor(cb *CookbookRecord) {

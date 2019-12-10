@@ -18,11 +18,11 @@
 package reporting_test
 
 import (
+	"errors"
 	"os"
 	"testing"
 
 	chef "github.com/chef/go-chef"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 
 	subject "github.com/chef/chef-analyze/pkg/reporting"
@@ -257,12 +257,89 @@ func TestCookbooks_ListCookbooksErrors(t *testing.T) {
 	assert.Nil(t, c)
 }
 
+func TestCookbooks_ListAvailableVersionsError(t *testing.T) {
+	cookbookList := chef.CookbookListResult{}
+	c, err := subject.NewCookbooks(
+		newMockCookbook(cookbookList, errors.New("list error"), nil),
+		nil,
+		false,
+	)
+	assert.Nil(t, c)
+	assert.EqualError(t, err, "unable to retrieve cookbooks: list error")
+}
+
+func TestCookbooks_NoneAvailable(t *testing.T) {
+
+	c, err := subject.NewCookbooks(
+		newMockCookbook(chef.CookbookListResult{}, nil, nil),
+		makeMockSearch(mockedEmptyNodesSearchRows(), nil),
+		false,
+	)
+	assert.Nil(t, err)
+	if assert.NotNil(t, c) {
+		assert.Equal(t, 0, c.TotalCookbooks)
+	}
+}
+
 // Given a failure in downloading a cookbook, verify
 // the result set is as expected
 func TestCookbooks_DownloadErrors(t *testing.T) {
+	savedPath := setupBinstubsDir()
+	defer os.Setenv("PATH", savedPath)
+
+	cookbookList := chef.CookbookListResult{
+		"foo": chef.CookbookVersions{
+			Versions: []chef.CookbookVersion{
+				chef.CookbookVersion{Version: "0.1.0"},
+			},
+		},
+	}
+	c, err := subject.NewCookbooks(
+		newMockCookbook(cookbookList, nil, errors.New("download error")),
+		makeMockSearch(mockedNodesSearchRows(), nil),
+		false,
+	)
+	assert.Nil(t, err)
+	if assert.NotNil(t, c) {
+		assert.Equal(t, 1, c.TotalCookbooks)
+		if assert.Equal(t, 1, len(c.Records)) {
+			for _, rec := range c.Records {
+				assert.EqualError(t, rec.DownloadError, "unable to download cookbook foo: download error")
+				assert.NoError(t, rec.UsageLookupError, "unexpected UsageLookupError")
+				assert.NoError(t, rec.CookstyleError, "unexpected UsageLookupError")
+			}
+		}
+	}
 }
 
 // Given a failure in fetching node usage for a cookbook,
 // the result set is as expected
 func TestCookbooks_UsageStatErrors(t *testing.T) {
+	savedPath := setupBinstubsDir()
+	defer os.Setenv("PATH", savedPath)
+
+	cookbookList := chef.CookbookListResult{
+		"foo": chef.CookbookVersions{
+			Versions: []chef.CookbookVersion{
+				chef.CookbookVersion{Version: "0.1.0"},
+			},
+		},
+	}
+	c, err := subject.NewCookbooks(
+		newMockCookbook(cookbookList, nil, nil),
+		makeMockSearch(mockedNodesSearchRows(), errors.New("lookup error")),
+		false,
+	)
+	assert.Nil(t, err)
+	if assert.NotNil(t, c) {
+		assert.Equal(t, 1, c.TotalCookbooks)
+		if assert.Equal(t, 1, len(c.Records)) {
+			for _, rec := range c.Records {
+				assert.NoError(t, rec.DownloadError, "unexpected DownloadError")
+				assert.EqualError(t, rec.UsageLookupError, "unable to download cookbook foo: download error")
+				// TODO cookstyle
+				// assert.NoError(t, rec.CookstyleError, "unexpected UsageLookupError")
+			}
+		}
+	}
 }
