@@ -86,7 +86,7 @@ provided when the report is generated.
 				return err
 			}
 
-			cookbooksState, err := reporting.NewCookbooks(
+			cookbooksState, err := reporting.StartPipeline(
 				chefClient.Cookbooks,
 				chefClient.Search,
 				cookbooksFlags.runCookstyle,
