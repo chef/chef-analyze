@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/chef/go-libs/credentials"
@@ -32,15 +33,19 @@ import (
 )
 
 // TODO @afiune make this configurable
-const AnalyzeCacheDir = ".analyze-cache"
+const (
+	AnalyzeCacheDir = ".analyze-cache"
+	Cookbooks       = "cookbooks"
+	ErrExt          = "err"
+	TxtExt          = "txt"
+	CsvExt          = "csv"
+)
 
 var (
 	timestamp  = time.Now().Format("20060102150405")
 	reportsDir = filepath.Join(AnalyzeCacheDir, "reports")
 	errorsDir  = filepath.Join(AnalyzeCacheDir, "errors")
-)
-var (
-	reportCmd = &cobra.Command{
+	reportCmd  = &cobra.Command{
 		Use:   "report",
 		Short: "Generate reports from a Chef Infra Server",
 	}
@@ -90,23 +95,24 @@ provided when the report is generated.
 				return err
 			}
 
-			var outputStr, errorStr, ext string
+			var results *formatter.FormattedResult
+			ext := TxtExt
+
 			switch cookbooksFlags.format {
 			case "csv":
-				outputStr, errorStr = formatter.MakeCookbooksReportCSV(cookbooksState.Records)
-				ext = "csv"
+				results = formatter.MakeCookbooksReportCSV(cookbooksState.Records)
 			default:
-				outputStr, errorStr = formatter.MakeCookbooksReportTXT(cookbooksState.Records)
-				ext = "txt"
+				results = formatter.MakeCookbooksReportTXT(cookbooksState.Records)
 			}
 
-			fmt.Print(formatter.MakeCookbooksReportSummary(cookbooksState.Records))
-			fmt.Println()
-			err = saveReport("cookbooks", ext, outputStr)
+			formattedSummary := formatter.MakeCookbooksReportSummary(cookbooksState.Records)
+			fmt.Println(formattedSummary.Report)
+
+			err = saveReport(Cookbooks, ext, results.Report)
 			if err != nil {
 				return err
 			}
-			err = saveErrorReport("cookbooks", errorStr)
+			err = saveErrorReport(Cookbooks, results.Errors)
 			if err != nil {
 				return err
 			}
@@ -148,10 +154,10 @@ provided when the report is generated.
 				return err
 			}
 
-			reportStr, errorStr := formatter.FormatNodeReport(results)
-			fmt.Println(reportStr)
-			if errorStr != "" {
-				fmt.Println(errorStr)
+			formattedResult := formatter.FormatNodeReport(results)
+			fmt.Println(formattedResult.Report)
+			if formattedResult.Errors != "" {
+				fmt.Println(formattedResult.Errors)
 			}
 			return nil
 		},
@@ -208,7 +214,7 @@ func saveErrorReport(baseName string, content string) error {
 	reportFile.WriteString(content)
 	reportFile.Close()
 
-	fmt.Printf("Error(s) saved to %s\n'", reportPath)
+	fmt.Printf("Error report saved to %s\n", reportPath)
 	return nil
 }
 
@@ -222,6 +228,6 @@ func saveReport(baseName string, ext string, content string) error {
 	}
 	reportFile.WriteString(content)
 	reportFile.Close()
-	fmt.Printf("Report saved to %s\n", reportPath)
+	fmt.Printf("%s report saved to %s\n", strings.Title(baseName), reportPath)
 	return nil
 }

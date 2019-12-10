@@ -25,7 +25,7 @@ import (
 	"github.com/chef/chef-analyze/pkg/reporting"
 )
 
-func MakeCookbooksReportCSV(records []*reporting.CookbookRecord) (string, string) {
+func MakeCookbooksReportCSV(records []*reporting.CookbookRecord) *FormattedResult {
 	var (
 		strBuilder strings.Builder
 		errBuilder strings.Builder
@@ -33,8 +33,7 @@ func MakeCookbooksReportCSV(records []*reporting.CookbookRecord) (string, string
 	)
 
 	if len(records) == 0 {
-		// nothing to do
-		return "", ""
+		return &FormattedResult{"", ""}
 	}
 
 	// table headers
@@ -80,8 +79,6 @@ func MakeCookbooksReportCSV(records []*reporting.CookbookRecord) (string, string
 			}
 		}
 
-		// verify errors
-		// TODO @afiune we could refactor this to not be duplicated on every report
 		if record.DownloadError != nil {
 			errBuilder.WriteString(
 				fmt.Sprintf(" - %s (%s): %v\n", record.Name, record.Version, record.DownloadError))
@@ -97,5 +94,5 @@ func MakeCookbooksReportCSV(records []*reporting.CookbookRecord) (string, string
 	}
 
 	csvWriter.Flush()
-	return strBuilder.String(), errBuilder.String()
+	return &FormattedResult{strBuilder.String(), errBuilder.String()}
 }

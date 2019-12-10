@@ -24,23 +24,22 @@ import (
 	"github.com/chef/chef-analyze/pkg/reporting"
 )
 
-func MakeCookbooksReportTXT(records []*reporting.CookbookRecord) (string, string) {
+func MakeCookbooksReportTXT(records []*reporting.CookbookRecord) *FormattedResult {
 	var (
 		errorBuilder strings.Builder
+		strBuilder   strings.Builder
 	)
 
 	if len(records) == 0 {
 		// nothing to do
-		return "", ""
+		return &FormattedResult{"", ""}
 	}
 
-	var strBuilder strings.Builder
 	for _, record := range records {
 
 		strBuilder.WriteString(fmt.Sprintf("> Cookbook: %v (%v)\n", record.Name, record.Version))
 		strBuilder.WriteString(fmt.Sprintf("  Violations: %v\n", record.NumOffenses()))
 		strBuilder.WriteString(fmt.Sprintf("  Auto correctable: %v\n", record.NumCorrectable()))
-
 		strBuilder.WriteString("  Nodes affected: ")
 		if len(record.Nodes) == 0 {
 			strBuilder.WriteString("none")
@@ -70,12 +69,6 @@ func MakeCookbooksReportTXT(records []*reporting.CookbookRecord) (string, string
 			strBuilder.WriteString(" none\n")
 		}
 
-		// verify errors
-		// TODO @afiune we could refactor this to not be duplicated on every report
-		// TODO @marcparadise this might be a side effect of the original way we
-		//                    has of processing each phase separately; it might be we
-		//                    can stop differentiating between the type of error
-		//                    in the  CookbookRecord, and just have an error array in the struct.
 		if record.DownloadError != nil {
 			errorBuilder.WriteString(
 				fmt.Sprintf(" - %s (%s): %v\n", record.Name, record.Version, record.DownloadError))
@@ -90,5 +83,5 @@ func MakeCookbooksReportTXT(records []*reporting.CookbookRecord) (string, string
 		}
 
 	}
-	return strBuilder.String(), errorBuilder.String()
+	return &FormattedResult{strBuilder.String(), errorBuilder.String()}
 }

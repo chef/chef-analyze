@@ -36,7 +36,7 @@ const (
 
 var NodeReportHeader = []string{"Node Name", "Chef Version", "Operating System", "Cookbooks"}
 
-func FormatNodeReport(records []*reporting.NodeReportItem) (string, string) {
+func FormatNodeReport(records []*reporting.NodeReportItem) FormattedResult {
 	termWidth, _, err := terminal.GetSize(int(os.Stdout.Fd()))
 	if err != nil {
 		termWidth = MinTermWidth
@@ -72,13 +72,13 @@ func FormatNodeReport(records []*reporting.NodeReportItem) (string, string) {
 	lines := strings.SplitN(bufStr, "\n", 2)
 	width := tablewriter.DisplayWidth(lines[0])
 
-	var warning strings.Builder
+	var errMsg strings.Builder
 	fmt.Printf(bufStr)
 	if termWidth < width {
-		warning.WriteString(fmt.Sprintf("\nNote:  To view the report with correct formatting, please expand"))
-		warning.WriteString(fmt.Sprintf("\n       your terminal window to be at least %v characters wide\n", width))
+		errMsg.WriteString("\nNote:  To view the report with correct formatting, please expand")
+		errMsg.WriteString(fmt.Sprintf("\n       your terminal window to be at least %v characters wide\n", width))
 	}
-	return buffer.String(), warning.String()
+	return FormattedResult{buffer.String(), errMsg.String()}
 }
 
 func NodeReportItemToArray(nri *reporting.NodeReportItem) []string {
