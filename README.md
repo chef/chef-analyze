@@ -1,5 +1,5 @@
 # chef-analyze
-[![Build status](https://badge.buildkite.com/a5dfa44b20a6ec189a93bcbda031db452f1d964fa6836f7065.svg)](https://buildkite.com/chef/chef-chef-analyze-master-verify)
+[![Build status](https://badge.buildkite.com/a5dfa44b20a6ec189a93bcbda031db452f1d964fa6836f7065.svg?branch=master)](https://buildkite.com/chef/chef-chef-analyze-master-verify)
 [![Code coverage](https://img.shields.io/badge/coverage-50.2%25-orange)](https://buildkite.com/chef/chef-chef-analyze-master-verify)
 
 A CLI to analyze artifacts from a Chef Infra Server.
