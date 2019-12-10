@@ -107,6 +107,10 @@ func testValidResultsWithNulls(t *testing.T, cfg *subject.Reporting) {
 	}
 }
 
+func mockedEmptyNodesSearchRows() string {
+	return `[]`
+}
+
 func mockedNodesSearchRows() string {
 	return `[
   {

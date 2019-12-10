@@ -36,6 +36,7 @@ const (
 
 type CookbooksStatus struct {
 	Records        []*CookbookRecord
+	RecordsMutex   sync.Mutex
 	TotalCookbooks int
 	OnlyUnused     bool
 	Cookbooks      CookbookInterface
@@ -151,6 +152,12 @@ func NewCookbooks(cbi CookbookInterface, searcher SearchInterface, onlyUnused bo
 	return cookbooksState, nil
 }
 
+func (cbs *CookbooksStatus) addRecord(r *CookbookRecord) {
+	cbs.RecordsMutex.Lock()
+	defer cbs.RecordsMutex.Unlock()
+	cbs.Records = append(cbs.Records, r)
+}
+
 func (cbs *CookbooksStatus) triggerJobs(cookbooks chef.CookbookListResult, inCh chan<- cookbookItem) {
 	for cookbookName, cookbookVersions := range cookbooks {
 		for _, ver := range cookbookVersions.Versions {
@@ -186,8 +193,10 @@ func (cbs *CookbooksStatus) createAnalyzeWorkerPool(nWorkers int, analyzeCh <-ch
 		wg.Add(1)
 		go func(inCh <-chan *CookbookRecord, wg *sync.WaitGroup) {
 			for record := range inCh {
-				cbs.Records = append(cbs.Records, record)
+				cbs.addRecord(record)
+				// if record.DownloadError == nil {
 				cbs.runCookstyleFor(record)
+				// }
 			}
 			wg.Done()
 		}(analyzeCh, &wg)
@@ -228,7 +237,7 @@ func (cbs *CookbooksStatus) downloadCookbook(cookbookName, version string, analy
 
 	err = cbs.Cookbooks.DownloadTo(cookbookName, version, fmt.Sprintf("%s/cookbooks", AnalyzeCacheDir))
 	if err != nil {
-		cbState.DownloadError = err
+		cbState.DownloadError = errors.Wrapf(err, "unable to download cookbook %s", cookbookName)
 	}
 
 	// move to store and analyze the cookbook record
@@ -246,6 +255,7 @@ func (cbs *CookbooksStatus) nodesUsingCookbookVersion(cookbook string, version s
 		return nil, errors.Wrap(err, "unable to get cookbook usage information")
 	}
 
+	// If the error is unrelated to returning any results we want to parse them and return them.
 	results := make([]string, 0, len(pres.Rows))
 	for _, element := range pres.Rows {
 		v := element.(map[string]interface{})["data"].(map[string]interface{})
@@ -254,7 +264,7 @@ func (cbs *CookbooksStatus) nodesUsingCookbookVersion(cookbook string, version s
 		}
 	}
 
-	return results, nil
+	return results, err
 }
 
 func (cbs *CookbooksStatus) runCookstyleFor(cb *CookbookRecord) {
