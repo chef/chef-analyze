@@ -36,6 +36,7 @@ const (
 
 type CookbooksStatus struct {
 	Records        []*CookbookRecord
+	RecordsMutex   sync.Mutex
 	TotalCookbooks int
 	OnlyUnused     bool
 	Cookbooks      CookbookInterface
@@ -151,6 +152,12 @@ func NewCookbooks(cbi CookbookInterface, searcher SearchInterface, onlyUnused bo
 	return cookbooksState, nil
 }
 
+func (cbs *CookbooksStatus) addRecord(r *CookbookRecord) {
+	cbs.RecordsMutex.Lock()
+	defer cbs.RecordsMutex.Unlock()
+	cbs.Records = append(cbs.Records, r)
+}
+
 func (cbs *CookbooksStatus) triggerJobs(cookbooks chef.CookbookListResult, inCh chan<- cookbookItem) {
 	for cookbookName, cookbookVersions := range cookbooks {
 		for _, ver := range cookbookVersions.Versions {
@@ -186,10 +193,10 @@ func (cbs *CookbooksStatus) createAnalyzeWorkerPool(nWorkers int, analyzeCh <-ch
 		wg.Add(1)
 		go func(inCh <-chan *CookbookRecord, wg *sync.WaitGroup) {
 			for record := range inCh {
-				if record.DownloadError == nil && record.UsageLookupError == nil {
-					cbs.Records = append(cbs.Records, record)
-					cbs.runCookstyleFor(record)
-				}
+				cbs.addRecord(record)
+				// if record.DownloadError == nil {
+				cbs.runCookstyleFor(record)
+				// }
 			}
 			wg.Done()
 		}(analyzeCh, &wg)
@@ -245,7 +252,7 @@ func (cbs *CookbooksStatus) nodesUsingCookbookVersion(cookbook string, version s
 	// TODO add pagination
 	pres, err := cbs.Searcher.PartialExec("node", fmt.Sprintf("cookbooks_%s_version:%s", cookbook, version), query)
 	if err != nil {
-		err = errors.Wrap(err, "unable to get cookbook usage information")
+		return nil, errors.Wrap(err, "unable to get cookbook usage information")
 	}
 
 	// If the error is unrelated to returning any results we want to parse them and return them.

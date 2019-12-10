@@ -328,7 +328,9 @@ func TestCookbooks_UsageStatErrors(t *testing.T) {
 	c, err := subject.NewCookbooks(
 		newMockCookbook(cookbookList, nil, nil),
 		makeMockSearch(mockedNodesSearchRows(), errors.New("lookup error")),
-		false,
+		// Because the usage error makes it look like no nodes are attached to this cookbook
+		// we need to return only unused cookbooks
+		true,
 	)
 	assert.Nil(t, err)
 	if assert.NotNil(t, c) {
@@ -336,8 +338,8 @@ func TestCookbooks_UsageStatErrors(t *testing.T) {
 		if assert.Equal(t, 1, len(c.Records)) {
 			for _, rec := range c.Records {
 				assert.NoError(t, rec.DownloadError, "unexpected DownloadError")
-				assert.EqualError(t, rec.UsageLookupError, "unable to download cookbook foo: download error")
-				// TODO cookstyle
+				assert.EqualError(t, rec.UsageLookupError, "unable to get cookbook usage information: lookup error")
+				// TODO cookstyle returns error since we don't actually download a cookbook
 				// assert.NoError(t, rec.CookstyleError, "unexpected UsageLookupError")
 			}
 		}
