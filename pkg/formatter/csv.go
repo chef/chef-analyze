@@ -20,44 +20,21 @@ package formatter
 import (
 	"encoding/csv"
 	"fmt"
-	"os"
-	"path/filepath"
 	"strings"
-	"time"
-
-	"github.com/pkg/errors"
 
 	"github.com/chef/chef-analyze/pkg/reporting"
 )
 
-func StoreCookbooksReportCSV(records []*reporting.CookbookRecord) error {
+func MakeCookbooksReportCSV(records []*reporting.CookbookRecord) (string, string) {
 	var (
-		downloadErrors   strings.Builder
-		usageFetchErrors strings.Builder
-		cookstyleErrors  strings.Builder
-		strBuilder       strings.Builder
-		csvWriter        = csv.NewWriter(&strBuilder)
-		reportsDir       = filepath.Join(AnalyzeCacheDir, "reports")
-		timestamp        = time.Now().Format("20060102150405")
-		reportName       = fmt.Sprintf("cookbooks-%s.csv", timestamp)
-		reportPath       = filepath.Join(reportsDir, reportName)
+		strBuilder strings.Builder
+		errBuilder strings.Builder
+		csvWriter  = csv.NewWriter(&strBuilder)
 	)
 
 	if len(records) == 0 {
 		// nothing to do
-		return nil
-	}
-
-	// create reports directory
-	err := os.MkdirAll(reportsDir, os.ModePerm)
-	if err != nil {
-		return errors.Wrap(err, "unable to create reports/ directory")
-	}
-
-	// create a new report file
-	reportFile, err := os.Create(reportPath)
-	if err != nil {
-		return errors.Wrap(err, "unable to create report")
+		return "", ""
 	}
 
 	// table headers
@@ -70,7 +47,6 @@ func StoreCookbooksReportCSV(records []*reporting.CookbookRecord) error {
 		"Message",
 		"Nodes"})
 
-	anyError := false
 	for _, record := range records {
 		firstRow := []string{record.Name, record.Version, "", "", "", "", strings.Join(record.Nodes, " ")}
 		firstRowPopulated := false
@@ -107,30 +83,19 @@ func StoreCookbooksReportCSV(records []*reporting.CookbookRecord) error {
 		// verify errors
 		// TODO @afiune we could refactor this to not be duplicated on every report
 		if record.DownloadError != nil {
-			anyError = true
-			downloadErrors.WriteString(
+			errBuilder.WriteString(
 				fmt.Sprintf(" - %s (%s): %v\n", record.Name, record.Version, record.DownloadError))
 		}
 		if record.CookstyleError != nil {
-			anyError = true
-			cookstyleErrors.WriteString(
+			errBuilder.WriteString(
 				fmt.Sprintf(" - %s (%s): %v\n", record.Name, record.Version, record.CookstyleError))
 		}
 		if record.UsageLookupError != nil {
-			anyError = true
-			usageFetchErrors.WriteString(
+			errBuilder.WriteString(
 				fmt.Sprintf(" - %s (%s): %v\n", record.Name, record.Version, record.UsageLookupError))
 		}
-
 	}
 
 	csvWriter.Flush()
-	reportFile.WriteString(strBuilder.String())
-	fmt.Printf("\nCookbooks report generated at: \n  => %s\n", reportPath)
-
-	if anyError {
-		return StoreErrorsFromBuilders(timestamp, downloadErrors, cookstyleErrors, usageFetchErrors)
-	}
-
-	return nil
+	return strBuilder.String(), errBuilder.String()
 }

@@ -24,20 +24,17 @@ import (
 	"github.com/chef/chef-analyze/pkg/reporting"
 )
 
-// TODO @afiune make this configurable
-const AnalyzeCacheDir = ".analyze-cache"
-
 // TODO different output depending on flags or TTY?
-func PrintCookbooksReportSummary(records []*reporting.CookbookRecord) {
+func MakeCookbooksReportSummary(records []*reporting.CookbookRecord) string {
 	if len(records) == 0 {
 		// TODO @afiune what is the right text here?
 		fmt.Println("There are no cookbook records to generate a report")
-		return
+		return ""
 	}
 
+	var strBuilder strings.Builder
 	fmt.Printf("\n-- REPORT SUMMARY --\n\n")
 	for _, record := range records {
-		var strBuilder strings.Builder
 
 		strBuilder.WriteString(fmt.Sprintf("%v (%v) ", record.Name, record.Version))
 		strBuilder.WriteString(fmt.Sprintf("%v violations, %v auto-correctable, %v nodes affected",
@@ -51,7 +48,8 @@ func PrintCookbooksReportSummary(records []*reporting.CookbookRecord) {
 		} else if record.UsageLookupError != nil {
 			strBuilder.WriteString("\nERROR: unknown violations (see end of report)")
 		}
+		strBuilder.WriteString("\n")
 
-		fmt.Println(strBuilder.String())
 	}
+	return strBuilder.String()
 }

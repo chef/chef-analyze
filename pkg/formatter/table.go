@@ -36,7 +36,7 @@ const (
 
 var NodeReportHeader = []string{"Node Name", "Chef Version", "Operating System", "Cookbooks"}
 
-func WriteNodeReport(records []*reporting.NodeReportItem) {
+func FormatNodeReport(records []*reporting.NodeReportItem) (string, string) {
 	termWidth, _, err := terminal.GetSize(int(os.Stdout.Fd()))
 	if err != nil {
 		termWidth = MinTermWidth
@@ -72,11 +72,13 @@ func WriteNodeReport(records []*reporting.NodeReportItem) {
 	lines := strings.SplitN(bufStr, "\n", 2)
 	width := tablewriter.DisplayWidth(lines[0])
 
+	var warning strings.Builder
 	fmt.Printf(bufStr)
 	if termWidth < width {
-		fmt.Print("\nNote:  To view the report with correct formatting, please expand")
-		fmt.Printf("\n       your terminal window to be at least %v characters wide\n", width)
+		warning.WriteString(fmt.Sprintf("\nNote:  To view the report with correct formatting, please expand"))
+		warning.WriteString(fmt.Sprintf("\n       your terminal window to be at least %v characters wide\n", width))
 	}
+	return buffer.String(), warning.String()
 }
 
 func NodeReportItemToArray(nri *reporting.NodeReportItem) []string {
@@ -90,6 +92,7 @@ func NodeReportItemToArray(nri *reporting.NodeReportItem) []string {
 	} else {
 		chefVersion = nri.ChefVersion
 	}
+
 	// This data seems to be all or none - you'll have both OS/Version fields,
 	// or neither.
 	var osInfo string

@@ -18,40 +18,9 @@
 package formatter
 
 import (
-	"fmt"
-	"os"
-	"path/filepath"
 	"strings"
-
-	"github.com/pkg/errors"
 )
 
-func StoreErrorsFromBuilders(timestamp string, errBuilders ...strings.Builder) error {
-	var (
-		errorsDir  = filepath.Join(AnalyzeCacheDir, "errors")
-		errorsName = fmt.Sprintf("cookbooks-%s.err", timestamp)
-		errorsPath = filepath.Join(errorsDir, errorsName)
-	)
-
-	// create reports directory
-	err := os.MkdirAll(errorsDir, os.ModePerm)
-	if err != nil {
-		return errors.Wrap(err, "unable to create reports/ directory")
-	}
-
-	// create a new errors file
-	errorsFile, err := os.Create(errorsPath)
-	if err != nil {
-		return errors.Wrap(err, "unable to create report")
-	}
-
-	for _, errBldr := range errBuilders {
-		if errBldr.Len() > 0 {
-			errorsFile.WriteString(errBldr.String())
-		}
-	}
-
-	fmt.Println("Error(s) found during the report generation, find more details at:")
-	fmt.Printf("  => %s\n", errorsPath)
-	return nil
+func FormatErrorsFromBuilders(timestamp string, errBuilders ...strings.Builder) (string, error) {
+	return "", nil
 }
