@@ -18,15 +18,34 @@
 package cmd
 
 import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
+
 	"github.com/chef/go-libs/credentials"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
 	"github.com/chef/chef-analyze/pkg/formatter"
 	"github.com/chef/chef-analyze/pkg/reporting"
 )
 
+// TODO @afiune make this configurable
+const (
+	AnalyzeCacheDir = ".analyze-cache"
+	Cookbooks       = "cookbooks"
+	ErrExt          = "err"
+	TxtExt          = "txt"
+	CsvExt          = "csv"
+)
+
 var (
-	reportCmd = &cobra.Command{
+	timestamp  = time.Now().Format("20060102150405")
+	reportsDir = filepath.Join(AnalyzeCacheDir, "reports")
+	errorsDir  = filepath.Join(AnalyzeCacheDir, "errors")
+	reportCmd  = &cobra.Command{
 		Use:   "report",
 		Short: "Generate reports from a Chef Infra Server",
 	}
@@ -52,6 +71,11 @@ provided when the report is generated.
 				return err
 			}
 
+			err = createOutputDirectories()
+			if err != nil {
+				return err
+			}
+
 			cfg := &reporting.Reporting{Credentials: creds}
 			if globalFlags.noSSLverify {
 				cfg.NoSSLVerify = true
@@ -71,14 +95,29 @@ provided when the report is generated.
 				return err
 			}
 
-			formatter.PrintCookbooksReportSummary(cookbooksState.Records)
+			var results *formatter.FormattedResult
+			ext := TxtExt
 
 			switch cookbooksFlags.format {
 			case "csv":
-				return formatter.StoreCookbooksReportCSV(cookbooksState.Records)
+				results = formatter.MakeCookbooksReportCSV(cookbooksState.Records)
 			default:
-				return formatter.StoreCookbooksReportTXT(cookbooksState.Records)
+				results = formatter.MakeCookbooksReportTXT(cookbooksState.Records)
 			}
+
+			formattedSummary := formatter.MakeCookbooksReportSummary(cookbooksState.Records)
+			fmt.Println(formattedSummary.Report)
+
+			err = saveReport(Cookbooks, ext, results.Report)
+			if err != nil {
+				return err
+			}
+			err = saveErrorReport(Cookbooks, results.Errors)
+			if err != nil {
+				return err
+			}
+
+			return nil
 		},
 	}
 	reportNodesCmd = &cobra.Command{
@@ -91,6 +130,11 @@ provided when the report is generated.
 				overrideCredentials(),
 			)
 
+			if err != nil {
+				return err
+			}
+
+			err = createOutputDirectories()
 			if err != nil {
 				return err
 			}
@@ -110,7 +154,11 @@ provided when the report is generated.
 				return err
 			}
 
-			formatter.WriteNodeReport(results)
+			formattedResult := formatter.FormatNodeReport(results)
+			fmt.Println(formattedResult.Report)
+			if formattedResult.Errors != "" {
+				fmt.Println(formattedResult.Errors)
+			}
 			return nil
 		},
 	}
@@ -137,4 +185,49 @@ func init() {
 	// adds the nodes command as a sub-command of the report command
 	// => chef-analyze report nodes
 	reportCmd.AddCommand(reportNodesCmd)
+
+}
+
+func createOutputDirectories() error {
+	err := os.MkdirAll(errorsDir, os.ModePerm)
+	if err != nil {
+		return errors.Wrap(err, "unable to create reports/ directory")
+	}
+	err = os.MkdirAll(reportsDir, os.ModePerm)
+	if err != nil {
+		return errors.Wrap(err, "unable to create errors/ directory")
+	}
+	return nil
+}
+
+func saveErrorReport(baseName string, content string) error {
+	if content == "" {
+		return nil
+	}
+
+	reportName := fmt.Sprintf("%s-%s.%s", baseName, timestamp, "err")
+	reportPath := filepath.Join(errorsDir, reportName)
+	reportFile, err := os.Create(reportPath)
+	if err != nil {
+		return errors.Wrap(err, "unable to save errors report")
+	}
+	reportFile.WriteString(content)
+	reportFile.Close()
+
+	fmt.Printf("Error report saved to %s\n", reportPath)
+	return nil
+}
+
+func saveReport(baseName string, ext string, content string) error {
+	reportName := fmt.Sprintf("%s-%s.%s", baseName, timestamp, ext)
+	reportPath := filepath.Join(reportsDir, reportName)
+	// create a new report file
+	reportFile, err := os.Create(reportPath)
+	if err != nil {
+		return errors.Wrap(err, "unable to save report")
+	}
+	reportFile.WriteString(content)
+	reportFile.Close()
+	fmt.Printf("%s report saved to %s\n", strings.Title(baseName), reportPath)
+	return nil
 }
