@@ -19,7 +19,6 @@ package formatter_test
 import (
 	"testing"
 
-	"github.com/chef/chef-analyze/pkg/formatter"
 	subject "github.com/chef/chef-analyze/pkg/formatter"
 	"github.com/chef/chef-analyze/pkg/reporting"
 	"github.com/stretchr/testify/assert"
@@ -78,7 +77,7 @@ func TestNodeReportItemToArray_noChefVersion(t *testing.T) {
 
 func TestFormatNodeReport_noRecords(t *testing.T) {
 	nri := []*reporting.NodeReportItem{}
-	expected := formatter.FormattedResult{"No nodes found to analyze.", ""}
+	expected := subject.FormattedResult{"No nodes found to analyze.", ""}
 	assert.Equal(t, expected, subject.FormatNodeReport(nri))
 }
 
