@@ -65,7 +65,6 @@ func FormatNodeReport(records []*reporting.NodeReportItem) FormattedResult {
 		table.Append(NodeReportItemToArray(record))
 	}
 
-	fmt.Print("\n")
 	table.Render()
 
 	// A bit of a hack to find the actual width of the string used to render a line
@@ -77,7 +76,6 @@ func FormatNodeReport(records []*reporting.NodeReportItem) FormattedResult {
 	width := tablewriter.DisplayWidth(lines[0])
 
 	var errMsg strings.Builder
-	fmt.Printf(bufStr)
 	if termWidth < width {
 		errMsg.WriteString("\nNote:  To view the report with correct formatting, please expand")
 		errMsg.WriteString(fmt.Sprintf("\n       your terminal window to be at least %v characters wide\n", width))
