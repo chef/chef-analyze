@@ -24,9 +24,9 @@ import (
 	"strings"
 
 	"github.com/olekukonko/tablewriter"
+	"golang.org/x/crypto/ssh/terminal"
 
 	"github.com/chef/chef-analyze/pkg/reporting"
-	"golang.org/x/crypto/ssh/terminal"
 )
 
 const (
@@ -41,24 +41,22 @@ func FormatNodeReport(records []*reporting.NodeReportItem) FormattedResult {
 		return FormattedResult{"No nodes found to analyze.", ""}
 	}
 
-	termWidth, _, err := terminal.GetSize(int(os.Stdout.Fd()))
-	if err != nil {
-		termWidth = MinTermWidth
-	}
-	buffer := bytes.NewBufferString("")
+	var (
+		buffer = bytes.NewBufferString("\n-- REPORT SUMMARY --\n\n")
+		table  = tablewriter.NewWriter(buffer)
+	)
 
 	// Let's look at content to pre-determine the best column widths
-	table := tablewriter.NewWriter(buffer)
 	table.SetAutoWrapText(true)
 	table.SetReflowDuringAutoWrap(true)
 	table.SetHeader(NodeReportHeader)
-	table.SetAutoFormatHeaders(false) // Don't make our headers capitalized
-	table.SetRowLine(true)            // don't show row seps
+	table.SetAutoFormatHeaders(false) // don't make our headers capitalized
+	table.SetRowLine(false)           // don't show row seps
 	table.SetColumnSeparator(" ")
 	table.SetBorder(false)
 
-	// sets max for each col to 30 chars. This is not strictly enforced - unwrappable content will
-	// expand beyond this limit.
+	// sets max for each col to 30 chars, this is not strictly enforced
+	// unwrappable content will expand beyond this limit
 	table.SetColWidth(MinTermWidth / len(NodeReportHeader))
 
 	for _, record := range records {
@@ -71,44 +69,53 @@ func FormatNodeReport(records []*reporting.NodeReportItem) FormattedResult {
 	// of the table. We get the first line only  - this is the minimum width needed
 	// to avoid wrapping  the teriminal line and making the table look bad.
 	// multibyte characters accounted for by using DisplayWidth.
-	bufStr := buffer.String()
-	lines := strings.SplitN(bufStr, "\n", 2)
-	width := tablewriter.DisplayWidth(lines[0])
+	var (
+		errMsg            strings.Builder
+		bufStr            = buffer.String()
+		lines             = strings.SplitN(bufStr, "\n", 2)
+		width             = tablewriter.DisplayWidth(lines[0])
+		termWidth, _, err = terminal.GetSize(int(os.Stdout.Fd()))
+	)
+	if err != nil {
+		termWidth = MinTermWidth
+	}
 
-	var errMsg strings.Builder
 	if termWidth < width {
 		errMsg.WriteString("\nNote:  To view the report with correct formatting, please expand")
 		errMsg.WriteString(fmt.Sprintf("\n       your terminal window to be at least %v characters wide\n", width))
 	}
+
 	return FormattedResult{buffer.String(), errMsg.String()}
 }
 
 func NodeReportItemToArray(nri *reporting.NodeReportItem) []string {
-	var cookbooks []string
+	var (
+		cookbooks   []string
+		chefVersion = EmptyValuePlaceholder
+		osInfo      = EmptyValuePlaceholder
+		cbInfo      = EmptyValuePlaceholder
+	)
+
+	if nri == nil {
+		return []string{EmptyValuePlaceholder, chefVersion, osInfo, cbInfo}
+	}
+
 	for _, v := range nri.CookbookVersions {
 		cookbooks = append(cookbooks, v.String())
 	}
-	var chefVersion string
-	if nri.ChefVersion == "" {
-		chefVersion = EmptyValuePlaceholder
-	} else {
+
+	if len(cookbooks) > 0 {
+		cbInfo = strings.Join(cookbooks, " ")
+	}
+
+	if nri.ChefVersion != "" {
 		chefVersion = nri.ChefVersion
 	}
 
 	// This data seems to be all or none - you'll have both OS/Version fields,
 	// or neither.
-	var osInfo string
-	if nri.OS == "" {
-		osInfo = EmptyValuePlaceholder
-	} else {
+	if nri.OS != "" {
 		osInfo = fmt.Sprintf("%s v%s", nri.OS, nri.OSVersion)
-	}
-
-	var cbInfo string
-	if len(cookbooks) == 0 {
-		cbInfo = EmptyValuePlaceholder
-	} else {
-		cbInfo = strings.Join(cookbooks, " ")
 	}
 
 	return []string{nri.Name, chefVersion, osInfo, cbInfo}
