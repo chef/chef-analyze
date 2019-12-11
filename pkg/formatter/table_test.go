@@ -19,6 +19,7 @@ package formatter_test
 import (
 	"testing"
 
+	"github.com/chef/chef-analyze/pkg/formatter"
 	subject "github.com/chef/chef-analyze/pkg/formatter"
 	"github.com/chef/chef-analyze/pkg/reporting"
 	"github.com/stretchr/testify/assert"
@@ -73,4 +74,36 @@ func TestNodeReportItemToArray_noChefVersion(t *testing.T) {
 	}
 	expected := []string{"name", "-", "os v1.0", "name(version)"}
 	assert.Equal(t, expected, subject.NodeReportItemToArray(&nri))
+}
+
+func TestFormatNodeReport_noRecords(t *testing.T) {
+	nri := []*reporting.NodeReportItem{}
+	expected := formatter.FormattedResult{"No nodes found to analyze.", ""}
+	assert.Equal(t, expected, subject.FormatNodeReport(nri))
+}
+
+func TestFormatNodeReport_withRecords(t *testing.T) {
+	cbv := reporting.CookbookVersion{Name: "name", Version: "version"}
+	nri := reporting.NodeReportItem{
+		Name:             "name",
+		ChefVersion:      "15.4",
+		OS:               "os",
+		OSVersion:        "1.0",
+		CookbookVersions: []reporting.CookbookVersion{cbv},
+	}
+	report := subject.FormatNodeReport([]*reporting.NodeReportItem{&nri}).Report
+
+	assert.Contains(t,
+		report,
+		"Node Name",
+		"stdout missing Node Name header")
+	assert.Contains(t,
+		report,
+		"Chef Version", "stdout missing Chef Version header")
+	assert.Contains(t,
+		report,
+		"Operating System", "stdout missing Operating System header")
+	assert.Contains(t,
+		report,
+		"Cookbooks", "stdout missing Operating System header")
 }
