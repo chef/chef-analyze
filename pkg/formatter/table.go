@@ -37,6 +37,10 @@ const (
 var NodeReportHeader = []string{"Node Name", "Chef Version", "Operating System", "Cookbooks"}
 
 func FormatNodeReport(records []*reporting.NodeReportItem) FormattedResult {
+	if len(records) == 0 {
+		return FormattedResult{"No nodes found to analyze.", ""}
+	}
+
 	termWidth, _, err := terminal.GetSize(int(os.Stdout.Fd()))
 	if err != nil {
 		termWidth = MinTermWidth
