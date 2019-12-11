@@ -25,6 +25,11 @@ import (
 	"github.com/chef/chef-analyze/pkg/reporting"
 )
 
+func TestNodeReportItemToArray_Nil(t *testing.T) {
+	expected := []string{"-", "-", "-", "-"}
+	assert.Equal(t, expected, subject.NodeReportItemToArray(nil))
+}
+
 func TestNodeReportItemToArray_valid(t *testing.T) {
 	cbv := reporting.CookbookVersion{Name: "name", Version: "version"}
 	nri := reporting.NodeReportItem{
