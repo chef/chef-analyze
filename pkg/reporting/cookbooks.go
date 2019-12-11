@@ -56,6 +56,20 @@ type CookbookRecord struct {
 	CookstyleError   error
 }
 
+func (cr CookbookRecord) Errors() []error {
+	errs := make([]error, 0)
+	if cr.DownloadError != nil {
+		errs = append(errs, cr.DownloadError)
+	}
+	if cr.UsageLookupError != nil {
+		errs = append(errs, cr.UsageLookupError)
+	}
+	if cr.CookstyleError != nil {
+		errs = append(errs, cr.CookstyleError)
+	}
+	return errs
+}
+
 // internally used to submit items to the workers
 type cookbookItem struct {
 	Name    string
