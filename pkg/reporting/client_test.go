@@ -26,19 +26,18 @@ import (
 // defined in client.go
 
 type SearchMock struct {
-	desiredError   error
 	desiredResults chef.SearchResult
+	desiredError   error
 }
 
-func (sm SearchMock) PartialExec(idx, statement string,
-	params map[string]interface{}) (res chef.SearchResult, err error) {
+func (sm SearchMock) PartialExec(idx, statement string, params map[string]interface{}) (res chef.SearchResult, err error) {
 	return sm.desiredResults, sm.desiredError
 }
 
 type CookbookMock struct {
+	desiredCookbookList      chef.CookbookListResult
 	desiredCookbookListError error
 	desiredDownloadError     error
-	desiredCookbookList      chef.CookbookListResult
 }
 
 func (cm CookbookMock) ListAvailableVersions(limit string) (chef.CookbookListResult, error) {
@@ -55,18 +54,18 @@ func (cm CookbookMock) DownloadTo(name, version, localDir string) error {
 	return cm.desiredDownloadError
 }
 
-func newMockCookbook(cookbookList chef.CookbookListResult, desiredErr1, desiredErr2 error) *CookbookMock {
+func newMockCookbook(cookbookList chef.CookbookListResult, desiredCbListErr, desiredDownloadErr error) *CookbookMock {
 	return &CookbookMock{
-		desiredCookbookListError: desiredErr1,
-		desiredDownloadError:     desiredErr2,
 		desiredCookbookList:      cookbookList,
+		desiredCookbookListError: desiredCbListErr,
+		desiredDownloadError:     desiredDownloadErr,
 	}
 }
 
 func makeMockSearch(searchResultJSON string, desiredError error) *SearchMock {
 	var convertedSearchResult []interface{}
 
-	if desiredError == nil {
+	if searchResultJSON != "" {
 		rawRows := json.RawMessage(searchResultJSON)
 		bytes, err := rawRows.MarshalJSON()
 		if err != nil {
@@ -79,7 +78,7 @@ func makeMockSearch(searchResultJSON string, desiredError error) *SearchMock {
 	}
 
 	return &SearchMock{
-		desiredError:   desiredError,
 		desiredResults: chef.SearchResult{Rows: convertedSearchResult},
+		desiredError:   desiredError,
 	}
 }

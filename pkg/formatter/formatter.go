@@ -24,34 +24,35 @@ import (
 	"github.com/chef/chef-analyze/pkg/reporting"
 )
 
-// TODO @afiune make this configurable
-const AnalyzeCacheDir = ".analyze-cache"
+type FormattedResult struct {
+	Report string
+	Errors string
+}
 
 // TODO different output depending on flags or TTY?
-func PrintCookbooksReportSummary(records []*reporting.CookbookRecord) {
+func MakeCookbooksReportSummary(records []*reporting.CookbookRecord) *FormattedResult {
 	if len(records) == 0 {
-		// TODO @afiune what is the right text here?
-		fmt.Println("There are no cookbook records to generate a report")
-		return
+		return &FormattedResult{"No cookbooks exist in the current organization", ""}
 	}
 
-	fmt.Printf("\n-- REPORT SUMMARY --\n\n")
-	for _, record := range records {
-		var strBuilder strings.Builder
+	var strBuilder strings.Builder
+	strBuilder.WriteString("\n-- REPORT SUMMARY --\n\n")
 
+	for _, record := range records {
 		strBuilder.WriteString(fmt.Sprintf("%v (%v) ", record.Name, record.Version))
 		strBuilder.WriteString(fmt.Sprintf("%v violations, %v auto-correctable, %v nodes affected",
 			record.NumOffenses(), record.NumCorrectable(), len(record.Nodes)),
 		)
 
 		if record.DownloadError != nil {
-			strBuilder.WriteString("\nERROR: could not download cookbook (see end of report)")
+			strBuilder.WriteString("\nERROR: could not download cookbook (see error report)")
 		} else if record.CookstyleError != nil {
-			strBuilder.WriteString("\nERROR: could not run cookstyle (see end of report)")
+			strBuilder.WriteString("\nERROR: could not run cookstyle (see error report)")
 		} else if record.UsageLookupError != nil {
-			strBuilder.WriteString("\nERROR: unknown violations (see end of report)")
+			strBuilder.WriteString("\nERROR: unknown violations (see error report)")
 		}
+		strBuilder.WriteString("\n")
 
-		fmt.Println(strBuilder.String())
 	}
+	return &FormattedResult{strBuilder.String(), ""}
 }
