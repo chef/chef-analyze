@@ -25,58 +25,60 @@ import (
 	"github.com/chef/chef-analyze/pkg/reporting"
 )
 
-func MakeCookbooksReportCSV(records []*reporting.CookbookRecord) *FormattedResult {
+func MakeCookbooksReportCSV(state *reporting.CookbooksStatus) *FormattedResult {
 	var (
 		strBuilder strings.Builder
 		errBuilder strings.Builder
 		csvWriter  = csv.NewWriter(&strBuilder)
 	)
 
-	if len(records) == 0 {
+	if len(state.Records) == 0 {
 		return &FormattedResult{"", ""}
 	}
 
-	// table headers
-	csvWriter.Write([]string{
-		"Cookbook Name",
-		"Version",
-		"File",
-		"Offense",
-		"Automatically Correctable",
-		"Message",
-		"Nodes"})
+	tableHeaders := []string{"Cookbook Name", "Version"}
+	if state.RunCookstyle {
+		tableHeaders = append(tableHeaders,
+			"File",
+			"Offense",
+			"Automatically Correctable",
+			"Message",
+		)
+	}
+	tableHeaders = append(tableHeaders, "Nodes")
+	csvWriter.Write(tableHeaders)
 
-	for _, record := range records {
-		firstRow := []string{record.Name, record.Version, "", "", "", "", strings.Join(record.Nodes, " ")}
-		firstRowPopulated := false
-		for _, file := range record.Files {
-			if len(file.Offenses) == 0 {
-				continue
-			}
-			if firstRowPopulated == false {
-				firstRow[2] = file.Path
-				firstOffense := file.Offenses[0]
-				file.Offenses = file.Offenses[1:]
-				firstRow[3] = firstOffense.CopName
-				if firstOffense.Correctable {
-					firstRow[4] = "Y"
-				} else {
-					firstRow[4] = "N"
+	for _, record := range state.Records {
+		nodesString := "None"
+		if record.NumNodesAffected() != 0 {
+			nodesString = strings.Join(record.Nodes, " ")
+		}
+
+		if state.RunCookstyle {
+			for _, file := range record.Files {
+				if len(file.Offenses) == 0 {
+					continue
 				}
-				firstRow[5] = firstOffense.Message
-				csvWriter.Write(firstRow)
-				firstRowPopulated = true
-			} else {
+
 				for _, offense := range file.Offenses {
-					row := []string{"", "", "", offense.CopName, "", offense.Message, ""}
+					row := []string{
+						record.Name,
+						record.Version,
+						file.Path,
+						offense.CopName,
+						"N",
+						offense.Message,
+						nodesString,
+					}
 					if offense.Correctable {
 						row[4] = "Y"
-					} else {
-						row[4] = "N"
 					}
 					csvWriter.Write(row)
 				}
 			}
+		} else {
+			row := []string{record.Name, record.Version, nodesString}
+			csvWriter.Write(row)
 		}
 
 		if record.DownloadError != nil {

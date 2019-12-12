@@ -35,22 +35,22 @@ const (
 	EmptyValuePlaceholder = "-"
 )
 
-var (
-	NodeReportHeader      = []string{"Node Name", "Chef Version", "Operating System", "Cookbooks"}
-	CookbooksReportHeader = []string{
-		"Cookbook", "Version", "Violations", "Auto-correctable", "Nodes Affected",
-	}
-)
-
-func CookbooksReportSummary(records []*reporting.CookbookRecord) *FormattedResult {
-	if len(records) == 0 {
+func CookbooksReportSummary(state *reporting.CookbooksStatus) *FormattedResult {
+	if len(state.Records) == 0 {
 		return &FormattedResult{"No available cookbooks to generate a report", ""}
 	}
 
 	var (
-		buffer = bytes.NewBufferString("\n-- REPORT SUMMARY --\n\n")
-		table  = tablewriter.NewWriter(buffer)
+		buffer                = bytes.NewBufferString("\n-- REPORT SUMMARY --\n\n")
+		table                 = tablewriter.NewWriter(buffer)
+		CookbooksReportHeader = []string{"Cookbook", "Version"}
 	)
+
+	if state.RunCookstyle {
+		CookbooksReportHeader = append(CookbooksReportHeader, "Violations", "Auto-correctable")
+	}
+
+	CookbooksReportHeader = append(CookbooksReportHeader, "Nodes Affected")
 
 	table.SetAutoWrapText(true)
 	table.SetReflowDuringAutoWrap(true)
@@ -64,14 +64,19 @@ func CookbooksReportSummary(records []*reporting.CookbookRecord) *FormattedResul
 	// unwrappable content will expand beyond this limit.
 	table.SetColWidth(MinTermWidth / len(CookbooksReportHeader))
 
-	for _, record := range records {
-		row := []string{
-			record.Name,
-			record.Version,
-			strconv.Itoa(record.NumOffenses()),
-			strconv.Itoa(record.NumCorrectable()),
-			strconv.Itoa(record.NumNodesAffected()),
+	for _, record := range state.Records {
+		row := []string{record.Name, record.Version}
+
+		// only include violations if we ran cookstyle
+		if state.RunCookstyle {
+			row = append(row,
+				strconv.Itoa(record.NumOffenses()),
+				strconv.Itoa(record.NumCorrectable()),
+			)
 		}
+
+		row = append(row, strconv.Itoa(record.NumNodesAffected()))
+
 		table.Append(row)
 	}
 
@@ -102,8 +107,9 @@ func FormatNodeReport(records []*reporting.NodeReportItem) FormattedResult {
 	}
 
 	var (
-		buffer = bytes.NewBufferString("\n-- REPORT SUMMARY --\n\n")
-		table  = tablewriter.NewWriter(buffer)
+		buffer           = bytes.NewBufferString("\n-- REPORT SUMMARY --\n\n")
+		table            = tablewriter.NewWriter(buffer)
+		NodeReportHeader = []string{"Node Name", "Chef Version", "Operating System", "Cookbooks"}
 	)
 
 	// Let's look at content to pre-determine the best column widths

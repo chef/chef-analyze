@@ -89,6 +89,7 @@ provided when the report is generated.
 			cookbooksState, err := reporting.NewCookbooks(
 				chefClient.Cookbooks,
 				chefClient.Search,
+				cookbooksFlags.runCookstyle,
 				cookbooksFlags.onlyUnused,
 				cookbooksFlags.workers,
 			)
@@ -96,18 +97,22 @@ provided when the report is generated.
 				return err
 			}
 
-			var results *formatter.FormattedResult
-			ext := TxtExt
+			var (
+				formattedSummary = formatter.CookbooksReportSummary(cookbooksState)
+				results          *formatter.FormattedResult
+				ext              string
+			)
+
+			fmt.Println(formattedSummary.Report)
+
 			switch cookbooksFlags.format {
 			case "csv":
 				ext = CsvExt
-				results = formatter.MakeCookbooksReportCSV(cookbooksState.Records)
+				results = formatter.MakeCookbooksReportCSV(cookbooksState)
 			default:
-				results = formatter.MakeCookbooksReportTXT(cookbooksState.Records)
+				ext = TxtExt
+				results = formatter.MakeCookbooksReportTXT(cookbooksState)
 			}
-
-			formattedSummary := formatter.CookbooksReportSummary(cookbooksState.Records)
-			fmt.Println(formattedSummary.Report)
 
 			err = saveReport(Cookbooks, ext, results.Report)
 			if err != nil {
@@ -164,9 +169,10 @@ provided when the report is generated.
 		},
 	}
 	cookbooksFlags struct {
-		onlyUnused bool
-		workers    int
-		format     string
+		onlyUnused   bool
+		runCookstyle bool
+		workers      int
+		format       string
 	}
 )
 
@@ -180,6 +186,11 @@ func init() {
 		&cookbooksFlags.onlyUnused,
 		"only-unused", "u", false,
 		"generate a report with only cookbooks that are not applied to any node",
+	)
+	reportCookbooksCmd.PersistentFlags().BoolVarP(
+		&cookbooksFlags.runCookstyle,
+		"run-cookstyle", "r", false,
+		"run cookstyle on the cookbooks to find violations",
 	)
 	reportCookbooksCmd.PersistentFlags().StringVarP(
 		&cookbooksFlags.format,

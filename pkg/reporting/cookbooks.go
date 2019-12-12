@@ -34,6 +34,7 @@ type CookbooksStatus struct {
 	RecordsMutex   sync.Mutex
 	TotalCookbooks int
 	OnlyUnused     bool
+	RunCookstyle   bool
 	Cookbooks      CookbookInterface
 	Searcher       SearchInterface
 	Cookstyle      *CookstyleRunner
@@ -81,7 +82,7 @@ func (r *CookbookRecord) NumCorrectable() int {
 	return i
 }
 
-func NewCookbooks(cbi CookbookInterface, searcher SearchInterface, onlyUnused bool, workers int) (*CookbooksStatus, error) {
+func NewCookbooks(cbi CookbookInterface, searcher SearchInterface, runCookstyle, onlyUnused bool, workers int) (*CookbooksStatus, error) {
 	fmt.Printf("Finding available cookbooks...") // c <- ProgressUpdate(Event: COOKBOOK_FETCH)
 	// Version limit of "0" means fetch all
 	results, err := cbi.ListAvailableVersions("0")
@@ -110,6 +111,7 @@ func NewCookbooks(cbi CookbookInterface, searcher SearchInterface, onlyUnused bo
 			Cookbooks:      cbi,
 			Searcher:       searcher,
 			Cookstyle:      NewCookstyleRunner(),
+			RunCookstyle:   runCookstyle,
 			OnlyUnused:     onlyUnused,
 		}
 	)
@@ -193,9 +195,10 @@ func (cbs *CookbooksStatus) createAnalyzeWorkerPool(nWorkers int, analyzeCh <-ch
 		go func(inCh <-chan *CookbookRecord, wg *sync.WaitGroup) {
 			for record := range inCh {
 				cbs.addRecord(record)
-				// if record.DownloadError == nil {
-				cbs.runCookstyleFor(record)
-				// }
+
+				if cbs.RunCookstyle {
+					cbs.runCookstyleFor(record)
+				}
 			}
 			wg.Done()
 		}(analyzeCh, &wg)
@@ -234,9 +237,12 @@ func (cbs *CookbooksStatus) downloadCookbook(cookbookName, version string, analy
 		}
 	}
 
-	err = cbs.Cookbooks.DownloadTo(cookbookName, version, fmt.Sprintf("%s/cookbooks", AnalyzeCacheDir))
-	if err != nil {
-		cbState.DownloadError = errors.Wrapf(err, "unable to download cookbook %s", cookbookName)
+	// do we need to analyze the cookbooks
+	if cbs.RunCookstyle {
+		err = cbs.Cookbooks.DownloadTo(cookbookName, version, fmt.Sprintf("%s/cookbooks", AnalyzeCacheDir))
+		if err != nil {
+			cbState.DownloadError = errors.Wrapf(err, "unable to download cookbook %s", cookbookName)
+		}
 	}
 
 	// move to store and analyze the cookbook record
