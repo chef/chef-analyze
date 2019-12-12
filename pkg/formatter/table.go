@@ -21,6 +21,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/olekukonko/tablewriter"
@@ -34,7 +35,66 @@ const (
 	EmptyValuePlaceholder = "-"
 )
 
-var NodeReportHeader = []string{"Node Name", "Chef Version", "Operating System", "Cookbooks"}
+var (
+	NodeReportHeader      = []string{"Node Name", "Chef Version", "Operating System", "Cookbooks"}
+	CookbooksReportHeader = []string{
+		"Cookbook", "Version", "Violations", "Auto-correctable", "Nodes Affected",
+	}
+)
+
+func CookbooksReportSummary(records []*reporting.CookbookRecord) *FormattedResult {
+	if len(records) == 0 {
+		return &FormattedResult{"No available cookbooks to generate a report", ""}
+	}
+
+	var (
+		buffer = bytes.NewBufferString("\n-- REPORT SUMMARY --\n\n")
+		table  = tablewriter.NewWriter(buffer)
+	)
+
+	table.SetAutoWrapText(true)
+	table.SetReflowDuringAutoWrap(true)
+	table.SetHeader(CookbooksReportHeader)
+	table.SetAutoFormatHeaders(false) // don't make our headers capitalized
+	table.SetRowLine(false)           // don't show row seps
+	table.SetColumnSeparator(" ")
+	table.SetBorder(false)
+
+	// sets max for each col to 30 chars, this is not strictly enforced.
+	// unwrappable content will expand beyond this limit.
+	table.SetColWidth(MinTermWidth / len(CookbooksReportHeader))
+
+	for _, record := range records {
+		row := []string{
+			record.Name,
+			record.Version,
+			strconv.Itoa(record.NumOffenses()),
+			strconv.Itoa(record.NumCorrectable()),
+			strconv.Itoa(record.NumNodesAffected()),
+		}
+		table.Append(row)
+	}
+
+	table.Render()
+
+	var (
+		errMsg            strings.Builder
+		bufStr            = buffer.String()
+		lines             = strings.SplitN(bufStr, "\n", 2)
+		width             = tablewriter.DisplayWidth(lines[0])
+		termWidth, _, err = terminal.GetSize(int(os.Stdout.Fd()))
+	)
+	if err != nil {
+		termWidth = MinTermWidth
+	}
+
+	if termWidth < width {
+		errMsg.WriteString("\nNote:  To view the report with correct formatting, please expand")
+		errMsg.WriteString(fmt.Sprintf("\n       your terminal window to be at least %v characters wide\n", width))
+	}
+
+	return &FormattedResult{buffer.String(), errMsg.String()}
+}
 
 func FormatNodeReport(records []*reporting.NodeReportItem) FormattedResult {
 	if len(records) == 0 {

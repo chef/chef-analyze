@@ -17,42 +17,7 @@
 
 package formatter
 
-import (
-	"fmt"
-	"strings"
-
-	"github.com/chef/chef-analyze/pkg/reporting"
-)
-
 type FormattedResult struct {
 	Report string
 	Errors string
-}
-
-// TODO different output depending on flags or TTY?
-func MakeCookbooksReportSummary(records []*reporting.CookbookRecord) *FormattedResult {
-	if len(records) == 0 {
-		return &FormattedResult{"No cookbooks exist in the current organization", ""}
-	}
-
-	var strBuilder strings.Builder
-	strBuilder.WriteString("\n-- REPORT SUMMARY --\n\n")
-
-	for _, record := range records {
-		strBuilder.WriteString(fmt.Sprintf("%v (%v) ", record.Name, record.Version))
-		strBuilder.WriteString(fmt.Sprintf("%v violations, %v auto-correctable, %v nodes affected",
-			record.NumOffenses(), record.NumCorrectable(), len(record.Nodes)),
-		)
-
-		if record.DownloadError != nil {
-			strBuilder.WriteString("\nERROR: could not download cookbook (see error report)")
-		} else if record.CookstyleError != nil {
-			strBuilder.WriteString("\nERROR: could not run cookstyle (see error report)")
-		} else if record.UsageLookupError != nil {
-			strBuilder.WriteString("\nERROR: unknown violations (see error report)")
-		}
-		strBuilder.WriteString("\n")
-
-	}
-	return &FormattedResult{strBuilder.String(), ""}
 }

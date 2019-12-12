@@ -106,7 +106,7 @@ provided when the report is generated.
 				results = formatter.MakeCookbooksReportTXT(cookbooksState.Records)
 			}
 
-			formattedSummary := formatter.MakeCookbooksReportSummary(cookbooksState.Records)
+			formattedSummary := formatter.CookbooksReportSummary(cookbooksState.Records)
 			fmt.Println(formattedSummary.Report)
 
 			err = saveReport(Cookbooks, ext, results.Report)
