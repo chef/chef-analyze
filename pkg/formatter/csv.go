@@ -81,17 +81,8 @@ func MakeCookbooksReportCSV(state *reporting.CookbooksStatus) *FormattedResult {
 			csvWriter.Write(row)
 		}
 
-		if record.DownloadError != nil {
-			errBuilder.WriteString(
-				fmt.Sprintf(" - %s (%s): %v\n", record.Name, record.Version, record.DownloadError))
-		}
-		if record.CookstyleError != nil {
-			errBuilder.WriteString(
-				fmt.Sprintf(" - %s (%s): %v\n", record.Name, record.Version, record.CookstyleError))
-		}
-		if record.UsageLookupError != nil {
-			errBuilder.WriteString(
-				fmt.Sprintf(" - %s (%s): %v\n", record.Name, record.Version, record.UsageLookupError))
+		for _, e := range record.Errors() {
+			errBuilder.WriteString(fmt.Sprintf(" - %s (%s): %v\n", record.Name, record.Version, e))
 		}
 	}
 

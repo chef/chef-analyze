@@ -68,17 +68,8 @@ func MakeCookbooksReportTXT(state *reporting.CookbooksStatus) *FormattedResult {
 			}
 		}
 
-		if record.DownloadError != nil {
-			errorBuilder.WriteString(
-				fmt.Sprintf(" - %s (%s): %v\n", record.Name, record.Version, record.DownloadError))
-		}
-		if record.CookstyleError != nil {
-			errorBuilder.WriteString(
-				fmt.Sprintf(" - %s (%s): %v\n", record.Name, record.Version, record.CookstyleError))
-		}
-		if record.UsageLookupError != nil {
-			errorBuilder.WriteString(
-				fmt.Sprintf(" - %s (%s): %v\n", record.Name, record.Version, record.UsageLookupError))
+		for _, e := range record.Errors() {
+			errorBuilder.WriteString(fmt.Sprintf(" - %s (%s): %v\n", record.Name, record.Version, e))
 		}
 
 	}

@@ -368,3 +368,21 @@ func TestCookbooks_UsageStatErrors(t *testing.T) {
 		}
 	}
 }
+
+func TestCookbookRecord_Errors(t *testing.T) {
+	var cr subject.CookbookRecord
+	cr.DownloadError = errors.New("Download error")
+	cr.UsageLookupError = errors.New("usage lookup error")
+	cr.CookstyleError = errors.New("cookstyle error")
+	errors := cr.Errors()
+	assert.Equal(t, 3, len(errors))
+	assert.Contains(t, errors, cr.DownloadError)
+	assert.Contains(t, errors, cr.UsageLookupError)
+	assert.Contains(t, errors, cr.CookstyleError)
+}
+
+func TestCookbookRecord_ErrorsWhenEmpty(t *testing.T) {
+	var cr subject.CookbookRecord
+	errors := cr.Errors()
+	assert.Equal(t, len(errors), 0)
+}
