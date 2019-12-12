@@ -95,13 +95,17 @@ provided when the report is generated.
 				return err
 			}
 
-			var results *formatter.FormattedResult
-			ext := TxtExt
+			var (
+				results *formatter.FormattedResult
+				ext string
+			)
 
 			switch cookbooksFlags.format {
 			case "csv":
+				ext = CsvExt
 				results = formatter.MakeCookbooksReportCSV(cookbooksState.Records)
 			default:
+				ext = TxtExt
 				results = formatter.MakeCookbooksReportTXT(cookbooksState.Records)
 			}
 
