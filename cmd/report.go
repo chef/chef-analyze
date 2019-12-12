@@ -89,25 +89,30 @@ provided when the report is generated.
 			cookbooksState, err := reporting.NewCookbooks(
 				chefClient.Cookbooks,
 				chefClient.Search,
+				cookbooksFlags.runCookstyle,
 				cookbooksFlags.onlyUnused,
+				cookbooksFlags.workers,
 			)
 			if err != nil {
 				return err
 			}
 
-			var results *formatter.FormattedResult
-			ext := TxtExt
+			var (
+				formattedSummary = formatter.CookbooksReportSummary(cookbooksState)
+				results          *formatter.FormattedResult
+				ext              string
+			)
+
+			fmt.Println(formattedSummary.Report)
 
 			switch cookbooksFlags.format {
 			case "csv":
 				ext = CsvExt
-				results = formatter.MakeCookbooksReportCSV(cookbooksState.Records)
+				results = formatter.MakeCookbooksReportCSV(cookbooksState)
 			default:
-				results = formatter.MakeCookbooksReportTXT(cookbooksState.Records)
+				ext = TxtExt
+				results = formatter.MakeCookbooksReportTXT(cookbooksState)
 			}
-
-			formattedSummary := formatter.MakeCookbooksReportSummary(cookbooksState.Records)
-			fmt.Println(formattedSummary.Report)
 
 			err = saveReport(Cookbooks, ext, results.Report)
 			if err != nil {
@@ -155,7 +160,7 @@ provided when the report is generated.
 				return err
 			}
 
-			formattedResult := formatter.FormatNodeReport(results)
+			formattedResult := formatter.NodesReportSummary(results)
 			fmt.Println(formattedResult.Report)
 			if formattedResult.Errors != "" {
 				fmt.Println(formattedResult.Errors)
@@ -164,16 +169,28 @@ provided when the report is generated.
 		},
 	}
 	cookbooksFlags struct {
-		onlyUnused bool
-		format     string
+		onlyUnused   bool
+		runCookstyle bool
+		workers      int
+		format       string
 	}
 )
 
 func init() {
+	reportCookbooksCmd.PersistentFlags().IntVarP(
+		&cookbooksFlags.workers,
+		"workers", "w", 50,
+		"maximum number of parallel workers at once",
+	)
 	reportCookbooksCmd.PersistentFlags().BoolVarP(
 		&cookbooksFlags.onlyUnused,
 		"only-unused", "u", false,
 		"generate a report with only cookbooks that are not applied to any node",
+	)
+	reportCookbooksCmd.PersistentFlags().BoolVarP(
+		&cookbooksFlags.runCookstyle,
+		"verify-upgrade", "v", false,
+		"verify the upgrade compatibility of every cookbook",
 	)
 	reportCookbooksCmd.PersistentFlags().StringVarP(
 		&cookbooksFlags.format,

@@ -21,6 +21,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/olekukonko/tablewriter"
@@ -34,16 +35,81 @@ const (
 	EmptyValuePlaceholder = "-"
 )
 
-var NodeReportHeader = []string{"Node Name", "Chef Version", "Operating System", "Cookbooks"}
+func CookbooksReportSummary(state *reporting.CookbooksStatus) FormattedResult {
+	if state == nil || len(state.Records) == 0 {
+		return FormattedResult{"No available cookbooks to generate a report", ""}
+	}
 
-func FormatNodeReport(records []*reporting.NodeReportItem) FormattedResult {
+	var (
+		buffer                = bytes.NewBufferString("\n-- REPORT SUMMARY --\n\n")
+		table                 = tablewriter.NewWriter(buffer)
+		CookbooksReportHeader = []string{"Cookbook", "Version"}
+	)
+
+	if state.RunCookstyle {
+		CookbooksReportHeader = append(CookbooksReportHeader, "Violations", "Auto-correctable")
+	}
+
+	CookbooksReportHeader = append(CookbooksReportHeader, "Nodes Affected")
+
+	table.SetAutoWrapText(true)
+	table.SetReflowDuringAutoWrap(true)
+	table.SetHeader(CookbooksReportHeader)
+	table.SetAutoFormatHeaders(false) // don't make our headers capitalized
+	table.SetRowLine(false)           // don't show row seps
+	table.SetColumnSeparator(" ")
+	table.SetBorder(false)
+
+	// sets max for each col to 30 chars, this is not strictly enforced.
+	// unwrappable content will expand beyond this limit.
+	table.SetColWidth(MinTermWidth / len(CookbooksReportHeader))
+
+	for _, record := range state.Records {
+		row := []string{record.Name, record.Version}
+
+		// only include violations if we ran cookstyle
+		if state.RunCookstyle {
+			row = append(row,
+				strconv.Itoa(record.NumOffenses()),
+				strconv.Itoa(record.NumCorrectable()),
+			)
+		}
+
+		row = append(row, strconv.Itoa(record.NumNodesAffected()))
+
+		table.Append(row)
+	}
+
+	table.Render()
+
+	var (
+		errMsg            strings.Builder
+		bufStr            = buffer.String()
+		lines             = strings.SplitN(bufStr, "\n", 2)
+		width             = tablewriter.DisplayWidth(lines[0])
+		termWidth, _, err = terminal.GetSize(int(os.Stdout.Fd()))
+	)
+	if err != nil {
+		termWidth = MinTermWidth
+	}
+
+	if termWidth < width {
+		errMsg.WriteString("\nNote:  To view the report with correct formatting, please expand")
+		errMsg.WriteString(fmt.Sprintf("\n       your terminal window to be at least %v characters wide\n", width))
+	}
+
+	return FormattedResult{buffer.String(), errMsg.String()}
+}
+
+func NodesReportSummary(records []*reporting.NodeReportItem) FormattedResult {
 	if len(records) == 0 {
 		return FormattedResult{"No nodes found to analyze.", ""}
 	}
 
 	var (
-		buffer = bytes.NewBufferString("\n-- REPORT SUMMARY --\n\n")
-		table  = tablewriter.NewWriter(buffer)
+		buffer           = bytes.NewBufferString("\n-- REPORT SUMMARY --\n\n")
+		table            = tablewriter.NewWriter(buffer)
+		NodeReportHeader = []string{"Node Name", "Chef Version", "Operating System", "Cookbooks"}
 	)
 
 	// Let's look at content to pre-determine the best column widths

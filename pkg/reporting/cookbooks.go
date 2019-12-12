@@ -26,19 +26,15 @@ import (
 	"github.com/pkg/errors"
 )
 
-const (
-	// cached directory
-	AnalyzeCacheDir = ".analyze-cache"
-
-	// maximum number of parallel workers at once
-	MaxParallelWorkers = 50
-)
+// cached directory
+const AnalyzeCacheDir = ".analyze-cache"
 
 type CookbooksStatus struct {
 	Records        []*CookbookRecord
 	RecordsMutex   sync.Mutex
 	TotalCookbooks int
 	OnlyUnused     bool
+	RunCookstyle   bool
 	Cookbooks      CookbookInterface
 	Searcher       SearchInterface
 	Cookstyle      *CookstyleRunner
@@ -76,6 +72,10 @@ type cookbookItem struct {
 	Version string
 }
 
+func (r *CookbookRecord) NumNodesAffected() int {
+	return len(r.Nodes)
+}
+
 func (r *CookbookRecord) NumOffenses() int {
 	i := 0
 	for _, f := range r.Files {
@@ -96,7 +96,7 @@ func (r *CookbookRecord) NumCorrectable() int {
 	return i
 }
 
-func NewCookbooks(cbi CookbookInterface, searcher SearchInterface, onlyUnused bool) (*CookbooksStatus, error) {
+func NewCookbooks(cbi CookbookInterface, searcher SearchInterface, runCookstyle, onlyUnused bool, workers int) (*CookbooksStatus, error) {
 	fmt.Printf("Finding available cookbooks...") // c <- ProgressUpdate(Event: COOKBOOK_FETCH)
 	// Version limit of "0" means fetch all
 	results, err := cbi.ListAvailableVersions("0")
@@ -125,6 +125,7 @@ func NewCookbooks(cbi CookbookInterface, searcher SearchInterface, onlyUnused bo
 			Cookbooks:      cbi,
 			Searcher:       searcher,
 			Cookstyle:      NewCookstyleRunner(),
+			RunCookstyle:   runCookstyle,
 			OnlyUnused:     onlyUnused,
 		}
 	)
@@ -136,10 +137,10 @@ func NewCookbooks(cbi CookbookInterface, searcher SearchInterface, onlyUnused bo
 
 	// determine how many workers do we need, by default, the total number of cookbooks
 	numWorkers := totalCookbooks
-	if totalCookbooks > MaxParallelWorkers {
+	if totalCookbooks > workers {
 		// but if the total number of cookbooks is major than
 		// the maximum allowed, set it to the maximum
-		numWorkers = MaxParallelWorkers
+		numWorkers = workers
 	}
 
 	fmt.Println("Analyzing cookbooks...")
@@ -208,9 +209,10 @@ func (cbs *CookbooksStatus) createAnalyzeWorkerPool(nWorkers int, analyzeCh <-ch
 		go func(inCh <-chan *CookbookRecord, wg *sync.WaitGroup) {
 			for record := range inCh {
 				cbs.addRecord(record)
-				// if record.DownloadError == nil {
-				cbs.runCookstyleFor(record)
-				// }
+
+				if cbs.RunCookstyle {
+					cbs.runCookstyleFor(record)
+				}
 			}
 			wg.Done()
 		}(analyzeCh, &wg)
@@ -249,9 +251,12 @@ func (cbs *CookbooksStatus) downloadCookbook(cookbookName, version string, analy
 		}
 	}
 
-	err = cbs.Cookbooks.DownloadTo(cookbookName, version, fmt.Sprintf("%s/cookbooks", AnalyzeCacheDir))
-	if err != nil {
-		cbState.DownloadError = errors.Wrapf(err, "unable to download cookbook %s", cookbookName)
+	// do we need to analyze the cookbooks
+	if cbs.RunCookstyle {
+		err = cbs.Cookbooks.DownloadTo(cookbookName, version, fmt.Sprintf("%s/cookbooks", AnalyzeCacheDir))
+		if err != nil {
+			cbState.DownloadError = errors.Wrapf(err, "unable to download cookbook %s", cookbookName)
+		}
 	}
 
 	// move to store and analyze the cookbook record
