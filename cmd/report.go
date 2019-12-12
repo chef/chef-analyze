@@ -189,8 +189,8 @@ func init() {
 	)
 	reportCookbooksCmd.PersistentFlags().BoolVarP(
 		&cookbooksFlags.runCookstyle,
-		"run-cookstyle", "r", false,
-		"run cookstyle on the cookbooks to find violations",
+		"verify-upgrade", "v", false,
+		"verify the upgrade compatibility of every cookbook",
 	)
 	reportCookbooksCmd.PersistentFlags().StringVarP(
 		&cookbooksFlags.format,
