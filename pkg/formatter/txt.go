@@ -30,7 +30,7 @@ func MakeCookbooksReportTXT(state *reporting.CookbooksStatus) *FormattedResult {
 		strBuilder   strings.Builder
 	)
 
-	if len(state.Records) == 0 {
+	if state == nil || len(state.Records) == 0 {
 		// nothing to do
 		return &FormattedResult{"", ""}
 	}

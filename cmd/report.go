@@ -160,7 +160,7 @@ provided when the report is generated.
 				return err
 			}
 
-			formattedResult := formatter.FormatNodeReport(results)
+			formattedResult := formatter.NodesReportSummary(results)
 			fmt.Println(formattedResult.Report)
 			if formattedResult.Errors != "" {
 				fmt.Println(formattedResult.Errors)

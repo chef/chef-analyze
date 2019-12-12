@@ -32,7 +32,7 @@ func MakeCookbooksReportCSV(state *reporting.CookbooksStatus) *FormattedResult {
 		csvWriter  = csv.NewWriter(&strBuilder)
 	)
 
-	if len(state.Records) == 0 {
+	if state == nil || len(state.Records) == 0 {
 		return &FormattedResult{"", ""}
 	}
 

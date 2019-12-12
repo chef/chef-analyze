@@ -35,9 +35,9 @@ const (
 	EmptyValuePlaceholder = "-"
 )
 
-func CookbooksReportSummary(state *reporting.CookbooksStatus) *FormattedResult {
-	if len(state.Records) == 0 {
-		return &FormattedResult{"No available cookbooks to generate a report", ""}
+func CookbooksReportSummary(state *reporting.CookbooksStatus) FormattedResult {
+	if state == nil || len(state.Records) == 0 {
+		return FormattedResult{"No available cookbooks to generate a report", ""}
 	}
 
 	var (
@@ -98,10 +98,10 @@ func CookbooksReportSummary(state *reporting.CookbooksStatus) *FormattedResult {
 		errMsg.WriteString(fmt.Sprintf("\n       your terminal window to be at least %v characters wide\n", width))
 	}
 
-	return &FormattedResult{buffer.String(), errMsg.String()}
+	return FormattedResult{buffer.String(), errMsg.String()}
 }
 
-func FormatNodeReport(records []*reporting.NodeReportItem) FormattedResult {
+func NodesReportSummary(records []*reporting.NodeReportItem) FormattedResult {
 	if len(records) == 0 {
 		return FormattedResult{"No nodes found to analyze.", ""}
 	}

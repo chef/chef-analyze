@@ -28,6 +28,8 @@ import (
 	subject "github.com/chef/chef-analyze/pkg/reporting"
 )
 
+const Workers = 50
+
 func TestCookbooksRecordCorrectableAndOffenses(t *testing.T) {
 	csr := subject.CookbookRecord{
 		Files: []subject.CookbookFile{
@@ -55,6 +57,8 @@ func TestCookbooksEmpty(t *testing.T) {
 		newMockCookbook(chef.CookbookListResult{}, nil, nil),
 		makeMockSearch("[]", nil),
 		false,
+		false,
+		Workers,
 	)
 	assert.Nil(t, err)
 	if assert.NotNil(t, c) {
@@ -84,7 +88,9 @@ func TestCookbooksInUseDisplayOnlyUnused(t *testing.T) {
 	c, err := subject.NewCookbooks(
 		newMockCookbook(cookbookList, nil, nil),
 		makeMockSearch(mockedNodesSearchRows(), nil), // nodes are found
+		false,
 		true, // display only unused cookbooks
+		Workers,
 	)
 	assert.Nil(t, err)
 	if assert.NotNil(t, c) {
@@ -95,7 +101,9 @@ func TestCookbooksInUseDisplayOnlyUnused(t *testing.T) {
 	c, err = subject.NewCookbooks(
 		newMockCookbook(cookbookList, nil, nil),
 		makeMockSearch(mockedNodesSearchRows(), nil), // nodes are found
+		false,
 		false, // display only used cookbooks
+		Workers,
 	)
 	assert.Nil(t, err)
 	if assert.NotNil(t, c) {
@@ -147,7 +155,9 @@ func TestCookbooksNotUsedDisplayOnlyUnused(t *testing.T) {
 	c, err := subject.NewCookbooks(
 		newMockCookbook(cookbookList, nil, nil),
 		makeMockSearch("[]", nil), // no nodes are returned
-		true,                      // display only unused cookbooks
+		false,
+		true, // display only unused cookbooks
+		Workers,
 	)
 	assert.Nil(t, err)
 	if assert.NotNil(t, c) {
@@ -180,7 +190,9 @@ func TestCookbooksNotUsedDisplayOnlyUnused(t *testing.T) {
 	c, err = subject.NewCookbooks(
 		newMockCookbook(cookbookList, nil, nil),
 		makeMockSearch("[]", nil), // no nodes are returned
-		false,                     // display only used cookbooks
+		false,
+		false, // display only used cookbooks
+		Workers,
 	)
 	assert.Nil(t, err)
 	if assert.NotNil(t, c) {
@@ -211,10 +223,11 @@ func TestCookbooks(t *testing.T) {
 		},
 	}
 	c, err := subject.NewCookbooks(
-		// TODO @afiune gotta implement the newMockCookbook desiredCookbookList
 		newMockCookbook(cookbookList, nil, nil),
 		makeMockSearch(mockedNodesSearchRows(), nil),
 		false,
+		false,
+		Workers,
 	)
 	assert.Nil(t, err)
 	if assert.NotNil(t, c) {
@@ -250,6 +263,8 @@ func TestCookbooks_ListCookbooksErrors(t *testing.T) {
 		newMockCookbook(chef.CookbookListResult{}, errors.New("i/o timeout"), nil),
 		makeMockSearch("[]", nil),
 		false,
+		false,
+		Workers,
 	)
 	if assert.NotNil(t, err) {
 		assert.Equal(t, "unable to retrieve cookbooks: i/o timeout", err.Error())
@@ -263,6 +278,8 @@ func TestCookbooks_ListAvailableVersionsError(t *testing.T) {
 		newMockCookbook(cookbookList, errors.New("list error"), nil),
 		nil,
 		false,
+		false,
+		Workers,
 	)
 	assert.Nil(t, c)
 	assert.EqualError(t, err, "unable to retrieve cookbooks: list error")
@@ -274,6 +291,8 @@ func TestCookbooks_NoneAvailable(t *testing.T) {
 		newMockCookbook(chef.CookbookListResult{}, nil, nil),
 		makeMockSearch(mockedEmptyNodesSearchRows(), nil),
 		false,
+		false,
+		Workers,
 	)
 	assert.Nil(t, err)
 	if assert.NotNil(t, c) {
@@ -297,7 +316,9 @@ func TestCookbooks_DownloadErrors(t *testing.T) {
 	c, err := subject.NewCookbooks(
 		newMockCookbook(cookbookList, nil, errors.New("download error")),
 		makeMockSearch(mockedNodesSearchRows(), nil),
+		true, // run cookstyle, which means that we will download the cookbooks
 		false,
+		Workers,
 	)
 	assert.Nil(t, err)
 	if assert.NotNil(t, c) {
@@ -328,9 +349,11 @@ func TestCookbooks_UsageStatErrors(t *testing.T) {
 	c, err := subject.NewCookbooks(
 		newMockCookbook(cookbookList, nil, nil),
 		makeMockSearch(mockedNodesSearchRows(), errors.New("lookup error")),
+		false,
 		// Because the usage error makes it look like no nodes are attached to this cookbook
 		// we need to return only unused cookbooks
 		true,
+		Workers,
 	)
 	assert.Nil(t, err)
 	if assert.NotNil(t, c) {
