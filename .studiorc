@@ -13,6 +13,12 @@ coverage_html="coverage/coverage.html"
 # switch all go commands to use the vendor/ directory
 export GOFLAGS="-mod=vendor"
 
+# Specify where to put 'go installed' binaries
+export GOBIN=/src/bin
+
+# Make 'go installed' binaries available in the PATH
+export PATH="$GOBIN:$PATH"
+
 function build_cross_platform() {
   install_if_missing core/go go
   install_if_missing core/gox gox
@@ -72,7 +78,7 @@ function integration_tests() {
 
   log_line "Running integration tests (github.com/chef/chef-analyze/integration)"
   ( cd /src || return 1
-    PATH="/src/bin:$PATH" go test github.com/chef/chef-analyze/integration -v
+    go test github.com/chef/chef-analyze/integration -v
   )
 }
 

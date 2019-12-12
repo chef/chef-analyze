@@ -7,6 +7,7 @@ require (
 	github.com/chef/go-chef v0.0.0-20191115205148-7ac24fba7a27
 	github.com/chef/go-libs v0.0.0-20191216182352-aa2fc405b05f
 	github.com/cheggaaa/pb/v3 v3.0.3
+	github.com/go-delve/delve v1.3.2 // indirect
 	github.com/mattn/go-colorable v0.1.4 // indirect
 	github.com/mattn/go-isatty v0.0.11 // indirect
 	github.com/olekukonko/tablewriter v0.0.4
