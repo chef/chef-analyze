@@ -91,16 +91,14 @@ func ChefAnalyzeWithHome(dir string, args ...string) (bytes.Buffer, bytes.Buffer
 	return runChefAnalyzeCmd(dir, args...)
 }
 
-func runChefAnalyzeCmd(home string, args ...string) (stdout bytes.Buffer, stderr bytes.Buffer, exitcode int) {
+func runChefAnalyzeCmd(workingDir string, args ...string) (stdout bytes.Buffer, stderr bytes.Buffer, exitcode int) {
 	cmd := exec.Command(findChefAnalyzeBinary(), args...)
 	cmd.Env = os.Environ()
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 
-	if len(home) != 0 {
-		cmd.Env = append(os.Environ(),
-			fmt.Sprintf("HOME=%s", home),
-		)
+	if len(workingDir) != 0 {
+		cmd.Dir = workingDir
 	}
 
 	exitcode = 0

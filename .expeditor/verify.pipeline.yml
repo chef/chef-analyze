@@ -36,7 +36,7 @@ steps:
           privileged: true
   - label: ":windows: go-integration"
     command:
-      - hab studio run "./scripts/integration_tests.ps1"
+      - hab studio run './scripts/integration_tests.ps1; Exit \$LastExitCode'
     expeditor:
       executor:
         windows:

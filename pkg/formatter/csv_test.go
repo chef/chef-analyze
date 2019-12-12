@@ -15,9 +15,22 @@
 // limitations under the License.
 //
 
-package formatter
+package formatter_test
 
-type FormattedResult struct {
-	Report string
-	Errors string
+import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+
+	subject "github.com/chef/chef-analyze/pkg/formatter"
+)
+
+func TestMakeCookbooksReportCSV_Nil(t *testing.T) {
+	assert.Equal(t,
+		&subject.FormattedResult{Report: "", Errors: ""},
+		subject.MakeCookbooksReportCSV(nil))
+}
+
+func TestMakeCookbooksReportCSV_WithRecords(t *testing.T) {
+	// TODO
 }
