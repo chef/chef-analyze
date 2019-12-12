@@ -205,12 +205,15 @@ func saveErrorReport(baseName string, content string) error {
 		return nil
 	}
 
-	reportName := fmt.Sprintf("%s-%s.%s", baseName, timestamp, "err")
-	reportPath := filepath.Join(errorsDir, reportName)
-	reportFile, err := os.Create(reportPath)
+	var (
+		reportName      = fmt.Sprintf("%s-%s.%s", baseName, timestamp, "err")
+		reportPath      = filepath.Join(errorsDir, reportName)
+		reportFile, err = os.Create(reportPath)
+	)
 	if err != nil {
 		return errors.Wrap(err, "unable to save errors report")
 	}
+
 	reportFile.WriteString(content)
 	reportFile.Close()
 
@@ -219,15 +222,22 @@ func saveErrorReport(baseName string, content string) error {
 }
 
 func saveReport(baseName string, ext string, content string) error {
-	reportName := fmt.Sprintf("%s-%s.%s", baseName, timestamp, ext)
-	reportPath := filepath.Join(reportsDir, reportName)
-	// create a new report file
-	reportFile, err := os.Create(reportPath)
-	if err != nil {
-		return errors.Wrap(err, "unable to save report")
+	if len(content) == 0 {
+		return nil
 	}
+
+	var (
+		reportName      = fmt.Sprintf("%s-%s.%s", baseName, timestamp, ext)
+		reportPath      = filepath.Join(reportsDir, reportName)
+		reportFile, err = os.Create(reportPath) // create a new report file
+	)
+	if err != nil {
+		return errors.Wrapf(err, "unable to save %s report", baseName)
+	}
+
 	reportFile.WriteString(content)
 	reportFile.Close()
+
 	fmt.Printf("%s report saved to %s\n", strings.Title(baseName), reportPath)
 	return nil
 }
