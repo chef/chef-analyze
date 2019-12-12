@@ -90,6 +90,7 @@ provided when the report is generated.
 				chefClient.Cookbooks,
 				chefClient.Search,
 				cookbooksFlags.onlyUnused,
+				cookbooksFlags.workers,
 			)
 			if err != nil {
 				return err
@@ -97,7 +98,6 @@ provided when the report is generated.
 
 			var results *formatter.FormattedResult
 			ext := TxtExt
-
 			switch cookbooksFlags.format {
 			case "csv":
 				ext = CsvExt
@@ -165,11 +165,17 @@ provided when the report is generated.
 	}
 	cookbooksFlags struct {
 		onlyUnused bool
+		workers    int
 		format     string
 	}
 )
 
 func init() {
+	reportCookbooksCmd.PersistentFlags().IntVarP(
+		&cookbooksFlags.workers,
+		"workers", "w", 50,
+		"maximum number of parallel workers at once",
+	)
 	reportCookbooksCmd.PersistentFlags().BoolVarP(
 		&cookbooksFlags.onlyUnused,
 		"only-unused", "u", false,

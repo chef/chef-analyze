@@ -26,13 +26,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-const (
-	// cached directory
-	AnalyzeCacheDir = ".analyze-cache"
-
-	// maximum number of parallel workers at once
-	MaxParallelWorkers = 50
-)
+// cached directory
+const AnalyzeCacheDir = ".analyze-cache"
 
 type CookbooksStatus struct {
 	Records        []*CookbookRecord
@@ -62,6 +57,10 @@ type cookbookItem struct {
 	Version string
 }
 
+func (r *CookbookRecord) NumNodesAffected() int {
+	return len(r.Nodes)
+}
+
 func (r *CookbookRecord) NumOffenses() int {
 	i := 0
 	for _, f := range r.Files {
@@ -82,7 +81,7 @@ func (r *CookbookRecord) NumCorrectable() int {
 	return i
 }
 
-func NewCookbooks(cbi CookbookInterface, searcher SearchInterface, onlyUnused bool) (*CookbooksStatus, error) {
+func NewCookbooks(cbi CookbookInterface, searcher SearchInterface, onlyUnused bool, workers int) (*CookbooksStatus, error) {
 	fmt.Printf("Finding available cookbooks...") // c <- ProgressUpdate(Event: COOKBOOK_FETCH)
 	// Version limit of "0" means fetch all
 	results, err := cbi.ListAvailableVersions("0")
@@ -122,10 +121,10 @@ func NewCookbooks(cbi CookbookInterface, searcher SearchInterface, onlyUnused bo
 
 	// determine how many workers do we need, by default, the total number of cookbooks
 	numWorkers := totalCookbooks
-	if totalCookbooks > MaxParallelWorkers {
+	if totalCookbooks > workers {
 		// but if the total number of cookbooks is major than
 		// the maximum allowed, set it to the maximum
-		numWorkers = MaxParallelWorkers
+		numWorkers = workers
 	}
 
 	fmt.Println("Analyzing cookbooks...")
