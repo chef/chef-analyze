@@ -47,19 +47,19 @@ func createCredentialsConfig() string {
 	}
 
 	creds := []byte(`[default]
-client_name = "` + DefaultChefServerUser + `"
-client_key = "` + defaultPem + `"
-chef_server_url = "http://localhost/organizations/` + DefaultChefServerOrganization + `"
+client_name = '` + DefaultChefServerUser + `'
+client_key = '` + defaultPem + `'
+chef_server_url = 'http://localhost/organizations/` + DefaultChefServerOrganization + `'
 
 [dev]
-client_name = "dev"
-client_key = "` + devPem + `"
-chef_server_url = "http://localhost/organizations/dev"
+client_name = 'dev'
+client_key = '` + devPem + `'
+chef_server_url = 'http://localhost/organizations/dev'
 
 [empty]
-client_name = "empty"
-client_key = "` + emptyPem + `"
-chef_server_url = "http://localhost/organizations/empty"
+client_name = 'empty'
+client_key = '` + emptyPem + `'
+chef_server_url = 'http://localhost/organizations/empty'
 `)
 	err = ioutil.WriteFile(credsFile, creds, 0644)
 	if err != nil {
