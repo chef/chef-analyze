@@ -49,7 +49,7 @@ func MakeCookbooksReportSummary(records []*reporting.CookbookRecord) *FormattedR
 		} else if record.CookstyleError != nil {
 			strBuilder.WriteString("\nERROR: could not run cookstyle (see error report)")
 		} else if record.UsageLookupError != nil {
-			strBuilder.WriteString("\nERROR: unknown violations (see error report)")
+			strBuilder.WriteString("\nERROR: could not determine if cookbook in use (see error report)")
 		}
 		strBuilder.WriteString("\n")
 
