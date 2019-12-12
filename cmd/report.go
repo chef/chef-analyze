@@ -100,6 +100,7 @@ provided when the report is generated.
 
 			switch cookbooksFlags.format {
 			case "csv":
+				ext = CsvExt
 				results = formatter.MakeCookbooksReportCSV(cookbooksState.Records)
 			default:
 				results = formatter.MakeCookbooksReportTXT(cookbooksState.Records)
