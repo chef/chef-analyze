@@ -156,6 +156,7 @@ provided when the report is generated.
 				return err
 			}
 
+			fmt.Println("Analyzing nodes...")
 			report, err := reporting.Nodes(chefClient.Search)
 			if err != nil {
 				return err
