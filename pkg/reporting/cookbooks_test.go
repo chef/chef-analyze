@@ -52,6 +52,15 @@ func TestCookbooksRecordCorrectableAndOffenses(t *testing.T) {
 	assert.Equal(t, 5, csr.NumOffenses())
 }
 
+func TestCookbooksRecordNumNodesAffected(t *testing.T) {
+	rec := subject.CookbookRecord{}
+	assert.Equal(t, 0, rec.NumNodesAffected())
+	rec = subject.CookbookRecord{Nodes: []string{}}
+	assert.Equal(t, 0, rec.NumNodesAffected())
+	rec = subject.CookbookRecord{Nodes: []string{"a", "b", "c"}}
+	assert.Equal(t, 3, rec.NumNodesAffected())
+}
+
 func TestCookbooksEmpty(t *testing.T) {
 	c, err := subject.NewCookbooks(
 		newMockCookbook(chef.CookbookListResult{}, nil, nil),

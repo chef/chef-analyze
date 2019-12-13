@@ -34,11 +34,12 @@ import (
 
 // TODO @afiune make this configurable
 const (
-	AnalyzeCacheDir = ".analyze-cache"
-	Cookbooks       = "cookbooks"
-	ErrExt          = "err"
-	TxtExt          = "txt"
-	CsvExt          = "csv"
+	AnalyzeCacheDir  = ".analyze-cache"
+	repNameCookbooks = "cookbooks"
+	repNameNodes     = "nodes"
+	ErrExt           = "err"
+	TxtExt           = "txt"
+	CsvExt           = "csv"
 )
 
 var (
@@ -105,7 +106,7 @@ provided when the report is generated.
 
 			fmt.Println(formattedSummary.Report)
 
-			switch cookbooksFlags.format {
+			switch reportsFlags.format {
 			case "csv":
 				ext = CsvExt
 				results = formatter.MakeCookbooksReportCSV(cookbooksState)
@@ -114,11 +115,11 @@ provided when the report is generated.
 				results = formatter.MakeCookbooksReportTXT(cookbooksState)
 			}
 
-			err = saveReport(Cookbooks, ext, results.Report)
+			err = saveReport(repNameCookbooks, ext, results.Report)
 			if err != nil {
 				return err
 			}
-			err = saveErrorReport(Cookbooks, results.Errors)
+			err = saveErrorReport(repNameCookbooks, results.Errors)
 			if err != nil {
 				return err
 			}
@@ -155,16 +156,38 @@ provided when the report is generated.
 				return err
 			}
 
-			results, err := reporting.Nodes(cfg, chefClient.Search)
+			fmt.Println("Analyzing nodes...")
+			report, err := reporting.Nodes(chefClient.Search)
 			if err != nil {
 				return err
 			}
 
-			formattedResult := formatter.NodesReportSummary(results)
-			fmt.Println(formattedResult.Report)
-			if formattedResult.Errors != "" {
-				fmt.Println(formattedResult.Errors)
+			var (
+				formattedSummary = formatter.NodesReportSummary(report)
+				results          *formatter.FormattedResult
+				ext              string
+			)
+
+			fmt.Println(formattedSummary.Report)
+
+			switch reportsFlags.format {
+			case "csv":
+				ext = CsvExt
+				results = formatter.MakeNodesReportCSV(report)
+			default:
+				ext = TxtExt
+				results = formatter.MakeNodesReportTXT(report)
 			}
+
+			err = saveReport(repNameNodes, ext, results.Report)
+			if err != nil {
+				return err
+			}
+			err = saveErrorReport(repNameNodes, results.Errors)
+			if err != nil {
+				return err
+			}
+
 			return nil
 		},
 	}
@@ -172,11 +195,21 @@ provided when the report is generated.
 		onlyUnused   bool
 		runCookstyle bool
 		workers      int
-		format       string
+	}
+	reportsFlags struct {
+		format string
 	}
 )
 
 func init() {
+	// global report commands flags
+	reportCmd.PersistentFlags().StringVarP(
+		&reportsFlags.format,
+		"format", "f", "txt",
+		"output format: txt is human readable, csv is machine readable",
+	)
+
+	// cookbooks cmd flags
 	reportCookbooksCmd.PersistentFlags().IntVarP(
 		&cookbooksFlags.workers,
 		"workers", "w", 50,
@@ -192,14 +225,10 @@ func init() {
 		"verify-upgrade", "v", false,
 		"verify the upgrade compatibility of every cookbook",
 	)
-	reportCookbooksCmd.PersistentFlags().StringVarP(
-		&cookbooksFlags.format,
-		"format", "f", "txt",
-		"output format: txt is human readable, csv is machine readable",
-	)
 	// adds the cookbooks command as a sub-command of the report command
 	// => chef-analyze report cookbooks
 	reportCmd.AddCommand(reportCookbooksCmd)
+
 	// adds the nodes command as a sub-command of the report command
 	// => chef-analyze report nodes
 	reportCmd.AddCommand(reportNodesCmd)

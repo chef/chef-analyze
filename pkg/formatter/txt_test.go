@@ -97,3 +97,53 @@ func TestMakeCookbooksReportTXT_ErrorReport(t *testing.T) {
 	assert.Equal(t, lines[2], " - our-cookbook (1.2): cookstyle error")
 	assert.Equal(t, lines[3], "")
 }
+
+func TestMakeNodesReportTXT_Nil(t *testing.T) {
+	assert.Equal(t,
+		&subject.FormattedResult{Report: "", Errors: ""},
+		subject.MakeNodesReportTXT(nil))
+}
+
+func TestMakeNodesReportTXT_Empty(t *testing.T) {
+	assert.Equal(t,
+		&subject.FormattedResult{Report: "", Errors: ""},
+		subject.MakeNodesReportTXT([]*reporting.NodeReportItem{}))
+}
+
+func TestMakeNodesReportTXT_WithRecords(t *testing.T) {
+	nodesReport := []*reporting.NodeReportItem{
+		&reporting.NodeReportItem{Name: "node1", ChefVersion: "12.22", OS: "windows", OSVersion: "10.1",
+			CookbookVersions: []reporting.CookbookVersion{
+				reporting.CookbookVersion{Name: "mycookbook", Version: "1.0"}},
+		},
+		&reporting.NodeReportItem{Name: "node2", ChefVersion: "13.11", OS: "", OSVersion: "",
+			CookbookVersions: []reporting.CookbookVersion{
+				reporting.CookbookVersion{Name: "mycookbook", Version: "1.0"},
+				reporting.CookbookVersion{Name: "test", Version: "9.9"},
+			},
+		},
+		&reporting.NodeReportItem{Name: "node3", ChefVersion: "15.00", OS: "ubuntu", OSVersion: "16.04",
+			CookbookVersions: nil},
+	}
+
+	var (
+		actual         = subject.MakeNodesReportTXT(nodesReport)
+		lines          = strings.Split(actual.Report, "\n")
+		expectedReport = `> Node: node1
+  Chef Version: 12.22
+  Operating System: windows v10.1
+  Cookbooks Applied: mycookbook(1.0)
+> Node: node2
+  Chef Version: 13.11
+  Operating System: unknown
+  Cookbooks Applied: mycookbook(1.0), test(9.9)
+> Node: node3
+  Chef Version: 15.00
+  Operating System: ubuntu v16.04
+  Cookbooks Applied: none
+`
+	)
+	if assert.Equal(t, 13, len(lines)) {
+		assert.Equal(t, expectedReport, actual.Report)
+	}
+}

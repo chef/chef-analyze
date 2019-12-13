@@ -39,11 +39,27 @@ type NodeReportItem struct {
 	CookbookVersions []CookbookVersion
 }
 
-// NOTE - we no longer need cfg. I'm not sure that this is best - I like having a single
-//        cfg which includes the client, but did not want to create a full mock interface for
-//        chef.client here - that belongs in go-chef, where it can be maintained alongside
-//        any interface changes that originate there.
-func Nodes(cfg *Reporting, searcher SearchInterface) ([]*NodeReportItem, error) {
+func (nri *NodeReportItem) OSVersionPretty() string {
+	// this data seems to be all or none,
+	// you'll have both OS/Version fields, or neither.
+	if nri.OS != "" {
+		return fmt.Sprintf("%s v%s", nri.OS, nri.OSVersion)
+	}
+
+	return ""
+}
+
+func (nri *NodeReportItem) CookbooksList() []string {
+	var cookbooks = make([]string, 0, len(nri.CookbookVersions))
+
+	for _, v := range nri.CookbookVersions {
+		cookbooks = append(cookbooks, v.String())
+	}
+
+	return cookbooks
+}
+
+func Nodes(searcher SearchInterface) ([]*NodeReportItem, error) {
 	var (
 		query = map[string]interface{}{
 			"name":         []string{"name"},

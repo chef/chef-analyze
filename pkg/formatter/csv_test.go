@@ -92,3 +92,42 @@ func TestMakeCookbooksReportCSV_ErrorReport(t *testing.T) {
 	assert.Equal(t, lines[2], " - our-cookbook (1.2): cookstyle error")
 	assert.Equal(t, lines[3], "")
 }
+
+func TestMakeNodesReportCSV_Nil(t *testing.T) {
+	assert.Equal(t,
+		&subject.FormattedResult{Report: "", Errors: ""},
+		subject.MakeNodesReportCSV(nil))
+}
+
+func TestMakeNodesReportCSV_NoRecords(t *testing.T) {
+	var expected subject.FormattedResult // empty result
+	var nodesReport = []*reporting.NodeReportItem{}
+	actual := subject.MakeNodesReportCSV(nodesReport)
+	assert.Equal(t, expected, *actual)
+}
+
+func TestMakeNodesReportCSV_WithRecords(t *testing.T) {
+	nodesReport := []*reporting.NodeReportItem{
+		&reporting.NodeReportItem{Name: "node1", ChefVersion: "12.22", OS: "windows", OSVersion: "10.1",
+			CookbookVersions: []reporting.CookbookVersion{
+				reporting.CookbookVersion{Name: "mycookbook", Version: "1.0"}},
+		},
+		&reporting.NodeReportItem{Name: "node2", ChefVersion: "13.11", OS: "", OSVersion: "",
+			CookbookVersions: []reporting.CookbookVersion{
+				reporting.CookbookVersion{Name: "mycookbook", Version: "1.0"},
+				reporting.CookbookVersion{Name: "test", Version: "9.9"},
+			},
+		},
+		&reporting.NodeReportItem{Name: "node3", ChefVersion: "15.00", OS: "ubuntu", OSVersion: "16.04",
+			CookbookVersions: nil},
+	}
+
+	lines := strings.Split(subject.MakeNodesReportCSV(nodesReport).Report, "\n")
+	if assert.Equal(t, 5, len(lines)) {
+		assert.Equal(t, "Node Name,Chef Version,Operating System,Cookbooks", lines[0])
+		assert.Equal(t, "node1,12.22,windows v10.1,mycookbook(1.0)", lines[1])
+		assert.Equal(t, "node2,13.11,,mycookbook(1.0) test(9.9)", lines[2])
+		assert.Equal(t, "node3,15.00,ubuntu v16.04,None", lines[3])
+		assert.Equal(t, "", lines[4])
+	}
+}

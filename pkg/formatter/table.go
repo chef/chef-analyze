@@ -30,10 +30,7 @@ import (
 	"github.com/chef/chef-analyze/pkg/reporting"
 )
 
-const (
-	MinTermWidth          = 120
-	EmptyValuePlaceholder = "-"
-)
+const MinTermWidth = 120
 
 func CookbooksReportSummary(state *reporting.CookbooksStatus) FormattedResult {
 	if state == nil || len(state.Records) == 0 {
@@ -126,7 +123,14 @@ func NodesReportSummary(records []*reporting.NodeReportItem) FormattedResult {
 	table.SetColWidth(MinTermWidth / len(NodeReportHeader))
 
 	for _, record := range records {
-		table.Append(NodeReportItemToArray(record))
+		table.Append(
+			[]string{
+				record.Name,
+				stringOrEmptyPlaceholder(record.ChefVersion),
+				stringOrEmptyPlaceholder(record.OSVersionPretty()),
+				strconv.Itoa(len(record.CookbooksList())),
+			},
+		)
 	}
 
 	table.Render()
@@ -152,37 +156,4 @@ func NodesReportSummary(records []*reporting.NodeReportItem) FormattedResult {
 	}
 
 	return FormattedResult{buffer.String(), errMsg.String()}
-}
-
-func NodeReportItemToArray(nri *reporting.NodeReportItem) []string {
-	var (
-		cookbooks   []string
-		chefVersion = EmptyValuePlaceholder
-		osInfo      = EmptyValuePlaceholder
-		cbInfo      = EmptyValuePlaceholder
-	)
-
-	if nri == nil {
-		return []string{EmptyValuePlaceholder, chefVersion, osInfo, cbInfo}
-	}
-
-	for _, v := range nri.CookbookVersions {
-		cookbooks = append(cookbooks, v.String())
-	}
-
-	if len(cookbooks) > 0 {
-		cbInfo = strings.Join(cookbooks, " ")
-	}
-
-	if nri.ChefVersion != "" {
-		chefVersion = nri.ChefVersion
-	}
-
-	// This data seems to be all or none - you'll have both OS/Version fields,
-	// or neither.
-	if nri.OS != "" {
-		osInfo = fmt.Sprintf("%s v%s", nri.OS, nri.OSVersion)
-	}
-
-	return []string{nri.Name, chefVersion, osInfo, cbInfo}
 }

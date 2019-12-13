@@ -75,3 +75,37 @@ func MakeCookbooksReportTXT(state *reporting.CookbooksStatus) *FormattedResult {
 	}
 	return &FormattedResult{strBuilder.String(), errorBuilder.String()}
 }
+
+func MakeNodesReportTXT(records []*reporting.NodeReportItem) *FormattedResult {
+	var (
+		errorBuilder strings.Builder
+		strBuilder   strings.Builder
+	)
+
+	if len(records) == 0 {
+		// nothing to do
+		return &FormattedResult{"", ""}
+	}
+
+	for _, record := range records {
+		strBuilder.WriteString(fmt.Sprintf("> Node: %s\n", record.Name))
+		strBuilder.WriteString(
+			fmt.Sprintf("  Chef Version: %s\n",
+				stringOrUnknownPlaceholder(record.ChefVersion)),
+		)
+		strBuilder.WriteString(
+			fmt.Sprintf("  Operating System: %s\n",
+				stringOrUnknownPlaceholder(record.OSVersionPretty())),
+		)
+
+		if len(record.CookbooksList()) == 0 {
+			strBuilder.WriteString("  Cookbooks Applied: none\n")
+		} else {
+			strBuilder.WriteString("  Cookbooks Applied: ")
+			strBuilder.WriteString(strings.Join(record.CookbooksList(), ", "))
+			strBuilder.WriteString("\n")
+		}
+	}
+
+	return &FormattedResult{strBuilder.String(), errorBuilder.String()}
+}
