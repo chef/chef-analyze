@@ -18,11 +18,14 @@
 package formatter_test
 
 import (
+	"errors"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
 	subject "github.com/chef/chef-analyze/pkg/formatter"
+	"github.com/chef/chef-analyze/pkg/reporting"
 )
 
 func TestMakeCookbooksReportTXT_Nil(t *testing.T) {
@@ -31,6 +34,66 @@ func TestMakeCookbooksReportTXT_Nil(t *testing.T) {
 		subject.MakeCookbooksReportTXT(nil))
 }
 
-func TestMakeCookbooksReportTXT_WithRecords(t *testing.T) {
-	// TODO
+func TestMakeCookbooksReportTXT_Empty(t *testing.T) {
+	assert.Equal(t,
+		&subject.FormattedResult{Report: "", Errors: ""},
+		subject.MakeCookbooksReportTXT(&reporting.CookbooksStatus{}))
+}
+
+func TestMakeCookbooksReportTXT_WithUnverifiedRecords(t *testing.T) {
+	cbStatus := reporting.CookbooksStatus{
+		RunCookstyle: false,
+		Records: []*reporting.CookbookRecord{
+			&reporting.CookbookRecord{Name: "my-cookbook", Version: "1.0", Nodes: []string{"node-1", "node-2"}},
+		},
+	}
+
+	actual := subject.MakeCookbooksReportTXT(&cbStatus)
+	lines := strings.Split(actual.Report, "\n")
+	assert.Equal(t, 3, len(lines))
+	assert.Contains(t, actual.Report, "Nodes affected: node-1, node-2")
+	assert.Contains(t, actual.Report, "> Cookbook: my-cookbook (1.0)")
+	assert.Equal(t, "", lines[2])
+}
+
+func TestMakeCookbooksReportTXT_WithVerifiedRecords(t *testing.T) {
+	cbStatus := reporting.CookbooksStatus{
+		RunCookstyle: true,
+		Records: []*reporting.CookbookRecord{
+			&reporting.CookbookRecord{Name: "my-cookbook", Version: "1.0", Nodes: []string{"node-1", "node-2"},
+				Files: []reporting.CookbookFile{
+					reporting.CookbookFile{Path: "/path/to/file.rb",
+						Offenses: []reporting.CookstyleOffense{
+							reporting.CookstyleOffense{CopName: "ChefDeprecations/Blah", Message: "some description", Correctable: true},
+						}}}}}}
+
+	actual := subject.MakeCookbooksReportTXT(&cbStatus)
+	assert.Contains(t, actual.Report, "Nodes affected: node-1, node-2")
+	assert.Contains(t, actual.Report, "Violations: 1")
+	assert.Contains(t, actual.Report, "Auto correctable: 1")
+	assert.Contains(t, actual.Report, "Files and offenses:")
+	assert.Contains(t, actual.Report, "path/to/file.rb:")
+	assert.Contains(t, actual.Report, "\tChefDeprecations/Blah (true) some description")
+
+	lines := strings.Split(actual.Report, "\n")
+	assert.Equal(t, 8, len(lines))
+	assert.Equal(t, "", lines[7])
+}
+
+func TestMakeCookbooksReportTXT_ErrorReport(t *testing.T) {
+	cbStatus := reporting.CookbooksStatus{
+		Records: []*reporting.CookbookRecord{
+			&reporting.CookbookRecord{Name: "my-cookbook", Version: "1.0", DownloadError: errors.New("could not download")},
+			&reporting.CookbookRecord{Name: "their-cookbook", Version: "1.1", UsageLookupError: errors.New("could not look up usage")},
+			&reporting.CookbookRecord{Name: "our-cookbook", Version: "1.2", CookstyleError: errors.New("cookstyle error")},
+		},
+	}
+
+	actual := subject.MakeCookbooksReportTXT(&cbStatus)
+	lines := strings.Split(actual.Errors, "\n")
+	assert.Equal(t, 4, len(lines))
+	assert.Equal(t, lines[0], " - my-cookbook (1.0): could not download")
+	assert.Equal(t, lines[1], " - their-cookbook (1.1): could not look up usage")
+	assert.Equal(t, lines[2], " - our-cookbook (1.2): cookstyle error")
+	assert.Equal(t, lines[3], "")
 }
