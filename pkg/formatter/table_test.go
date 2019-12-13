@@ -25,62 +25,6 @@ import (
 	"github.com/chef/chef-analyze/pkg/reporting"
 )
 
-func TestNodeReportItemToArray_Nil(t *testing.T) {
-	expected := []string{"-", "-", "-", "-"}
-	assert.Equal(t, expected, subject.NodeReportItemToArray(nil))
-}
-
-func TestNodeReportItemToArray_valid(t *testing.T) {
-	cbv := reporting.CookbookVersion{Name: "name", Version: "version"}
-	nri := reporting.NodeReportItem{
-		Name:             "name",
-		ChefVersion:      "16.01",
-		OS:               "os",
-		OSVersion:        "1.0",
-		CookbookVersions: []reporting.CookbookVersion{cbv},
-	}
-	expected := []string{"name", "16.01", "os v1.0", "name(version)"}
-	assert.Equal(t, expected, subject.NodeReportItemToArray(&nri))
-}
-
-func TestNodeReportItemToArray_noOS(t *testing.T) {
-	cbv := reporting.CookbookVersion{Name: "name", Version: "version"}
-	nri := reporting.NodeReportItem{
-		Name:             "name",
-		ChefVersion:      "16.01",
-		OS:               "",
-		OSVersion:        "",
-		CookbookVersions: []reporting.CookbookVersion{cbv},
-	}
-	expected := []string{"name", "16.01", "-", "name(version)"}
-	assert.Equal(t, expected, subject.NodeReportItemToArray(&nri))
-}
-
-func TestNodeReportItemToArray_noCookbooks(t *testing.T) {
-	nri := reporting.NodeReportItem{
-		Name:             "name",
-		ChefVersion:      "16.01",
-		OS:               "os",
-		OSVersion:        "1.0",
-		CookbookVersions: []reporting.CookbookVersion{},
-	}
-	expected := []string{"name", "16.01", "os v1.0", "-"}
-	assert.Equal(t, expected, subject.NodeReportItemToArray(&nri))
-}
-
-func TestNodeReportItemToArray_noChefVersion(t *testing.T) {
-	cbv := reporting.CookbookVersion{Name: "name", Version: "version"}
-	nri := reporting.NodeReportItem{
-		Name:             "name",
-		ChefVersion:      "",
-		OS:               "os",
-		OSVersion:        "1.0",
-		CookbookVersions: []reporting.CookbookVersion{cbv},
-	}
-	expected := []string{"name", "-", "os v1.0", "name(version)"}
-	assert.Equal(t, expected, subject.NodeReportItemToArray(&nri))
-}
-
 func TestNodesReportSummary_Nil(t *testing.T) {
 	expected := subject.FormattedResult{"No nodes found to analyze.", ""}
 	assert.Equal(t, expected, subject.NodesReportSummary(nil))
@@ -140,9 +84,6 @@ func TestNodesReportSummary_withRecords(t *testing.T) {
 		"abc-2",
 		"15.4",
 		"os v1.0",
-		"cookbook1(0.3.0)",
-		"cool(0.1.0)",
-		"awesome(1.2.3)",
 		"13.1.20",
 	}
 	for _, s := range listOfStringTheReportMustHave {

@@ -17,27 +17,23 @@
 
 package formatter
 
-type FormattedResult struct {
-	Report string
-	Errors string
-}
+import (
+	"testing"
 
-const (
-	emptyValuePlaceholder   = "-"
-	unknownValuePlaceholder = "unknown"
+	"github.com/stretchr/testify/assert"
 )
 
-func stringOrEmptyPlaceholder(s string) string {
-	return stringOrPlaceholder(s, emptyValuePlaceholder)
+func TestStringOrEmptyPlaceholder(t *testing.T) {
+	assert.Equal(t, "-", stringOrEmptyPlaceholder(""))
+	assert.Equal(t, "foo", stringOrEmptyPlaceholder("foo"))
 }
 
-func stringOrUnknownPlaceholder(s string) string {
-	return stringOrPlaceholder(s, unknownValuePlaceholder)
+func TestStringOrUnknownPlaceholder(t *testing.T) {
+	assert.Equal(t, "unknown", stringOrUnknownPlaceholder(""))
+	assert.Equal(t, "foo", stringOrUnknownPlaceholder("foo"))
 }
 
-func stringOrPlaceholder(s, placeholder string) string {
-	if len(s) == 0 {
-		return placeholder
-	}
-	return s
+func TestStringOrPlaceholder(t *testing.T) {
+	assert.Equal(t, "placeholder", stringOrPlaceholder("", "placeholder"))
+	assert.Equal(t, "foo", stringOrPlaceholder("foo", "placeholder"))
 }

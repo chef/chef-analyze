@@ -34,11 +34,12 @@ import (
 
 // TODO @afiune make this configurable
 const (
-	AnalyzeCacheDir = ".analyze-cache"
-	Cookbooks       = "cookbooks"
-	ErrExt          = "err"
-	TxtExt          = "txt"
-	CsvExt          = "csv"
+	AnalyzeCacheDir  = ".analyze-cache"
+	repNameCookbooks = "cookbooks"
+	repNameNodes     = "nodes"
+	ErrExt           = "err"
+	TxtExt           = "txt"
+	CsvExt           = "csv"
 )
 
 var (
@@ -114,11 +115,11 @@ provided when the report is generated.
 				results = formatter.MakeCookbooksReportTXT(cookbooksState)
 			}
 
-			err = saveReport(Cookbooks, ext, results.Report)
+			err = saveReport(repNameCookbooks, ext, results.Report)
 			if err != nil {
 				return err
 			}
-			err = saveErrorReport(Cookbooks, results.Errors)
+			err = saveErrorReport(repNameCookbooks, results.Errors)
 			if err != nil {
 				return err
 			}
@@ -155,16 +156,37 @@ provided when the report is generated.
 				return err
 			}
 
-			results, err := reporting.Nodes(cfg, chefClient.Search)
+			report, err := reporting.Nodes(chefClient.Search)
 			if err != nil {
 				return err
 			}
 
-			formattedResult := formatter.NodesReportSummary(results)
-			fmt.Println(formattedResult.Report)
-			if formattedResult.Errors != "" {
-				fmt.Println(formattedResult.Errors)
+			var (
+				formattedSummary = formatter.NodesReportSummary(report)
+				results          *formatter.FormattedResult
+				ext              string
+			)
+
+			fmt.Println(formattedSummary.Report)
+
+			switch nodesFlags.format {
+			case "csv":
+				ext = CsvExt
+				results = formatter.MakeNodesReportCSV(report)
+			default:
+				ext = TxtExt
+				results = formatter.MakeNodesReportTXT(report)
 			}
+
+			err = saveReport(repNameNodes, ext, results.Report)
+			if err != nil {
+				return err
+			}
+			err = saveErrorReport(repNameNodes, results.Errors)
+			if err != nil {
+				return err
+			}
+
 			return nil
 		},
 	}
@@ -173,6 +195,9 @@ provided when the report is generated.
 		runCookstyle bool
 		workers      int
 		format       string
+	}
+	nodesFlags struct {
+		format string
 	}
 )
 
@@ -200,6 +225,12 @@ func init() {
 	// adds the cookbooks command as a sub-command of the report command
 	// => chef-analyze report cookbooks
 	reportCmd.AddCommand(reportCookbooksCmd)
+
+	reportCmd.PersistentFlags().StringVarP(
+		&nodesFlags.format,
+		"format", "f", "txt",
+		"output format: txt is human readable, csv is machine readable",
+	)
 	// adds the nodes command as a sub-command of the report command
 	// => chef-analyze report nodes
 	reportCmd.AddCommand(reportNodesCmd)

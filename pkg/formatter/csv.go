@@ -89,3 +89,38 @@ func MakeCookbooksReportCSV(state *reporting.CookbooksStatus) *FormattedResult {
 	csvWriter.Flush()
 	return &FormattedResult{strBuilder.String(), errBuilder.String()}
 }
+
+func MakeNodesReportCSV(records []*reporting.NodeReportItem) *FormattedResult {
+	var (
+		strBuilder strings.Builder
+		errBuilder strings.Builder
+		csvWriter  = csv.NewWriter(&strBuilder)
+	)
+
+	if len(records) == 0 {
+		return &FormattedResult{"", ""}
+	}
+
+	tableHeaders := []string{"Node Name", "Chef Version", "Operating System", "Cookbooks"}
+	csvWriter.Write(tableHeaders)
+
+	for _, record := range records {
+		var (
+			cookbooksString = "None"
+			cookbooksList   = record.CookbooksList()
+		)
+		if len(cookbooksList) != 0 {
+			cookbooksString = strings.Join(cookbooksList, " ")
+		}
+
+		csvWriter.Write([]string{
+			record.Name,
+			record.ChefVersion,
+			record.OSVersionPretty(),
+			cookbooksString,
+		})
+	}
+
+	csvWriter.Flush()
+	return &FormattedResult{strBuilder.String(), errBuilder.String()}
+}
