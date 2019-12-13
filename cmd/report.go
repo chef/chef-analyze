@@ -106,7 +106,7 @@ provided when the report is generated.
 
 			fmt.Println(formattedSummary.Report)
 
-			switch cookbooksFlags.format {
+			switch reportsFlags.format {
 			case "csv":
 				ext = CsvExt
 				results = formatter.MakeCookbooksReportCSV(cookbooksState)
@@ -170,7 +170,7 @@ provided when the report is generated.
 
 			fmt.Println(formattedSummary.Report)
 
-			switch nodesFlags.format {
+			switch reportsFlags.format {
 			case "csv":
 				ext = CsvExt
 				results = formatter.MakeNodesReportCSV(report)
@@ -195,14 +195,21 @@ provided when the report is generated.
 		onlyUnused   bool
 		runCookstyle bool
 		workers      int
-		format       string
 	}
-	nodesFlags struct {
+	reportsFlags struct {
 		format string
 	}
 )
 
 func init() {
+	// global report commands flags
+	reportCmd.PersistentFlags().StringVarP(
+		&reportsFlags.format,
+		"format", "f", "txt",
+		"output format: txt is human readable, csv is machine readable",
+	)
+
+	// cookbooks cmd flags
 	reportCookbooksCmd.PersistentFlags().IntVarP(
 		&cookbooksFlags.workers,
 		"workers", "w", 50,
@@ -218,20 +225,10 @@ func init() {
 		"verify-upgrade", "v", false,
 		"verify the upgrade compatibility of every cookbook",
 	)
-	reportCookbooksCmd.PersistentFlags().StringVarP(
-		&cookbooksFlags.format,
-		"format", "f", "txt",
-		"output format: txt is human readable, csv is machine readable",
-	)
 	// adds the cookbooks command as a sub-command of the report command
 	// => chef-analyze report cookbooks
 	reportCmd.AddCommand(reportCookbooksCmd)
 
-	reportCmd.PersistentFlags().StringVarP(
-		&nodesFlags.format,
-		"format", "f", "txt",
-		"output format: txt is human readable, csv is machine readable",
-	)
 	// adds the nodes command as a sub-command of the report command
 	// => chef-analyze report nodes
 	reportCmd.AddCommand(reportNodesCmd)
