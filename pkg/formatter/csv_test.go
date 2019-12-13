@@ -18,11 +18,14 @@
 package formatter_test
 
 import (
+	"errors"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
 	subject "github.com/chef/chef-analyze/pkg/formatter"
+	"github.com/chef/chef-analyze/pkg/reporting"
 )
 
 func TestMakeCookbooksReportCSV_Nil(t *testing.T) {
@@ -31,6 +34,61 @@ func TestMakeCookbooksReportCSV_Nil(t *testing.T) {
 		subject.MakeCookbooksReportCSV(nil))
 }
 
-func TestMakeCookbooksReportCSV_WithRecords(t *testing.T) {
-	// TODO
+func TestMakeCookbooksReportCSV_NoRecords(t *testing.T) {
+	var expected subject.FormattedResult // empty result
+	var cbStatus reporting.CookbooksStatus
+	actual := subject.MakeCookbooksReportCSV(&cbStatus)
+	assert.Equal(t, expected, *actual)
+}
+
+func TestMakeCookbooksReportCSV_WithUnverifiedRecords(t *testing.T) {
+	cbStatus := reporting.CookbooksStatus{
+		RunCookstyle: false,
+		Records: []*reporting.CookbookRecord{
+			&reporting.CookbookRecord{Name: "my-cookbook", Version: "1.0", Nodes: []string{"node-1", "node-2"}},
+		},
+	}
+
+	lines := strings.Split(subject.MakeCookbooksReportCSV(&cbStatus).Report, "\n")
+	assert.Equal(t, 3, len(lines))
+	assert.Equal(t, "Cookbook Name,Version,Nodes", lines[0])
+	assert.Equal(t, "my-cookbook,1.0,node-1 node-2", lines[1])
+	assert.Equal(t, "", lines[2])
+}
+
+func TestMakeCookbooksReportCSV_WithVerifiedRecords(t *testing.T) {
+	cbStatus := reporting.CookbooksStatus{
+		RunCookstyle: true,
+		Records: []*reporting.CookbookRecord{
+			&reporting.CookbookRecord{Name: "my-cookbook", Version: "1.0", Nodes: []string{"node-1", "node-2"},
+				Files: []reporting.CookbookFile{
+					reporting.CookbookFile{Path: "/path/to/file.rb",
+						Offenses: []reporting.CookstyleOffense{
+							reporting.CookstyleOffense{CopName: "ChefDeprecations/Blah", Message: "some description", Correctable: true},
+						}}}}}}
+
+	actual := subject.MakeCookbooksReportCSV(&cbStatus)
+	lines := strings.Split(actual.Report, "\n")
+	assert.Equal(t, 3, len(lines))
+	assert.Equal(t, "Cookbook Name,Version,File,Offense,Automatically Correctable,Message,Nodes", lines[0])
+	assert.Equal(t, "my-cookbook,1.0,/path/to/file.rb,ChefDeprecations/Blah,Y,some description,node-1 node-2", lines[1])
+	assert.Equal(t, "", lines[2])
+}
+
+func TestMakeCookbooksReportCSV_ErrorReport(t *testing.T) {
+	cbStatus := reporting.CookbooksStatus{
+		Records: []*reporting.CookbookRecord{
+			&reporting.CookbookRecord{Name: "my-cookbook", Version: "1.0", DownloadError: errors.New("could not download")},
+			&reporting.CookbookRecord{Name: "their-cookbook", Version: "1.1", UsageLookupError: errors.New("could not look up usage")},
+			&reporting.CookbookRecord{Name: "our-cookbook", Version: "1.2", CookstyleError: errors.New("cookstyle error")},
+		},
+	}
+
+	actual := subject.MakeCookbooksReportCSV(&cbStatus)
+	lines := strings.Split(actual.Errors, "\n")
+	assert.Equal(t, 4, len(lines))
+	assert.Equal(t, lines[0], " - my-cookbook (1.0): could not download")
+	assert.Equal(t, lines[1], " - their-cookbook (1.1): could not look up usage")
+	assert.Equal(t, lines[2], " - our-cookbook (1.2): cookstyle error")
+	assert.Equal(t, lines[3], "")
 }
