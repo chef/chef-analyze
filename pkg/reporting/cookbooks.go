@@ -19,15 +19,20 @@ package reporting
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"sync"
 
 	chef "github.com/chef/go-chef"
+	"github.com/chef/go-libs/config"
 	"github.com/cheggaaa/pb/v3"
 	"github.com/pkg/errors"
 )
 
-// cached directory
-const AnalyzeCacheDir = ".analyze-cache"
+const (
+	analyzeCacheDir     = "cache"     // Used for $HOME/.chef-workstation/cache
+	analyzeCookbooksDir = "cookbooks" // Used for $HOME/.chef-workstation/cache/cookbooks
+)
 
 type CookbooksStatus struct {
 	Records        []*CookbookRecord
@@ -35,6 +40,7 @@ type CookbooksStatus struct {
 	TotalCookbooks int
 	OnlyUnused     bool
 	RunCookstyle   bool
+	CookbooksDir   string
 	Cookbooks      CookbookInterface
 	Searcher       SearchInterface
 	Cookstyle      *CookstyleRunner
@@ -96,7 +102,18 @@ func (r *CookbookRecord) NumCorrectable() int {
 	return i
 }
 
-func NewCookbooks(cbi CookbookInterface, searcher SearchInterface, runCookstyle, onlyUnused bool, workers int) (*CookbooksStatus, error) {
+func NewCookbooks(
+	cbi CookbookInterface, searcher SearchInterface,
+	runCookstyle, onlyUnused bool, workers int,
+) (*CookbooksStatus, error) {
+	wsDir, err := chefWorkstationDir()
+	if err != nil {
+		return nil, err
+	}
+
+	cookbooksDir := filepath.Join(wsDir, analyzeCacheDir, analyzeCookbooksDir)
+	//debug("%s: using cookbooks directory %s", time.Now(), cookbooksDir)
+
 	fmt.Printf("Finding available cookbooks...") // c <- ProgressUpdate(Event: COOKBOOK_FETCH)
 	// Version limit of "0" means fetch all
 	results, err := cbi.ListAvailableVersions("0")
@@ -126,6 +143,7 @@ func NewCookbooks(cbi CookbookInterface, searcher SearchInterface, runCookstyle,
 			Searcher:       searcher,
 			Cookstyle:      NewCookstyleRunner(),
 			RunCookstyle:   runCookstyle,
+			CookbooksDir:   cookbooksDir,
 			OnlyUnused:     onlyUnused,
 		}
 	)
@@ -224,12 +242,16 @@ func (cbs *CookbooksStatus) createAnalyzeWorkerPool(nWorkers int, analyzeCh <-ch
 }
 
 func (cbs *CookbooksStatus) downloadCookbook(cookbookName, version string, analyzeCh chan<- *CookbookRecord) {
-	cbState := &CookbookRecord{Name: cookbookName,
-		path:    fmt.Sprintf("%s/cookbooks/%v-%v", AnalyzeCacheDir, cookbookName, version),
-		Version: version,
-	}
 
-	nodes, err := cbs.nodesUsingCookbookVersion(cookbookName, version)
+	var (
+		nodes, err       = cbs.nodesUsingCookbookVersion(cookbookName, version)
+		cookbookLongName = fmt.Sprintf("%v-%v", cookbookName, version)
+		cbState          = &CookbookRecord{
+			Name:    cookbookName,
+			path:    filepath.Join(cbs.CookbooksDir, cookbookLongName),
+			Version: version,
+		}
+	)
 	if err != nil {
 		cbState.UsageLookupError = err
 	}
@@ -253,7 +275,7 @@ func (cbs *CookbooksStatus) downloadCookbook(cookbookName, version string, analy
 
 	// do we need to analyze the cookbooks
 	if cbs.RunCookstyle {
-		err = cbs.Cookbooks.DownloadTo(cookbookName, version, fmt.Sprintf("%s/cookbooks", AnalyzeCacheDir))
+		err = cbs.Cookbooks.DownloadTo(cookbookName, version, cbs.CookbooksDir)
 		if err != nil {
 			cbState.DownloadError = errors.Wrapf(err, "unable to download cookbook %s", cookbookName)
 		}
@@ -303,4 +325,14 @@ func (cbs *CookbooksStatus) runCookstyleFor(cb *CookbookRecord) {
 	for _, file := range cookstyleResults.Files {
 		cb.Files = append(cb.Files, file)
 	}
+}
+
+// returns the ~/.chef-workstation directory
+// TODO @afiune move this to chef/go-libs/config
+func chefWorkstationDir() (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", errors.Wrap(err, "unable to detect home directory")
+	}
+	return filepath.Join(home, config.DefaultChefWorkstationDirectory), nil
 }

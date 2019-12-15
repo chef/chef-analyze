@@ -234,7 +234,7 @@ func TestCookbooks(t *testing.T) {
 	c, err := subject.NewCookbooks(
 		newMockCookbook(cookbookList, nil, nil),
 		makeMockSearch(mockedNodesSearchRows(), nil),
-		false,
+		true,
 		false,
 		Workers,
 	)
@@ -257,6 +257,9 @@ func TestCookbooks(t *testing.T) {
 				default:
 					t.Fatal("unexpected cookbook name")
 				}
+				// TODO @afiune uncomment when CookbookMock DownloadTo() creates a local dir
+				//assert.Emptyf(t, rec.Errors(),
+				//"there should not be any errors for %s-%s", rec.Name, rec.Version)
 			}
 
 			assert.Equal(t, 3, foo, "unexpected number of cookbooks foo")
