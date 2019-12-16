@@ -25,6 +25,7 @@ import (
 	"github.com/chef/chef-analyze/pkg/reporting"
 )
 
+// MakeCookbooksReportCSV generates a CSV formatted cookbooks report
 func MakeCookbooksReportCSV(state *reporting.CookbooksStatus) *FormattedResult {
 	var (
 		strBuilder strings.Builder
@@ -90,6 +91,7 @@ func MakeCookbooksReportCSV(state *reporting.CookbooksStatus) *FormattedResult {
 	return &FormattedResult{strBuilder.String(), errBuilder.String()}
 }
 
+// MakeNodesReportCSV generates a CSV formatted nodes report
 func MakeNodesReportCSV(records []*reporting.NodeReportItem) *FormattedResult {
 	var (
 		strBuilder strings.Builder

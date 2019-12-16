@@ -75,6 +75,62 @@ func TestMakeCookbooksReportCSV_WithVerifiedRecords(t *testing.T) {
 	assert.Equal(t, "", lines[2])
 }
 
+func TestMakeCookbooksReportCSV_NoFiles(t *testing.T) {
+	cbStatus := reporting.CookbooksStatus{
+		RunCookstyle: true,
+		Records: []*reporting.CookbookRecord{
+			&reporting.CookbookRecord{Name: "my-cookbook", Version: "1.0", Nodes: []string{"node-1", "node-2"},
+				Files: []reporting.CookbookFile{}}}}
+
+	actual := subject.MakeCookbooksReportCSV(&cbStatus)
+	lines := strings.Split(actual.Report, "\n")
+	assert.Equal(t, 2, len(lines))
+	assert.Equal(t, "Cookbook Name,Version,File,Offense,Automatically Correctable,Message,Nodes", lines[0])
+	assert.Equal(t, "", lines[1])
+}
+
+func TestMakeCookbooksReportCSV_NoFileOffenses(t *testing.T) {
+	cbStatus := reporting.CookbooksStatus{
+		RunCookstyle: true,
+		Records: []*reporting.CookbookRecord{
+			&reporting.CookbookRecord{Name: "my-cookbook", Version: "1.0", Nodes: []string{"node-1", "node-2"},
+				Files: []reporting.CookbookFile{
+					reporting.CookbookFile{Path: "/path/to/file.rb"}}}}}
+
+	actual := subject.MakeCookbooksReportCSV(&cbStatus)
+	lines := strings.Split(actual.Report, "\n")
+	assert.Equal(t, 2, len(lines))
+	assert.Equal(t, "Cookbook Name,Version,File,Offense,Automatically Correctable,Message,Nodes", lines[0])
+	assert.Equal(t, "", lines[1])
+}
+
+func TestMakeCookbooksReportCSV_WithMultipleRecords(t *testing.T) {
+	cbStatus := reporting.CookbooksStatus{
+		RunCookstyle: true,
+		Records: []*reporting.CookbookRecord{
+			&reporting.CookbookRecord{Name: "my-cookbook", Version: "1.0", Nodes: []string{"node-1", "node-2"},
+				Files: []reporting.CookbookFile{
+					reporting.CookbookFile{Path: "/path/to/file.rb",
+						Offenses: []reporting.CookstyleOffense{
+							reporting.CookstyleOffense{CopName: "ChefDeprecations/Blah", Message: "some description", Correctable: true},
+						}},
+					reporting.CookbookFile{Path: "/path/to/other_file.rb",
+						Offenses: []reporting.CookstyleOffense{
+							reporting.CookstyleOffense{CopName: "ChefDeprecations/Blah1", Message: "some description1", Correctable: true},
+							reporting.CookstyleOffense{CopName: "ChefDeprecations/Blah2", Message: "some description2", Correctable: false},
+						}},
+				}}}}
+
+	actual := subject.MakeCookbooksReportCSV(&cbStatus)
+	lines := strings.Split(actual.Report, "\n")
+	assert.Equal(t, 5, len(lines))
+	assert.Equal(t, "Cookbook Name,Version,File,Offense,Automatically Correctable,Message,Nodes", lines[0])
+	assert.Equal(t, "my-cookbook,1.0,/path/to/file.rb,ChefDeprecations/Blah,Y,some description,node-1 node-2", lines[1])
+	assert.Equal(t, "my-cookbook,1.0,/path/to/other_file.rb,ChefDeprecations/Blah1,Y,some description1,node-1 node-2", lines[2])
+	assert.Equal(t, "my-cookbook,1.0,/path/to/other_file.rb,ChefDeprecations/Blah2,N,some description2,node-1 node-2", lines[3])
+	assert.Equal(t, "", lines[4])
+}
+
 func TestMakeCookbooksReportCSV_ErrorReport(t *testing.T) {
 	cbStatus := reporting.CookbooksStatus{
 		Records: []*reporting.CookbookRecord{
@@ -127,6 +183,43 @@ func TestMakeNodesReportCSV_WithRecords(t *testing.T) {
 		assert.Equal(t, "Node Name,Chef Version,Operating System,Cookbooks", lines[0])
 		assert.Equal(t, "node1,12.22,windows v10.1,mycookbook(1.0)", lines[1])
 		assert.Equal(t, "node2,13.11,,mycookbook(1.0) test(9.9)", lines[2])
+		assert.Equal(t, "node3,15.00,ubuntu v16.04,None", lines[3])
+		assert.Equal(t, "", lines[4])
+	}
+}
+
+func TestMakeNodesReportCSV_WithMultipleNodesAndCookbooks(t *testing.T) {
+	nodesReport := []*reporting.NodeReportItem{
+		&reporting.NodeReportItem{Name: "node1", ChefVersion: "12.22", OS: "windows", OSVersion: "10.1",
+			CookbookVersions: []reporting.CookbookVersion{
+				reporting.CookbookVersion{Name: "mycookbook1", Version: "1.0"},
+				reporting.CookbookVersion{Name: "mycookbook1", Version: "2.0"},
+			},
+		},
+		&reporting.NodeReportItem{Name: "node1", ChefVersion: "13.10", OS: "windows", OSVersion: "10.1",
+			CookbookVersions: []reporting.CookbookVersion{
+				reporting.CookbookVersion{Name: "mycookbook1", Version: "1.0"},
+				reporting.CookbookVersion{Name: "mycookbook1", Version: "2.0"},
+			},
+		},
+		&reporting.NodeReportItem{Name: "node1", ChefVersion: "15.2", OS: "windows", OSVersion: "10.1",
+			CookbookVersions: []reporting.CookbookVersion{},
+		},
+		&reporting.NodeReportItem{Name: "node2", ChefVersion: "13.11", OS: "", OSVersion: "",
+			CookbookVersions: []reporting.CookbookVersion{
+				reporting.CookbookVersion{Name: "mycookbook", Version: "1.0"},
+				reporting.CookbookVersion{Name: "test", Version: "9.9"},
+			},
+		},
+		&reporting.NodeReportItem{Name: "node3", ChefVersion: "15.00", OS: "ubuntu", OSVersion: "16.04",
+			CookbookVersions: nil},
+	}
+
+	lines := strings.Split(subject.MakeNodesReportCSV(nodesReport).Report, "\n")
+	if assert.Equal(t, 7, len(lines)) {
+		assert.Equal(t, "Node Name,Chef Version,Operating System,Cookbooks", lines[0])
+		assert.Equal(t, "node1,12.22,windows v10.1,mycookbook1(1.0) mycookbook1(2.0)", lines[1])
+		assert.Equal(t, "node1,13.10,windows v10.1,mycookbook1(1.0) mycookbook1(2.0)", lines[2])
 		assert.Equal(t, "node3,15.00,ubuntu v16.04,None", lines[3])
 		assert.Equal(t, "", lines[4])
 	}
