@@ -19,7 +19,6 @@ package reporting
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"sync"
 
@@ -106,7 +105,7 @@ func NewCookbooks(
 	cbi CookbookInterface, searcher SearchInterface,
 	runCookstyle, onlyUnused bool, workers int,
 ) (*CookbooksStatus, error) {
-	wsDir, err := chefWorkstationDir()
+	wsDir, err := config.ChefWorkstationDir()
 	if err != nil {
 		return nil, err
 	}
@@ -325,14 +324,4 @@ func (cbs *CookbooksStatus) runCookstyleFor(cb *CookbookRecord) {
 	for _, file := range cookstyleResults.Files {
 		cb.Files = append(cb.Files, file)
 	}
-}
-
-// returns the ~/.chef-workstation directory
-// TODO @afiune move this to chef/go-libs/config
-func chefWorkstationDir() (string, error) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", errors.Wrap(err, "unable to detect home directory")
-	}
-	return filepath.Join(home, config.DefaultChefWorkstationDirectory), nil
 }

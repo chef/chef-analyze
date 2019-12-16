@@ -234,18 +234,8 @@ func init() {
 
 }
 
-// returns the ~/.chef-workstation directory
-// TODO @afiune move this to chef/go-libs/config
-func chefWorkstationDir() (string, error) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", errors.Wrap(err, "unable to detect home directory")
-	}
-	return filepath.Join(home, config.DefaultChefWorkstationDirectory), nil
-}
-
 func createOutputDirectories() error {
-	wsDir, err := chefWorkstationDir()
+	wsDir, err := config.ChefWorkstationDir()
 	if err != nil {
 		return err
 	}
@@ -271,7 +261,7 @@ func saveErrorReport(baseName string, content string) error {
 		return nil
 	}
 
-	wsDir, err := chefWorkstationDir()
+	wsDir, err := config.ChefWorkstationDir()
 	if err != nil {
 		return err
 	}
@@ -298,7 +288,7 @@ func saveReport(baseName string, ext string, content string) error {
 		return nil
 	}
 
-	wsDir, err := chefWorkstationDir()
+	wsDir, err := config.ChefWorkstationDir()
 	if err != nil {
 		return err
 	}
