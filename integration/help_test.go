@@ -25,7 +25,6 @@ import (
 
 func TestHelpCommand(t *testing.T) {
 	out, err, exitcode := ChefAnalyze("help")
-	verifyGlobalFlagsFromOutput(t, out.String())
 	assert.Contains(t,
 		out.String(),
 		"Use \"chef-analyze [command] --help\" for more information about a command.",
@@ -39,7 +38,6 @@ func TestHelpCommand(t *testing.T) {
 
 func TestHelpFlags_h(t *testing.T) {
 	out, err, exitcode := ChefAnalyze("-h")
-	verifyGlobalFlagsFromOutput(t, out.String())
 	assert.Contains(t,
 		out.String(),
 		"Use \"chef-analyze [command] --help\" for more information about a command.",
@@ -53,7 +51,6 @@ func TestHelpFlags_h(t *testing.T) {
 
 func TestHelpFlags__help(t *testing.T) {
 	out, err, exitcode := ChefAnalyze("--help")
-	verifyGlobalFlagsFromOutput(t, out.String())
 	assert.Contains(t,
 		out.String(),
 		"Use \"chef-analyze [command] --help\" for more information about a command.",
@@ -67,7 +64,6 @@ func TestHelpFlags__help(t *testing.T) {
 
 func TestHelpNoArgs(t *testing.T) {
 	out, err, exitcode := ChefAnalyze()
-	verifyGlobalFlagsFromOutput(t, out.String())
 	assert.Contains(t,
 		out.String(),
 		"Use \"chef-analyze [command] --help\" for more information about a command.",
@@ -97,7 +93,6 @@ func TestHelpCommandDisplayHelpFromUnknownCommand(t *testing.T) {
 	out, err, exitcode := ChefAnalyze("help", "foo")
 	// NOTE since this is an unknown command, we should display the help
 	// message via STDERR and not STDOUT
-	verifyGlobalFlagsFromOutput(t, err.String())
 	assert.Contains(t,
 		err.String(),
 		"Use \"chef-analyze [command] --help\" for more information about a command.",

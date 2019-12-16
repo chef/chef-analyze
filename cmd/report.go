@@ -207,6 +207,31 @@ func init() {
 		"format", "f", "txt",
 		"output format: txt is human readable, csv is machine readable",
 	)
+	reportCmd.PersistentFlags().StringVarP(
+		&globalFlags.clientName,
+		"client_name", "n", "",
+		"Chef Infra Server API client username",
+	)
+	reportCmd.PersistentFlags().StringVarP(
+		&globalFlags.clientKey,
+		"client_key", "k", "",
+		"Chef Infra Server API client key",
+	)
+	reportCmd.PersistentFlags().StringVarP(
+		&globalFlags.chefServerURL,
+		"chef_server_url", "s", "",
+		"Chef Infra Server URL",
+	)
+	reportCmd.PersistentFlags().StringVarP(
+		&globalFlags.profile,
+		"profile", "p", "default",
+		"Chef Infra Server URL",
+	)
+	reportCmd.PersistentFlags().BoolVarP(
+		&globalFlags.noSSLverify,
+		"ssl-no-verify", "o", false,
+		"Disable SSL certificate verification",
+	)
 
 	// cookbooks cmd flags
 	reportCookbooksCmd.PersistentFlags().IntVarP(

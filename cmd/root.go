@@ -58,31 +58,7 @@ func init() {
 		"credentials", "c", "",
 		"Chef credentials file (default $HOME/.chef/credentials)",
 	)
-	rootCmd.PersistentFlags().StringVarP(
-		&globalFlags.clientName,
-		"client_name", "n", "",
-		"Chef Infra Server API client username",
-	)
-	rootCmd.PersistentFlags().StringVarP(
-		&globalFlags.clientKey,
-		"client_key", "k", "",
-		"Chef Infra Server API client key",
-	)
-	rootCmd.PersistentFlags().StringVarP(
-		&globalFlags.chefServerURL,
-		"chef_server_url", "s", "",
-		"Chef Infra Server URL",
-	)
-	rootCmd.PersistentFlags().StringVarP(
-		&globalFlags.profile,
-		"profile", "p", "default",
-		"Chef Infra Server URL",
-	)
-	rootCmd.PersistentFlags().BoolVarP(
-		&globalFlags.noSSLverify,
-		"ssl-no-verify", "o", false,
-		"Disable SSL certificate verification",
-	)
+
 	// @afiune we can't use viper to bind the flags since our config doesn't really match
 	// any valid toml structure. (that is, the .chef/credentials toml file)
 	//
@@ -96,6 +72,8 @@ func init() {
 	rootCmd.AddCommand(reportCmd)
 	// adds the config command from 'cmd/config.go'
 	rootCmd.AddCommand(configCmd)
+	// adds the upload command from 'cmd/upload.go'
+	rootCmd.AddCommand(uploadCmd)
 }
 
 func initConfig() {
