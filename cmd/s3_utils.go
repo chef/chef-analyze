@@ -92,7 +92,7 @@ func GetSessionToken(minDuration int64) error {
 	fmt.Printf("A new session has been created and will be active for %d minutes\n\n", minDuration)
 	fmt.Println(result)
 	fmt.Println()
-	fmt.Println("Share these environment variables with a user that desires to upload files to Chef Software:\n")
+	fmt.Printf("Share these environment variables with a user that desires to upload files to Chef Software:\n\n")
 	fmt.Printf("export AWS_ACCESS_KEY_ID=\"%s\"\n", *result.Credentials.AccessKeyId)
 	fmt.Printf("export AWS_SECRET_ACCESS_KEY=\"%s\"\n", *result.Credentials.SecretAccessKey)
 	fmt.Printf("export AWS_SESSION_TOKEN=\"%s\"\n", *result.Credentials.SessionToken)

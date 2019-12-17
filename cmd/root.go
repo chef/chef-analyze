@@ -27,14 +27,6 @@ import (
 )
 
 var (
-	globalFlags struct {
-		credsFile     string
-		clientName    string
-		clientKey     string
-		chefServerURL string
-		profile       string
-		noSSLverify   bool
-	}
 	rootCmd = &cobra.Command{
 		Use:   "chef-analyze",
 		Short: "A CLI to analyze artifacts from a Chef Infra Server",
@@ -51,13 +43,6 @@ func Execute() error {
 
 func init() {
 	cobra.OnInitialize(initConfig)
-
-	// Global flags
-	rootCmd.PersistentFlags().StringVarP(
-		&globalFlags.credsFile,
-		"credentials", "c", "",
-		"Chef credentials file (default $HOME/.chef/credentials)",
-	)
 
 	// @afiune we can't use viper to bind the flags since our config doesn't really match
 	// any valid toml structure. (that is, the .chef/credentials toml file)
@@ -79,9 +64,9 @@ func init() {
 }
 
 func initConfig() {
-	if globalFlags.credsFile != "" {
+	if reportsFlags.credsFile != "" {
 		// Use credentials file from the flag
-		viper.SetConfigFile(globalFlags.credsFile)
+		viper.SetConfigFile(reportsFlags.credsFile)
 	} else {
 		// Find the credentials and pass it to viper
 		credsFile, err := credentials.FindCredentialsFile()
@@ -94,7 +79,7 @@ func initConfig() {
 			viper.SetConfigFile(credsFile)
 		} else {
 
-			if !hasMinimumParams() && !isHelpCommand() {
+			if !hasMinimumParams() && isReportCommand() {
 				fmt.Printf("Error: %s\n", MissingMinimumParametersErr)
 				rootCmd.Usage()
 				os.Exit(-1)
@@ -111,12 +96,21 @@ func initConfig() {
 // this tool to work, with or without credentials config
 // TODO @afiune revisit
 func hasMinimumParams() bool {
-	if globalFlags.chefServerURL != "" &&
-		globalFlags.clientName != "" &&
-		globalFlags.clientKey != "" {
+	if reportsFlags.chefServerURL != "" &&
+		reportsFlags.clientName != "" &&
+		reportsFlags.clientKey != "" {
 		return true
 	}
 
+	return false
+}
+func isReportCommand() bool {
+	if len(os.Args) <= 1 {
+		return false
+	}
+	if os.Args[1] == "report" {
+		return true
+	}
 	return false
 }
 func isHelpCommand() bool {
@@ -132,14 +126,14 @@ func isHelpCommand() bool {
 // overrides the credentials from the viper bound flags
 func overrideCredentials() credentials.OverrideFunc {
 	return func(c *credentials.Credentials) {
-		if globalFlags.clientName != "" {
-			c.ClientName = globalFlags.clientName
+		if reportsFlags.clientName != "" {
+			c.ClientName = reportsFlags.clientName
 		}
-		if globalFlags.clientKey != "" {
-			c.ClientKey = globalFlags.clientKey
+		if reportsFlags.clientKey != "" {
+			c.ClientKey = reportsFlags.clientKey
 		}
-		if globalFlags.chefServerURL != "" {
-			c.ChefServerUrl = globalFlags.chefServerURL
+		if reportsFlags.chefServerURL != "" {
+			c.ChefServerUrl = reportsFlags.chefServerURL
 		}
 	}
 }
