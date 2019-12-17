@@ -23,12 +23,12 @@ import (
 
 var (
 	uploadCmd = &cobra.Command{
-		Use:   "upload [AWS_CREDS_FILE] [S3_BUCKET] [FILE_NAME]",
-		Short: "Uploads files to an S3 bucket",
-		Args:  cobra.ExactArgs(3),
+		Use:   "upload [LOCATION] [FILE_NAME]",
+		Short: "Upload a file to Chef Software",
+		Args:  cobra.ExactArgs(2),
 		RunE: func(_ *cobra.Command, args []string) error {
-			// cobra will make sure we always have exactly 3 arguments
-			return UploadToS3(args[0], args[1], args[2])
+			// cobra will make sure we always have exactly 2 arguments
+			return UploadToS3(args[0], args[1])
 		},
 	}
 )
