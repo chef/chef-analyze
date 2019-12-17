@@ -15,6 +15,8 @@ github.com/chef/go-chef v0.0.0-20191115205148-7ac24fba7a27 h1:XGQlXv6Gwd2+tBBXrp
 github.com/chef/go-chef v0.0.0-20191115205148-7ac24fba7a27/go.mod h1:ft8oU7s0ktse9xzZO4n8wxTz6EKx+V+fuhYxktqXvG8=
 github.com/chef/go-libs v0.0.0-20191113223254-d2a05fa5636d h1:0w673WjR7dQUn1wcNKhMKfQ06GQQvik6uYdcwaWINsg=
 github.com/chef/go-libs v0.0.0-20191113223254-d2a05fa5636d/go.mod h1:aGHwP5PXYdD0hVq+jodILnSqB/b04EhS/XCoqhE2PrA=
+github.com/chef/go-libs v0.0.0-20191216182352-aa2fc405b05f h1:kBujwkOBM7smuh1xCKHrUTdkZbNC0IH30zzDmTNYp8U=
+github.com/chef/go-libs v0.0.0-20191216182352-aa2fc405b05f/go.mod h1:aGHwP5PXYdD0hVq+jodILnSqB/b04EhS/XCoqhE2PrA=
 github.com/cheggaaa/pb/v3 v3.0.2 h1:/u+zw5RBzW1CxRpVIqrZv4PpZpN+yaRPdsRORKyDjv4=
 github.com/cheggaaa/pb/v3 v3.0.2/go.mod h1:SqqeMF/pMOIu3xgGoxtPYhMNQP258xE4x/XRTYua+KU=
 github.com/cheggaaa/pb/v3 v3.0.3 h1:8WApbyUmgMOz7WIxJVNK0IRDcRfAmTxcEdi0TuxjdP4=

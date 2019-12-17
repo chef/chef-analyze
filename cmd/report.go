@@ -24,6 +24,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/chef/go-libs/config"
 	"github.com/chef/go-libs/credentials"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -32,21 +33,19 @@ import (
 	"github.com/chef/chef-analyze/pkg/reporting"
 )
 
-// TODO @afiune make this configurable
 const (
-	AnalyzeCacheDir  = ".analyze-cache"
-	repNameCookbooks = "cookbooks"
-	repNameNodes     = "nodes"
-	ErrExt           = "err"
-	TxtExt           = "txt"
-	CsvExt           = "csv"
+	analyzeReportsDir = "reports" // Used for $HOME/.chef-workstation/reports
+	analyzeErrorsDir  = "errors"  // Used for $HOME/.chef-workstation/errors
+	repNameCookbooks  = "cookbooks"
+	repNameNodes      = "nodes"
+	ErrExt            = "err"
+	TxtExt            = "txt"
+	CsvExt            = "csv"
 )
 
 var (
-	timestamp  = time.Now().Format("20060102150405")
-	reportsDir = filepath.Join(AnalyzeCacheDir, "reports")
-	errorsDir  = filepath.Join(AnalyzeCacheDir, "errors")
-	reportCmd  = &cobra.Command{
+	timestamp = time.Now().Format("20060102150405")
+	reportCmd = &cobra.Command{
 		Use:   "report",
 		Short: "Generate reports from a Chef Infra Server",
 	}
@@ -236,13 +235,23 @@ func init() {
 }
 
 func createOutputDirectories() error {
-	err := os.MkdirAll(errorsDir, os.ModePerm)
+	wsDir, err := config.ChefWorkstationDir()
 	if err != nil {
-		return errors.Wrap(err, "unable to create reports/ directory")
+		return err
 	}
+
+	var (
+		reportsDir = filepath.Join(wsDir, analyzeReportsDir)
+		errorsDir  = filepath.Join(wsDir, analyzeErrorsDir)
+	)
+
 	err = os.MkdirAll(reportsDir, os.ModePerm)
 	if err != nil {
-		return errors.Wrap(err, "unable to create errors/ directory")
+		return errors.Wrapf(err, "unable to create %s/ directory", analyzeReportsDir)
+	}
+	err = os.MkdirAll(errorsDir, os.ModePerm)
+	if err != nil {
+		return errors.Wrapf(err, "unable to create %s/ directory", analyzeErrorsDir)
 	}
 	return nil
 }
@@ -252,11 +261,17 @@ func saveErrorReport(baseName string, content string) error {
 		return nil
 	}
 
+	wsDir, err := config.ChefWorkstationDir()
+	if err != nil {
+		return err
+	}
+
 	var (
-		reportName      = fmt.Sprintf("%s-%s.%s", baseName, timestamp, "err")
-		reportPath      = filepath.Join(errorsDir, reportName)
-		reportFile, err = os.Create(reportPath)
+		errorsDir  = filepath.Join(wsDir, analyzeErrorsDir)
+		reportName = fmt.Sprintf("%s-%s.%s", baseName, timestamp, "err")
+		reportPath = filepath.Join(errorsDir, reportName)
 	)
+	reportFile, err := os.Create(reportPath)
 	if err != nil {
 		return errors.Wrap(err, "unable to save errors report")
 	}
@@ -273,11 +288,17 @@ func saveReport(baseName string, ext string, content string) error {
 		return nil
 	}
 
+	wsDir, err := config.ChefWorkstationDir()
+	if err != nil {
+		return err
+	}
+
 	var (
-		reportName      = fmt.Sprintf("%s-%s.%s", baseName, timestamp, ext)
-		reportPath      = filepath.Join(reportsDir, reportName)
-		reportFile, err = os.Create(reportPath) // create a new report file
+		reportsDir = filepath.Join(wsDir, analyzeReportsDir)
+		reportName = fmt.Sprintf("%s-%s.%s", baseName, timestamp, ext)
+		reportPath = filepath.Join(reportsDir, reportName)
 	)
+	reportFile, err := os.Create(reportPath) // create a new report file
 	if err != nil {
 		return errors.Wrapf(err, "unable to save %s report", baseName)
 	}
