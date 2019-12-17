@@ -74,6 +74,8 @@ func init() {
 	rootCmd.AddCommand(configCmd)
 	// adds the upload command from 'cmd/upload.go'
 	rootCmd.AddCommand(uploadCmd)
+	// adds the session command from 'cmd/session.go'
+	rootCmd.AddCommand(sessionCmd)
 }
 
 func initConfig() {

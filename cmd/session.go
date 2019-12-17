@@ -18,17 +18,25 @@
 package cmd
 
 import (
+	"strconv"
+
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
 var (
-	uploadCmd = &cobra.Command{
-		Use:   "upload [LOCATION] [FILE]",
-		Short: "Upload a file to Chef Software",
-		Args:  cobra.ExactArgs(2),
+	sessionCmd = &cobra.Command{
+		Use:    "session [MINUTES]",
+		Hidden: true,
+		Short:  "Creates new access credentials to upload files to Chef Software",
+		Args:   cobra.ExactArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
-			// cobra will make sure we always have exactly 2 arguments
-			return UploadToS3(args[0], args[1])
+			min, err := strconv.ParseInt(args[0], 10, 64)
+			if err != nil {
+				return errors.Wrapf(err,
+					"unable to use '%s' as the session duration in minutes.", args[0])
+			}
+			return GetSessionToken(min)
 		},
 	}
 )

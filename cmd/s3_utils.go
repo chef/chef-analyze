@@ -26,6 +26,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/cheggaaa/pb/v3"
 )
 
@@ -48,7 +49,7 @@ func UploadToS3(bucket, filePath string) error {
 	}
 
 	// Load the default credential chain. Such as the environment,
-	// shared credentials (~/.aws/credentials), or EC2 Instance Role.
+	// shared credentials (~/.aws/credentials), or EC2 Instance Role
 	awsSession := session.Must(session.NewSession(&aws.Config{
 		Region: aws.String(region),
 	}))
@@ -56,7 +57,7 @@ func UploadToS3(bucket, filePath string) error {
 	var (
 		fileName = path.Base(filePath)
 		uploader = s3manager.NewUploader(awsSession)
-		progress = pb.New(int(fileInfo.Size()))
+		progress = pb.StartNew(int(fileInfo.Size()))
 		reader   = progress.NewProxyReader(file)
 	)
 
@@ -71,5 +72,29 @@ func UploadToS3(bucket, filePath string) error {
 
 	progress.Finish()
 	fmt.Printf("File uploaded to %s/%s\n", bucket, fileName)
+	return nil
+}
+
+func GetSessionToken(minDuration int64) error {
+	var (
+		awsSession = session.Must(session.NewSession())
+		svc        = sts.New(awsSession)
+		input      = &sts.GetSessionTokenInput{
+			DurationSeconds: aws.Int64(minDuration * 60),
+		}
+	)
+
+	result, err := svc.GetSessionToken(input)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("A new session has been created and will be active for %d minutes\n\n", minDuration)
+	fmt.Println(result)
+	fmt.Println()
+	fmt.Println("Share these environment variables with a user that desires to upload files to Chef Software:\n")
+	fmt.Printf("export AWS_ACCESS_KEY_ID=\"%s\"\n", *result.Credentials.AccessKeyId)
+	fmt.Printf("export AWS_SECRET_ACCESS_KEY=\"%s\"\n", *result.Credentials.SecretAccessKey)
+	fmt.Printf("export AWS_SESSION_TOKEN=\"%s\"\n", *result.Credentials.SessionToken)
 	return nil
 }
