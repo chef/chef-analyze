@@ -77,7 +77,24 @@ func TestHelpNoArgs(t *testing.T) {
 
 func TestHelpCommandDisplayHelpFromCommand(t *testing.T) {
 	out, err, exitcode := ChefAnalyze("help", "report")
-	verifyGlobalFlagsFromOutput(t, out.String())
+	assert.Contains(t, out.String(),
+		"--chef_server_url",
+		"STDOUT chef_server_url flag doesn't exist")
+	assert.Contains(t, out.String(),
+		"--client_key",
+		"STDOUT client_key flag doesn't exist")
+	assert.Contains(t, out.String(),
+		"--client_name",
+		"STDOUT client_name flag doesn't exist")
+	assert.Contains(t, out.String(),
+		"--credentials",
+		"STDOUT credentials flag doesn't exist")
+	assert.Contains(t, out.String(),
+		"--help",
+		"STDOUT help flag doesn't exist")
+	assert.Contains(t, out.String(),
+		"--profile",
+		"STDOUT profile flag doesn't exist")
 	assert.Contains(t,
 		out.String(),
 		"chef-analyze report [command]",
@@ -102,27 +119,4 @@ func TestHelpCommandDisplayHelpFromUnknownCommand(t *testing.T) {
 		"STDOUT should be empty")
 	assert.Equal(t, 0, exitcode,
 		"EXITCODE is not the expected one")
-}
-
-// verify global flags from either STDOUT or STDERR
-// this is just to NOT duplicate code in multiple tests
-func verifyGlobalFlagsFromOutput(t *testing.T, stdout string) {
-	assert.Contains(t, stdout,
-		"--chef_server_url",
-		"STDOUT chef_server_url flag doesn't exist")
-	assert.Contains(t, stdout,
-		"--client_key",
-		"STDOUT client_key flag doesn't exist")
-	assert.Contains(t, stdout,
-		"--client_name",
-		"STDOUT client_name flag doesn't exist")
-	assert.Contains(t, stdout,
-		"--credentials",
-		"STDOUT credentials flag doesn't exist")
-	assert.Contains(t, stdout,
-		"--help",
-		"STDOUT help flag doesn't exist")
-	assert.Contains(t, stdout,
-		"--profile",
-		"STDOUT profile flag doesn't exist")
 }
