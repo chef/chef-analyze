@@ -63,7 +63,7 @@ provided when the report is generated.
 `,
 		RunE: func(_ *cobra.Command, _ []string) error {
 			creds, err := credentials.FromViper(
-				globalFlags.profile,
+				reportsFlags.profile,
 				overrideCredentials(),
 			)
 
@@ -77,7 +77,7 @@ provided when the report is generated.
 			}
 
 			cfg := &reporting.Reporting{Credentials: creds}
-			if globalFlags.noSSLverify {
+			if reportsFlags.noSSLverify {
 				cfg.NoSSLVerify = true
 			}
 
@@ -132,7 +132,7 @@ provided when the report is generated.
 		Args:  cobra.NoArgs,
 		RunE: func(_ *cobra.Command, _ []string) error {
 			creds, err := credentials.FromViper(
-				globalFlags.profile,
+				reportsFlags.profile,
 				overrideCredentials(),
 			)
 
@@ -146,7 +146,7 @@ provided when the report is generated.
 			}
 
 			cfg := &reporting.Reporting{Credentials: creds}
-			if globalFlags.noSSLverify {
+			if reportsFlags.noSSLverify {
 				cfg.NoSSLVerify = true
 			}
 
@@ -196,16 +196,53 @@ provided when the report is generated.
 		workers      int
 	}
 	reportsFlags struct {
-		format string
+		credsFile     string
+		clientName    string
+		clientKey     string
+		chefServerURL string
+		profile       string
+		noSSLverify   bool
+		format        string
 	}
 )
 
 func init() {
 	// global report commands flags
 	reportCmd.PersistentFlags().StringVarP(
+		&reportsFlags.credsFile,
+		"credentials", "c", "",
+		"Chef credentials file (default $HOME/.chef/credentials)",
+	)
+
+	reportCmd.PersistentFlags().StringVarP(
 		&reportsFlags.format,
 		"format", "f", "txt",
 		"output format: txt is human readable, csv is machine readable",
+	)
+	reportCmd.PersistentFlags().StringVarP(
+		&reportsFlags.clientName,
+		"client_name", "n", "",
+		"Chef Infra Server API client username",
+	)
+	reportCmd.PersistentFlags().StringVarP(
+		&reportsFlags.clientKey,
+		"client_key", "k", "",
+		"Chef Infra Server API client key",
+	)
+	reportCmd.PersistentFlags().StringVarP(
+		&reportsFlags.chefServerURL,
+		"chef_server_url", "s", "",
+		"Chef Infra Server URL",
+	)
+	reportCmd.PersistentFlags().StringVarP(
+		&reportsFlags.profile,
+		"profile", "p", "default",
+		"Chef Infra Server URL",
+	)
+	reportCmd.PersistentFlags().BoolVarP(
+		&reportsFlags.noSSLverify,
+		"ssl-no-verify", "o", false,
+		"Disable SSL certificate verification",
 	)
 
 	// cookbooks cmd flags
