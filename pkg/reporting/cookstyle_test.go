@@ -21,7 +21,6 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -66,7 +65,9 @@ func TestCookstyleRunnerWithBinstubs(t *testing.T) {
 
 	runner := subject.NewCookstyleRunner()
 	assert.Equal(t,
-		[]string{"--format", "json", "--only", "ChefDeprecations,ChefCorrectness"}, runner.Opts,
+		[]string{"--format", "json",
+			"--only", "ChefDeprecations,ChefCorrectness"},
+		runner.Opts,
 		"default cookstyle options need to be updated",
 	)
 
@@ -108,31 +109,4 @@ func TestCookstyleRunnerWithBinstubs(t *testing.T) {
 			"wrong Stderr, check either the binstub or the Go code for validation",
 		)
 	}
-}
-
-// returns the binstubs/ directory path
-func binstubsDir() string {
-	pwd, err := os.Getwd()
-	if err != nil {
-		panic(err)
-	}
-
-	return filepath.Join(pwd, "..", "..", "binstubs")
-}
-
-// setups up the binstubs directory at the front of the PATH environment
-// environment and returns the previous value so that callers can set
-// it back to its original value
-//
-// example:
-//
-// ```go
-// savedPath := setupBinstubsDir()
-// defer os.Setenv("PATH", savedPath)
-// ```
-func setupBinstubsDir() string {
-	pathEnv := os.Getenv("PATH")
-	newPathEnv := binstubsDir() + ":" + pathEnv
-	os.Setenv("PATH", newPathEnv)
-	return pathEnv
 }

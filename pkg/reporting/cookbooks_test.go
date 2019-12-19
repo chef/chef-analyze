@@ -216,6 +216,7 @@ func TestCookbooksNotUsedDisplayOnlyUnused(t *testing.T) {
 func TestCookbooks(t *testing.T) {
 	savedPath := setupBinstubsDir()
 	defer os.Setenv("PATH", savedPath)
+	defer os.RemoveAll(createConfigToml(t))
 
 	cookbookList := chef.CookbookListResult{
 		"foo": chef.CookbookVersions{
@@ -257,9 +258,8 @@ func TestCookbooks(t *testing.T) {
 				default:
 					t.Fatal("unexpected cookbook name")
 				}
-				// TODO @afiune uncomment when CookbookMock DownloadTo() creates a local dir
-				//assert.Emptyf(t, rec.Errors(),
-				//"there should not be any errors for %s-%s", rec.Name, rec.Version)
+				assert.Emptyf(t, rec.Errors(),
+					"there should not be any errors for %s-%s", rec.Name, rec.Version)
 			}
 
 			assert.Equal(t, 3, foo, "unexpected number of cookbooks foo")
@@ -317,6 +317,7 @@ func TestCookbooks_NoneAvailable(t *testing.T) {
 func TestCookbooks_DownloadErrors(t *testing.T) {
 	savedPath := setupBinstubsDir()
 	defer os.Setenv("PATH", savedPath)
+	defer os.RemoveAll(createConfigToml(t))
 
 	cookbookList := chef.CookbookListResult{
 		"foo": chef.CookbookVersions{
@@ -374,8 +375,7 @@ func TestCookbooks_UsageStatErrors(t *testing.T) {
 			for _, rec := range c.Records {
 				assert.NoError(t, rec.DownloadError, "unexpected DownloadError")
 				assert.EqualError(t, rec.UsageLookupError, "unable to get cookbook usage information: lookup error")
-				// TODO cookstyle returns error since we don't actually download a cookbook
-				// assert.NoError(t, rec.CookstyleError, "unexpected UsageLookupError")
+				assert.NoError(t, rec.CookstyleError, "unexpected UsageLookupError")
 			}
 		}
 	}
