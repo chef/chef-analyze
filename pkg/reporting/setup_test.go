@@ -28,10 +28,10 @@ func TestMain(m *testing.M) {
 	// store previous home directory
 	oldHome := os.Getenv("HOME")
 
-	// create a temporal directory and use it as a mocked home directory
+	// create a temporary directory and use it as a mocked home directory
 	tmpHome, err := ioutil.TempDir("", "mock-home")
 	if err != nil {
-		panic("unable to create a temporal directory")
+		panic("unable to create a temporary directory")
 	}
 	os.Setenv("HOME", tmpHome)
 
@@ -41,7 +41,7 @@ func TestMain(m *testing.M) {
 	// setup the previous home directory
 	os.Setenv("HOME", oldHome)
 
-	// remove the temporal home directory
+	// remove the temporary home directory
 	os.RemoveAll(tmpHome)
 
 	os.Exit(exitCode)
