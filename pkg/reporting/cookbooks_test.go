@@ -19,6 +19,7 @@ package reporting_test
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"testing"
 
@@ -397,4 +398,81 @@ func TestCookbookRecord_ErrorsWhenEmpty(t *testing.T) {
 	var cr subject.CookbookRecord
 	errors := cr.Errors()
 	assert.Equal(t, len(errors), 0)
+}
+
+func TestCookbooks_withCookstyleError(t *testing.T) {
+	defer os.RemoveAll(createConfigToml(t))
+	cookbookList := chef.CookbookListResult{
+		"foo": chef.CookbookVersions{
+			Versions: []chef.CookbookVersion{
+				chef.CookbookVersion{Version: "0.1.0"},
+				chef.CookbookVersion{Version: "0.2.0"},
+				chef.CookbookVersion{Version: "0.3.0"},
+			},
+		},
+		"bar": chef.CookbookVersions{
+			Versions: []chef.CookbookVersion{
+				chef.CookbookVersion{Version: "0.1.0"},
+			},
+		},
+	}
+	c, err := subject.NewCookbooks(
+		newMockCookbook(cookbookList, nil, nil),
+		makeMockSearch(mockedNodesSearchRows(), nil),
+		true,
+		false,
+		Workers,
+	)
+	assert.Nil(t, err)
+	if assert.NotNil(t, c) {
+		assert.Equal(t, 4, c.TotalCookbooks)
+		if assert.Equal(t, 4, len(c.Records)) {
+			for _, rec := range c.Records {
+				allErrors := rec.Errors()
+				if assert.Equal(t, 1, len(allErrors)) {
+					assert.Contains(t, allErrors[0].Error(), "\"cookstyle\": executable file not found")
+				}
+			}
+		}
+	}
+}
+
+func TestCookbooks_withHeavyLoad(t *testing.T) {
+	savedPath := setupBinstubsDir()
+	defer os.Setenv("PATH", savedPath)
+	defer os.RemoveAll(createConfigToml(t))
+
+	totalCookbooks := 500
+	cookbookList := chef.CookbookListResult{}
+	for i := 0; i < totalCookbooks; i++ {
+		cookbookList[fmt.Sprintf("foo%d", i)] = chef.CookbookVersions{
+			Versions: []chef.CookbookVersion{
+				chef.CookbookVersion{Version: "0.1.0"},
+				chef.CookbookVersion{Version: "0.2.0"},
+				chef.CookbookVersion{Version: "0.3.0"},
+			},
+		}
+	}
+
+	assert.Equal(t, totalCookbooks, len(cookbookList))
+
+	c, err := subject.NewCookbooks(
+		newMockCookbook(cookbookList, nil, nil),
+		makeMockSearch(mockedNodesSearchRows(), nil),
+		true,
+		false,
+		Workers,
+	)
+	assert.Nil(t, err)
+	if assert.NotNil(t, c) {
+		// we should have a total of three times the number of totalCookbooks
+		// since every cookbook contains three versions
+		assert.Equal(t, totalCookbooks*3, c.TotalCookbooks)
+		if assert.Equal(t, totalCookbooks*3, len(c.Records)) {
+			for _, rec := range c.Records {
+				assert.Emptyf(t, rec.Errors(),
+					"there should not be any errors for %s-%s", rec.Name, rec.Version)
+			}
+		}
+	}
 }
