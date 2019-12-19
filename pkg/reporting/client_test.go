@@ -18,6 +18,9 @@ package reporting_test
 
 import (
 	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
 
 	chef "github.com/chef/go-chef"
 )
@@ -45,12 +48,13 @@ func (cm CookbookMock) ListAvailableVersions(limit string) (chef.CookbookListRes
 }
 
 func (cm CookbookMock) DownloadTo(name, version, localDir string) error {
-	// TODO @afiune this will create the mocked local directory so that we can run cookstyle
-	//dirToMock := filepath.Join(localDir, fmt.Sprintf("%s-%s", name, version))
-	//err := os.MkdirAll(dirToMock, os.ModePerm)
-	//if err != nil {
-	//panic(err)
-	//}
+	var (
+		dirToMock = filepath.Join(localDir, fmt.Sprintf("%s-%s", name, version))
+		err       = os.MkdirAll(dirToMock, os.ModePerm)
+	)
+	if err != nil {
+		panic(err)
+	}
 	return cm.desiredDownloadError
 }
 
