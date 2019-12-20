@@ -93,8 +93,13 @@ func GetSessionToken(minDuration int64) error {
 	fmt.Println(result)
 	fmt.Println()
 	fmt.Printf("Share these environment variables with a user that desires to upload files to Chef Software:\n\n")
+	fmt.Printf("* Unix systems:\n")
 	fmt.Printf("export AWS_ACCESS_KEY_ID=\"%s\"\n", *result.Credentials.AccessKeyId)
 	fmt.Printf("export AWS_SECRET_ACCESS_KEY=\"%s\"\n", *result.Credentials.SecretAccessKey)
 	fmt.Printf("export AWS_SESSION_TOKEN=\"%s\"\n", *result.Credentials.SessionToken)
+	fmt.Printf("\n* Windows systems:\n")
+	fmt.Printf("$Env:AWS_ACCESS_KEY_ID = \"%s\"\n", *result.Credentials.AccessKeyId)
+	fmt.Printf("$Env:AWS_SECRET_ACCESS_KEY = \"%s\"\n", *result.Credentials.SecretAccessKey)
+	fmt.Printf("$Env:AWS_SESSION_TOKEN = \"%s\"\n", *result.Credentials.SessionToken)
 	return nil
 }
