@@ -6,6 +6,9 @@
 results/
 coverage/
 
+# VScode
+.vscode
+
 # mac
 .DS_Store
 
