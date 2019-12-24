@@ -1,9 +1,9 @@
 $pkg_name="chef-analyze"
 $pkg_origin="chef"
-$pkg_description="Chef Inventory analyzer command line interface (CLI)"
+$pkg_description="A CLI to analyze artifacts from a Chef Infra Server"
 $pkg_maintainer="Chef Software Inc. <support@chef.io>"
 $pkg_bin_dirs=@("bin")
-$pkg_deps=@("core/go")
+$pkg_build_deps=@("core/go")
 
 function pkg_version {
   Get-Content "$SRC_PATH/VERSION"
