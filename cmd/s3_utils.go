@@ -21,14 +21,20 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/aws/aws-sdk-go/service/sts"
+	"github.com/chef/go-libs/config"
 	"github.com/cheggaaa/pb/v3"
+	"github.com/pkg/errors"
 )
+
+const analyzeTokensDir = "tokens" // Used for $HOME/.chef-workstation/tokens
 
 func UploadToS3(bucket, filePath string) error {
 	file, err := os.Open(filePath)
@@ -89,17 +95,77 @@ func GetSessionToken(minDuration int64) error {
 		return err
 	}
 
-	fmt.Printf("A new session has been created and will be active for %d minutes\n\n", minDuration)
-	fmt.Println(result)
-	fmt.Println()
+	fmt.Printf("A new session has been created and will be active for %d minutes.\n", minDuration)
 	fmt.Printf("Share these environment variables with a user that desires to upload files to Chef Software:\n\n")
-	fmt.Printf("* Unix systems:\n")
-	fmt.Printf("export AWS_ACCESS_KEY_ID=\"%s\"\n", *result.Credentials.AccessKeyId)
-	fmt.Printf("export AWS_SECRET_ACCESS_KEY=\"%s\"\n", *result.Credentials.SecretAccessKey)
-	fmt.Printf("export AWS_SESSION_TOKEN=\"%s\"\n", *result.Credentials.SessionToken)
-	fmt.Printf("\n* Windows systems:\n")
-	fmt.Printf("$Env:AWS_ACCESS_KEY_ID = \"%s\"\n", *result.Credentials.AccessKeyId)
-	fmt.Printf("$Env:AWS_SECRET_ACCESS_KEY = \"%s\"\n", *result.Credentials.SecretAccessKey)
-	fmt.Printf("$Env:AWS_SESSION_TOKEN = \"%s\"\n", *result.Credentials.SessionToken)
+	fmt.Printf("* Unix systems:\n%s", awsCredentialsToUnixVariables(result))
+	fmt.Printf("\n* Windows systems:\n%s\n", awsCredentialsToPowershellVariables(result))
+	return saveSessionToken(result, minDuration)
+}
+
+func saveSessionToken(token *sts.GetSessionTokenOutput, min int64) error {
+	if token == nil {
+		return nil
+	}
+
+	wsDir, err := config.ChefWorkstationDir()
+	if err != nil {
+		return err
+	}
+
+	var (
+		tokensDir    = filepath.Join(wsDir, analyzeTokensDir)
+		timestamp    = time.Now().Format("20060102150405")
+		tokenName    = fmt.Sprintf("token-%dm-%s", min, timestamp)
+		sessionToken = filepath.Join(tokensDir, tokenName)
+		shFileName   = filepath.Join(tokensDir, fmt.Sprintf("%s.sh", tokenName))
+		ps1FileName  = filepath.Join(tokensDir, fmt.Sprintf("%s.ps1", tokenName))
+	)
+	err = os.MkdirAll(tokensDir, os.ModePerm)
+	if err != nil {
+		return errors.Wrapf(err, "unable to create %s/ directory", analyzeTokensDir)
+	}
+
+	sessionFile, err := os.Create(sessionToken)
+	if err != nil {
+		return errors.Wrap(err, "unable to save session token")
+	}
+	sessionFile.WriteString(token.String())
+	sessionFile.Close()
+	fmt.Printf("Token payload saved to %s\n", sessionToken)
+
+	shFile, err := os.Create(shFileName)
+	if err != nil {
+		return errors.Wrap(err, "unable to save .sh file")
+	}
+	shFile.WriteString(awsCredentialsToUnixVariables(token))
+	shFile.Close()
+	fmt.Printf("Unix shell file saved to %s\n", shFileName)
+
+	ps1File, err := os.Create(ps1FileName)
+	if err != nil {
+		return errors.Wrap(err, "unable to save .ps1 file")
+	}
+	ps1File.WriteString(awsCredentialsToPowershellVariables(token))
+	ps1File.Close()
+	fmt.Printf("Powershell file saved to %s\n", ps1FileName)
+
 	return nil
+}
+
+func awsCredentialsToUnixVariables(token *sts.GetSessionTokenOutput) string {
+	if token == nil {
+		return ""
+	}
+	return fmt.Sprintf(
+		"export AWS_ACCESS_KEY_ID=\"%s\"\nexport AWS_SECRET_ACCESS_KEY=\"%s\"\nexport AWS_SESSION_TOKEN=\"%s\"\n",
+		*token.Credentials.AccessKeyId, *token.Credentials.SecretAccessKey, *token.Credentials.SessionToken)
+}
+
+func awsCredentialsToPowershellVariables(token *sts.GetSessionTokenOutput) string {
+	if token == nil {
+		return ""
+	}
+	return fmt.Sprintf(
+		"$Env:AWS_ACCESS_KEY_ID = \"%s\"\n$Env:AWS_SECRET_ACCESS_KEY = \"%s\"\n$Env:AWS_SESSION_TOKEN = \"%s\"\n",
+		*token.Credentials.AccessKeyId, *token.Credentials.SecretAccessKey, *token.Credentials.SessionToken)
 }
