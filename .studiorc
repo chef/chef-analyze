@@ -13,6 +13,15 @@ coverage_html="coverage/coverage.html"
 # switch all go commands to use the vendor/ directory
 export GOFLAGS="-mod=vendor"
 
+# Specify where to put 'go installed' binaries
+export GOBIN=/src/bin
+
+# Make 'go installed' binaries available in the PATH
+export PATH="$GOBIN:$PATH"
+
+document "build_cross_platform" <<DOC
+  Build the $pkg_name binary for all supported platforms
+DOC
 function build_cross_platform() {
   install_if_missing core/go go
   install_if_missing core/gox gox
@@ -23,6 +32,20 @@ function build_cross_platform() {
   )
 }
 
+document "update_deps" <<DOC
+  Install and/or update one or all Go dependencies
+
+  By default, running only 'update_deps' will update all the Go
+  dependencies to the latest available version.
+
+  Example 1: Install a new Go dependency
+  --------------------------------------
+  update_deps github.com/go-delve/delve
+
+  Example 2: Update a single dependency
+  -------------------------------------
+  update_deps github.com/chef/go-libs@master
+DOC
 function update_deps() {
   install_if_missing core/go go
   install_if_missing core/git git
@@ -32,7 +55,9 @@ function update_deps() {
   )
 }
 
-# run unit tests
+document "unit_tests" <<DOC
+  Run unit tests (go-based)
+DOC
 function unit_tests() {
   install_if_missing core/go go
   install_if_missing core/gcc gcc
@@ -48,7 +73,9 @@ function unit_tests() {
   )
 }
 
-# run unit tests plus code coverage information
+document "code_coverage" <<DOC
+  Verify the code coverage of this repository (unit tests based)
+DOC
 function code_coverage() {
   ( cd /src || return 1
     mkdir -p coverage/
@@ -72,7 +99,7 @@ function integration_tests() {
 
   log_line "Running integration tests (github.com/chef/chef-analyze/integration)"
   ( cd /src || return 1
-    PATH="/src/bin:$PATH" go test github.com/chef/chef-analyze/integration -v
+    go test github.com/chef/chef-analyze/integration -v
   )
 }
 
