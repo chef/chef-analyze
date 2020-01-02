@@ -26,6 +26,7 @@ import (
 
 	"github.com/chef/go-libs/config"
 	"github.com/chef/go-libs/credentials"
+	"github.com/cheggaaa/pb/v3"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
@@ -87,17 +88,33 @@ provided when the report is generated.
 				return err
 			}
 
-			cookbooksState, err := reporting.GenerateCookbooksReport(
+			fmt.Printf("Finding available cookbooks...")
+			cookbooksState, err := reporting.NewCookbooksReport(
 				chefClient.Cookbooks,
 				chefClient.Search,
 				cookbooksFlags.runCookstyle,
 				cookbooksFlags.onlyUnused,
 				cookbooksFlags.workers,
 			)
+
 			if err != nil {
 				return err
 			}
 
+			if cookbooksState.TotalCookbooks == 0 {
+				fmt.Printf(" No cookbooks available for analysis\n")
+				return nil
+			}
+			fmt.Printf(" (%d found)\n", cookbooksState.TotalCookbooks)
+			fmt.Println("Analyzing cookbooks...")
+
+			progressBar := pb.New(cookbooksState.TotalCookbooks)
+			progressBar.Start()
+			go cookbooksState.Generate()
+			for _ = range cookbooksState.Progress {
+				progressBar.Increment()
+			}
+			progressBar.Finish()
 			var (
 				formattedSummary = formatter.CookbooksReportSummary(cookbooksState)
 				results          *formatter.FormattedResult
@@ -259,7 +276,7 @@ func init() {
 	)
 	reportCookbooksCmd.PersistentFlags().BoolVarP(
 		&cookbooksFlags.runCookstyle,
-		"verify-upgrade", "v", false,
+		"verify-upgrade", "V", false,
 		"verify the upgrade compatibility of every cookbook",
 	)
 	// adds the cookbooks command as a sub-command of the report command
