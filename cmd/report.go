@@ -92,13 +92,14 @@ provided when the report is generated.
 				cookbooksFlags.runCookstyle,
 				cookbooksFlags.onlyUnused,
 				cookbooksFlags.workers,
+				reportsFlags.nodeFilter,
 			)
 			if err != nil {
 				return err
 			}
 
 			var (
-				formattedSummary = formatter.CookbooksReportSummary(cookbooksState)
+				formattedSummary = formatter.CookbooksReportSummary(cookbooksState, reportsFlags.nodeFilter)
 				results          *formatter.FormattedResult
 				ext              string
 			)
@@ -149,20 +150,19 @@ provided when the report is generated.
 			if reportsFlags.noSSLverify {
 				cfg.NoSSLVerify = true
 			}
-
 			chefClient, err := reporting.NewChefClient(cfg)
 			if err != nil {
 				return err
 			}
 
 			fmt.Println("Analyzing nodes...")
-			report, err := reporting.GenerateNodesReport(chefClient.Search)
+			report, err := reporting.GenerateNodesReport(chefClient.Search, reportsFlags.nodeFilter)
 			if err != nil {
 				return err
 			}
 
 			var (
-				formattedSummary = formatter.NodesReportSummary(report)
+				formattedSummary = formatter.NodesReportSummary(report, reportsFlags.nodeFilter)
 				results          *formatter.FormattedResult
 				ext              string
 			)
@@ -203,6 +203,7 @@ provided when the report is generated.
 		profile       string
 		noSSLverify   bool
 		format        string
+		nodeFilter    string
 	}
 )
 
@@ -245,6 +246,12 @@ func init() {
 		"Disable SSL certificate verification",
 	)
 
+	reportCmd.PersistentFlags().StringVarP(
+		&reportsFlags.nodeFilter,
+		"node-filter", "F", "",
+		"Search filter to apply to nodes",
+	)
+
 	// cookbooks cmd flags
 	reportCookbooksCmd.PersistentFlags().IntVarP(
 		&cookbooksFlags.workers,
@@ -254,7 +261,7 @@ func init() {
 	reportCookbooksCmd.PersistentFlags().BoolVarP(
 		&cookbooksFlags.onlyUnused,
 		"only-unused", "u", false,
-		"generate a report with only cookbooks that are not applied to any node",
+		"generate a report with only cookbooks that are not inclued in any node's run list",
 	)
 	reportCookbooksCmd.PersistentFlags().BoolVarP(
 		&cookbooksFlags.runCookstyle,

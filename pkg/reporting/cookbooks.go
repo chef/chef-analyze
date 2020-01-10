@@ -45,6 +45,7 @@ type CookbooksReport struct {
 	searcher       SearchInterface
 	cookstyle      *CookstyleRunner
 	progress       *pb.ProgressBar
+	nodeFilter     string
 }
 
 // CookbookRecord is a single cookbook that we want to download and analyze
@@ -111,6 +112,7 @@ func (cr *CookbookRecord) NumCorrectable() int {
 func GenerateCookbooksReport(
 	cbi CookbookInterface, searcher SearchInterface,
 	runCookstyle, onlyUnused bool, workers int,
+	nodeFilter string,
 ) (*CookbooksReport, error) {
 	wsDir, err := config.ChefWorkstationDir()
 	if err != nil {
@@ -150,6 +152,7 @@ func GenerateCookbooksReport(
 			RunCookstyle:   runCookstyle,
 			cookbooksDir:   cookbooksDir,
 			onlyUnused:     onlyUnused,
+			nodeFilter:     nodeFilter,
 		}
 	)
 
@@ -296,7 +299,12 @@ func (cbr *CookbooksReport) nodesUsingCookbookVersion(cookbook string, version s
 	}
 
 	// TODO add pagination
-	pres, err := cbr.searcher.PartialExec("node", fmt.Sprintf("cookbooks_%s_version:%s", cookbook, version), query)
+	nodeFilter := fmt.Sprintf("cookbooks_%s_version:%s", cookbook, version)
+	if cbr.nodeFilter != "" {
+		nodeFilter = fmt.Sprintf("%s AND %s", nodeFilter, cbr.nodeFilter)
+	}
+
+	pres, err := cbr.searcher.PartialExec("node", nodeFilter, query)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to get cookbook usage information")
 	}

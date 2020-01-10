@@ -30,15 +30,31 @@ import (
 	"github.com/chef/chef-analyze/pkg/reporting"
 )
 
-// MinTermWidth is required terminal width
-const MinTermWidth = 120
+const (
+	MinTermWidth                   = 120
+	filteredEmptyCookbookResultFmt = "\nNo cookbooks were found in the run lists of any filtered nodes.\n" +
+		"Please verify that your node filter is correct, or use one that is less restrictive.\n" +
+		"Node Filter: %s\n"
+	filteredEmptyNodeResultFmt = ""
+	emptyCookbookResultMsg     = "No cookbooks found to analyze\n"
+	emptyNodeResultMsg         = "No nodes found to analyze\n"
+	appliedNodesFilterFmt      = "\n\nNodes Filter applied: %s\n"
+)
 
 // CookbooksReportSummary prints smaller, summarized report
-func CookbooksReportSummary(state *reporting.CookbooksReport) FormattedResult {
+func CookbooksReportSummary(state *reporting.CookbooksReport, appliedNodesFilter string) FormattedResult {
 	if state == nil || len(state.Records) == 0 {
-		return FormattedResult{"No available cookbooks to generate a report", ""}
-	}
+		if len(appliedNodesFilter) > 0 && state.TotalCookbooks > 0 {
+			// cookbooks were found, but they were filtered out because no nodes used them.
+			return FormattedResult{fmt.Sprintf(filteredEmptyCookbookResultFmt, appliedNodesFilter), ""}
 
+			// TODO - if using --only-unused with a filter you're effectively saying
+			// show me all cookbooks that are NOT in use by this subset of nodes.
+			// no-records-found messaging should reflect that case as well.
+		} else {
+			return FormattedResult{emptyCookbookResultMsg, ""}
+		}
+	}
 	var (
 		buffer                = bytes.NewBufferString("\n-- REPORT SUMMARY --\n\n")
 		table                 = tablewriter.NewWriter(buffer)
@@ -97,13 +113,21 @@ func CookbooksReportSummary(state *reporting.CookbooksReport) FormattedResult {
 		errMsg.WriteString(fmt.Sprintf("\n       your terminal window to be at least %v characters wide\n", width))
 	}
 
+	if len(appliedNodesFilter) > 0 {
+		fmt.Fprintf(buffer, appliedNodesFilterFmt, appliedNodesFilter)
+	}
+
 	return FormattedResult{buffer.String(), errMsg.String()}
 }
 
 // NodesReportSummary prints smaller, summarized report
-func NodesReportSummary(records []*reporting.NodeReportItem) FormattedResult {
+func NodesReportSummary(records []*reporting.NodeReportItem, appliedNodesFilter string) FormattedResult {
 	if len(records) == 0 {
-		return FormattedResult{"No nodes found to analyze.", ""}
+		if len(appliedNodesFilter) > 0 {
+			return FormattedResult{fmt.Sprintf(filteredEmptyNodeResultFmt, appliedNodesFilter), ""}
+		} else {
+			return FormattedResult{emptyNodeResultMsg, ""}
+		}
 	}
 
 	var (
@@ -156,6 +180,9 @@ func NodesReportSummary(records []*reporting.NodeReportItem) FormattedResult {
 	if termWidth < width {
 		errMsg.WriteString("\nNote:  To view the report with correct formatting, please expand")
 		errMsg.WriteString(fmt.Sprintf("\n       your terminal window to be at least %v characters wide\n", width))
+	}
+	if len(appliedNodesFilter) > 0 {
+		fmt.Fprintf(buffer, appliedNodesFilterFmt, appliedNodesFilter)
 	}
 
 	return FormattedResult{buffer.String(), errMsg.String()}
