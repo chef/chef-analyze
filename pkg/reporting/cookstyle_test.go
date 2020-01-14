@@ -65,8 +65,10 @@ func TestCookstyleRunnerWithBinstubs(t *testing.T) {
 
 	runner := subject.NewCookstyleRunner()
 	assert.Equal(t,
-		[]string{"--format", "json",
-			"--only", "ChefDeprecations,ChefCorrectness"},
+		[]string{
+			"--format", "json",
+			"--only", "ChefDeprecations,ChefCorrectness",
+			"--force-default-config"},
 		runner.Opts,
 		"default cookstyle options need to be updated",
 	)

@@ -94,7 +94,10 @@ func (ecr *CookstyleRunner) Run(workingDir string) (*CookstyleResult, error) {
 
 func NewCookstyleRunner() *CookstyleRunner {
 	return &CookstyleRunner{
-		Opts: []string{"--format", "json", "--only", "ChefDeprecations,ChefCorrectness"},
+		Opts: []string{
+			"--format", "json",
+			"--only", "ChefDeprecations,ChefCorrectness",
+			"--force-default-config"},
 	}
 }
 
