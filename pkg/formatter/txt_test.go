@@ -37,11 +37,11 @@ func TestMakeCookbooksReportTXT_Nil(t *testing.T) {
 func TestMakeCookbooksReportTXT_Empty(t *testing.T) {
 	assert.Equal(t,
 		&subject.FormattedResult{Report: "", Errors: ""},
-		subject.MakeCookbooksReportTXT(&reporting.CookbooksStatus{}))
+		subject.MakeCookbooksReportTXT(&reporting.CookbooksReport{}))
 }
 
 func TestMakeCookbooksReportTXT_WithUnverifiedRecords(t *testing.T) {
-	cbStatus := reporting.CookbooksStatus{
+	cbStatus := reporting.CookbooksReport{
 		RunCookstyle: false,
 		Records: []*reporting.CookbookRecord{
 			&reporting.CookbookRecord{Name: "my-cookbook", Version: "1.0", Nodes: []string{"node-1", "node-2"}},
@@ -57,7 +57,7 @@ func TestMakeCookbooksReportTXT_WithUnverifiedRecords(t *testing.T) {
 }
 
 func TestMakeCookbooksReportTXT_WithVerifiedRecords(t *testing.T) {
-	cbStatus := reporting.CookbooksStatus{
+	cbStatus := reporting.CookbooksReport{
 		RunCookstyle: true,
 		Records: []*reporting.CookbookRecord{
 			&reporting.CookbookRecord{Name: "my-cookbook", Version: "1.0", Nodes: []string{"node-1", "node-2"},
@@ -81,7 +81,7 @@ func TestMakeCookbooksReportTXT_WithVerifiedRecords(t *testing.T) {
 }
 
 func TestMakeCookbooksReportTXT_ErrorReport(t *testing.T) {
-	cbStatus := reporting.CookbooksStatus{
+	cbStatus := reporting.CookbooksReport{
 		Records: []*reporting.CookbookRecord{
 			&reporting.CookbookRecord{Name: "my-cookbook", Version: "1.0", DownloadError: errors.New("could not download")},
 			&reporting.CookbookRecord{Name: "their-cookbook", Version: "1.1", UsageLookupError: errors.New("could not look up usage")},

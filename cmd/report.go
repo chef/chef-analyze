@@ -86,7 +86,7 @@ provided when the report is generated.
 				return err
 			}
 
-			cookbooksState, err := reporting.StartPipeline(
+			cookbooksState, err := reporting.GenerateCookbooksReport(
 				chefClient.Cookbooks,
 				chefClient.Search,
 				cookbooksFlags.runCookstyle,
@@ -156,7 +156,7 @@ provided when the report is generated.
 			}
 
 			fmt.Println("Analyzing nodes...")
-			report, err := reporting.Nodes(chefClient.Search)
+			report, err := reporting.GenerateNodesReport(chefClient.Search)
 			if err != nil {
 				return err
 			}

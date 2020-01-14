@@ -33,17 +33,17 @@ const (
 	analyzeCookbooksDir = "cookbooks" // Used for $HOME/.chef-workstation/cache/cookbooks
 )
 
-// PipelineStatus maintains the overall state of the process (download, find nodes, run cookstyle)
-type PipelineStatus struct {
+// CookbooksReport maintains the overall state of the process (download, find nodes, run cookstyle)
+type CookbooksReport struct {
 	Records        []*CookbookRecord
-	RecordsMutex   sync.Mutex
+	recordsMutex   sync.Mutex
 	TotalCookbooks int
-	OnlyUnused     bool
+	onlyUnused     bool
 	RunCookstyle   bool
-	CookbooksDir   string
-	Cookbooks      CookbookInterface
-	Searcher       SearchInterface
-	Cookstyle      *CookstyleRunner
+	cookbooksDir   string
+	cookbooks      CookbookInterface
+	searcher       SearchInterface
+	cookstyle      *CookstyleRunner
 	progress       *pb.ProgressBar
 }
 
@@ -59,6 +59,7 @@ type CookbookRecord struct {
 	CookstyleError   error
 }
 
+// Errors collates all known errors
 func (cr CookbookRecord) Errors() []error {
 	errs := make([]error, 0)
 	if cr.DownloadError != nil {
@@ -79,23 +80,24 @@ type cookbookItem struct {
 	Version string
 }
 
-func (r *CookbookRecord) NumNodesAffected() int {
-	return len(r.Nodes)
+// NumNodesAffected shortcut
+func (cr *CookbookRecord) NumNodesAffected() int {
+	return len(cr.Nodes)
 }
 
 // NumOffenses collects the total number of cookstyle offenses in the cookbook
-func (r *CookbookRecord) NumOffenses() int {
+func (cr *CookbookRecord) NumOffenses() int {
 	i := 0
-	for _, f := range r.Files {
+	for _, f := range cr.Files {
 		i += len(f.Offenses)
 	}
 	return i
 }
 
 // NumCorrectable collects the number of correctable cookstyle offenses in the cookbook
-func (r *CookbookRecord) NumCorrectable() int {
+func (cr *CookbookRecord) NumCorrectable() int {
 	i := 0
-	for _, f := range r.Files {
+	for _, f := range cr.Files {
 		for _, o := range f.Offenses {
 			if o.Correctable {
 				i++
@@ -105,11 +107,11 @@ func (r *CookbookRecord) NumCorrectable() int {
 	return i
 }
 
-// StartPipeline is the business logic of performing the analysis
-func StartPipeline(
+// GenerateCookbooksReport is the business logic of performing the analysis
+func GenerateCookbooksReport(
 	cbi CookbookInterface, searcher SearchInterface,
 	runCookstyle, onlyUnused bool, workers int,
-) (*CookbooksStatus, error) {
+) (*CookbooksReport, error) {
 	wsDir, err := config.ChefWorkstationDir()
 	if err != nil {
 		return nil, err
@@ -136,24 +138,24 @@ func StartPipeline(
 	fmt.Printf(" (%d found)\n", totalCookbooks)
 
 	var (
-		downloadCh     = make(chan cookbookItem)
-		analyzeCh      = make(chan *CookbookRecord)
-		doneCh         = make(chan bool)
-		pipelineStatus = &PipelineStatus{
+		downloadCh   = make(chan cookbookItem)
+		analyzeCh    = make(chan *CookbookRecord)
+		doneCh       = make(chan bool)
+		reportStatus = &CookbooksReport{
 			Records:        make([]*CookbookRecord, 0, totalCookbooks),
 			TotalCookbooks: totalCookbooks,
-			Cookbooks:      cbi,
-			Searcher:       searcher,
-			Cookstyle:      NewCookstyleRunner(),
+			cookbooks:      cbi,
+			searcher:       searcher,
+			cookstyle:      NewCookstyleRunner(),
 			RunCookstyle:   runCookstyle,
-			CookbooksDir:   cookbooksDir,
-			OnlyUnused:     onlyUnused,
+			cookbooksDir:   cookbooksDir,
+			onlyUnused:     onlyUnused,
 		}
 	)
 
 	if totalCookbooks == 0 {
 		fmt.Println("No cookbooks available for analysis")
-		return pipelineStatus, nil
+		return reportStatus, nil
 	}
 
 	// determine how many workers do we need, by default, the total number of cookbooks
@@ -166,35 +168,35 @@ func StartPipeline(
 
 	fmt.Println("Analyzing cookbooks...")
 	// start and store a progress bar
-	pipelineStatus.progress = pb.StartNew(totalCookbooks)
+	reportStatus.progress = pb.StartNew(totalCookbooks)
 
 	// launch jobs that will be read by the workers (goroutines)
-	go pipelineStatus.triggerJobs(results, downloadCh)
+	go reportStatus.triggerJobs(results, downloadCh)
 
 	// launch the download workers, these will process downloads and send them to the next
 	// channel to be analyzed, once all messages have been red, it closes the download channel
-	go pipelineStatus.createDownloadWorkerPool(numWorkers, downloadCh, analyzeCh)
+	go reportStatus.createDownloadWorkerPool(numWorkers, downloadCh, analyzeCh)
 
 	// launch the analyze workers, these will process analyzis by running cookstyle,
 	// once all messages have been processed, it will send a single message to the done channel
-	go pipelineStatus.createAnalyzeWorkerPool(numWorkers, analyzeCh, doneCh)
+	go reportStatus.createAnalyzeWorkerPool(numWorkers, analyzeCh, doneCh)
 
 	// wait for a message in from the done channel
 	// to make sure there are no more processes running
 	<-doneCh
 	// make sure the progress bar reports we are done
-	pipelineStatus.progress.Finish()
+	reportStatus.progress.Finish()
 
-	return pipelineStatus, nil
+	return reportStatus, nil
 }
 
-func (p *PipelineStatus) addRecord(r *CookbookRecord) {
-	p.RecordsMutex.Lock()
-	defer p.RecordsMutex.Unlock()
-	p.Records = append(p.Records, r)
+func (cbr *CookbooksReport) addRecord(r *CookbookRecord) {
+	cbr.recordsMutex.Lock()
+	defer cbr.recordsMutex.Unlock()
+	cbr.Records = append(cbr.Records, r)
 }
 
-func (p *PipelineStatus) triggerJobs(cookbooks chef.CookbookListResult, inCh chan<- cookbookItem) {
+func (cbr *CookbooksReport) triggerJobs(cookbooks chef.CookbookListResult, inCh chan<- cookbookItem) {
 	for cookbookName, cookbookVersions := range cookbooks {
 		for _, ver := range cookbookVersions.Versions {
 			inCh <- cookbookItem{cookbookName, ver.Version}
@@ -204,14 +206,14 @@ func (p *PipelineStatus) triggerJobs(cookbooks chef.CookbookListResult, inCh cha
 	close(inCh)
 }
 
-func (p *PipelineStatus) createDownloadWorkerPool(nWorkers int, downloadCh <-chan cookbookItem, analyzeCh chan<- *CookbookRecord) {
+func (cbr *CookbooksReport) createDownloadWorkerPool(nWorkers int, downloadCh <-chan cookbookItem, analyzeCh chan<- *CookbookRecord) {
 	var wg sync.WaitGroup
 
 	for i := 0; i < nWorkers; i++ {
 		wg.Add(1)
 		go func(inCh <-chan cookbookItem, outCh chan<- *CookbookRecord, wg *sync.WaitGroup) {
 			for item := range inCh {
-				p.downloadCookbook(item.Name, item.Version, outCh)
+				cbr.downloadCookbook(item.Name, item.Version, outCh)
 			}
 			wg.Done()
 		}(downloadCh, analyzeCh, &wg)
@@ -222,17 +224,17 @@ func (p *PipelineStatus) createDownloadWorkerPool(nWorkers int, downloadCh <-cha
 	close(analyzeCh)
 }
 
-func (p *PipelineStatus) createAnalyzeWorkerPool(nWorkers int, analyzeCh <-chan *CookbookRecord, doneCh chan<- bool) {
+func (cbr *CookbooksReport) createAnalyzeWorkerPool(nWorkers int, analyzeCh <-chan *CookbookRecord, doneCh chan<- bool) {
 	var wg sync.WaitGroup
 
 	for i := 0; i < nWorkers; i++ {
 		wg.Add(1)
 		go func(inCh <-chan *CookbookRecord, wg *sync.WaitGroup) {
 			for record := range inCh {
-				p.addRecord(record)
+				cbr.addRecord(record)
 
-				if p.RunCookstyle {
-					p.runCookstyleFor(record)
+				if cbr.RunCookstyle {
+					cbr.runCookstyleFor(record)
 				}
 			}
 			wg.Done()
@@ -244,14 +246,14 @@ func (p *PipelineStatus) createAnalyzeWorkerPool(nWorkers int, analyzeCh <-chan 
 	doneCh <- true
 }
 
-func (p *PipelineStatus) downloadCookbook(cookbookName, version string, analyzeCh chan<- *CookbookRecord) {
+func (cbr *CookbooksReport) downloadCookbook(cookbookName, version string, analyzeCh chan<- *CookbookRecord) {
 
 	var (
-		nodes, err       = p.nodesUsingCookbookVersion(cookbookName, version)
+		nodes, err       = cbr.nodesUsingCookbookVersion(cookbookName, version)
 		cookbookLongName = fmt.Sprintf("%v-%v", cookbookName, version)
 		cbState          = &CookbookRecord{
 			Name:    cookbookName,
-			path:    filepath.Join(cbs.CookbooksDir, cookbookLongName),
+			path:    filepath.Join(cbr.cookbooksDir, cookbookLongName),
 			Version: version,
 		}
 	)
@@ -262,23 +264,23 @@ func (p *PipelineStatus) downloadCookbook(cookbookName, version string, analyzeC
 
 	// by default we report only cookbooks that are being used by one or more nodes,
 	// but we also provide a way to report the opposite, that is, only unused cookbooks
-	if p.OnlyUnused {
+	if cbr.onlyUnused {
 		// report only unused cookbooks
 		if len(nodes) > 0 {
-			p.progress.Increment()
+			cbr.progress.Increment()
 			return
 		}
 	} else {
 		// report only cookbooks being used
 		if len(nodes) == 0 {
-			p.progress.Increment()
+			cbr.progress.Increment()
 			return
 		}
 	}
 
 	// do we need to analyze the cookbooks
-	if cbs.RunCookstyle {
-		err = p.Cookbooks.DownloadTo(cookbookName, version, fmt.Sprintf("%s/cookbooks", AnalyzeCacheDir))
+	if cbr.RunCookstyle {
+		err = cbr.cookbooks.DownloadTo(cookbookName, version, fmt.Sprintf("%s/cookbooks", analyzeCacheDir))
 		if err != nil {
 			cbState.DownloadError = errors.Wrapf(err, "unable to download cookbook %s", cookbookName)
 		}
@@ -288,13 +290,13 @@ func (p *PipelineStatus) downloadCookbook(cookbookName, version string, analyzeC
 	analyzeCh <- cbState
 }
 
-func (p *PipelineStatus) nodesUsingCookbookVersion(cookbook string, version string) ([]string, error) {
+func (cbr *CookbooksReport) nodesUsingCookbookVersion(cookbook string, version string) ([]string, error) {
 	query := map[string]interface{}{
 		"name": []string{"name"},
 	}
 
 	// TODO add pagination
-	pres, err := p.Searcher.PartialExec("node", fmt.Sprintf("cookbooks_%s_version:%s", cookbook, version), query)
+	pres, err := cbr.searcher.PartialExec("node", fmt.Sprintf("cookbooks_%s_version:%s", cookbook, version), query)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to get cookbook usage information")
 	}
@@ -311,15 +313,15 @@ func (p *PipelineStatus) nodesUsingCookbookVersion(cookbook string, version stri
 	return results, nil
 }
 
-func (p *PipelineStatus) runCookstyleFor(cb *CookbookRecord) {
-	defer p.progress.Increment()
+func (cbr *CookbooksReport) runCookstyleFor(cb *CookbookRecord) {
+	defer cbr.progress.Increment()
 
 	// an accurate set of results
 	if cb.DownloadError != nil {
 		return
 	}
 
-	cookstyleResults, err := p.Cookstyle.Run(cb.path)
+	cookstyleResults, err := cbr.cookstyle.Run(cb.path)
 	if err != nil {
 		cb.CookstyleError = err
 		return

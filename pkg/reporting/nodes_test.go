@@ -29,7 +29,7 @@ func TestNodes(t *testing.T) {
 	// It's a little less verbose and a little more readable to format
 	// this as JSON then convert it where we need it than to create it as a golang map.
 	mocksearch := makeMockSearch(mockedNodesSearchRows(), nil)
-	results, err := subject.Nodes(mocksearch)
+	results, err := subject.GenerateNodesReport(mocksearch)
 	// valid results don't mock an error.
 	assert.Nil(t, err)
 
@@ -71,7 +71,7 @@ func TestNodes(t *testing.T) {
 func TestErrorResult(t *testing.T) {
 	expectedError := fmt.Errorf("error here")
 	mocksearch := makeMockSearch("", expectedError)
-	report, err := subject.Nodes(mocksearch)
+	report, err := subject.GenerateNodesReport(mocksearch)
 	if assert.NotNil(t, err) {
 		assert.Equal(t, "unable to get node(s) information: error here", err.Error())
 		assert.Nil(t, report)

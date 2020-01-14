@@ -154,7 +154,7 @@ func TestCookbooksReportSummary_Nil(t *testing.T) {
 }
 
 func TestCookbooksReportSummary_noRecords(t *testing.T) {
-	state := &reporting.CookbooksStatus{}
+	state := &reporting.CookbooksReport{}
 	assert.Equal(t,
 		subject.FormattedResult{
 			"No available cookbooks to generate a report",
@@ -165,7 +165,7 @@ func TestCookbooksReportSummary_noRecords(t *testing.T) {
 }
 
 func TestCookbooksReportSummary_withRecords(t *testing.T) {
-	state := &reporting.CookbooksStatus{
+	state := &reporting.CookbooksReport{
 		Records: []*reporting.CookbookRecord{
 			&reporting.CookbookRecord{
 				Name:    "foo",
@@ -229,7 +229,7 @@ func TestCookbooksReportSummary_withRecords(t *testing.T) {
 }
 
 func TestCookbooksReportSummary_withRecords_NoNodes(t *testing.T) {
-	state := &reporting.CookbooksStatus{
+	state := &reporting.CookbooksReport{
 		Records: []*reporting.CookbookRecord{
 			&reporting.CookbookRecord{
 				Name: "foo", Version: "0.1.0", Nodes: nil,
