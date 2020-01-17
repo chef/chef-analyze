@@ -22,11 +22,13 @@ import chef "github.com/chef/go-chef"
 // Using an interface allows us inject our own mock implementations for testing
 // up to the go-chef API boundary.
 
+// CookbookInterface for testing
 type CookbookInterface interface {
 	ListAvailableVersions(numVersions string) (chef.CookbookListResult, error)
 	DownloadTo(name, version, localDir string) error
 }
 
+// SearchInterface for testing
 type SearchInterface interface {
 	PartialExec(idx, statement string, params map[string]interface{}) (res chef.SearchResult, err error)
 }

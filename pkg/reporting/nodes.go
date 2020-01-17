@@ -22,6 +22,7 @@ import (
 	"github.com/pkg/errors"
 )
 
+// CookbookVersion name and version
 type CookbookVersion struct {
 	Name    string
 	Version string
@@ -31,6 +32,7 @@ func (cbv *CookbookVersion) String() string {
 	return fmt.Sprintf("%s(%s)", cbv.Name, cbv.Version)
 }
 
+// NodeReportItem data object for nodes
 type NodeReportItem struct {
 	Name             string
 	ChefVersion      string
@@ -39,6 +41,7 @@ type NodeReportItem struct {
 	CookbookVersions []CookbookVersion
 }
 
+// OsVersionPretty looks nice
 func (nri *NodeReportItem) OSVersionPretty() string {
 	// this data seems to be all or none,
 	// you'll have both OS/Version fields, or neither.
@@ -49,6 +52,7 @@ func (nri *NodeReportItem) OSVersionPretty() string {
 	return ""
 }
 
+// CookbooksList transforms to an easily printable []string
 func (nri *NodeReportItem) CookbooksList() []string {
 	var cookbooks = make([]string, 0, len(nri.CookbookVersions))
 
@@ -59,7 +63,8 @@ func (nri *NodeReportItem) CookbooksList() []string {
 	return cookbooks
 }
 
-func Nodes(searcher SearchInterface) ([]*NodeReportItem, error) {
+// GenerateNodesReport generate a nodes report
+func GenerateNodesReport(searcher SearchInterface) ([]*NodeReportItem, error) {
 	var (
 		query = map[string]interface{}{
 			"name":         []string{"name"},

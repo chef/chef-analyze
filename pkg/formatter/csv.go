@@ -26,7 +26,7 @@ import (
 )
 
 // MakeCookbooksReportCSV generates a CSV formatted cookbooks report
-func MakeCookbooksReportCSV(state *reporting.CookbooksStatus) *FormattedResult {
+func MakeCookbooksReportCSV(state *reporting.CookbooksReport) *FormattedResult {
 	var (
 		strBuilder strings.Builder
 		errBuilder strings.Builder
