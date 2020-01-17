@@ -37,6 +37,7 @@ and/or deprecations, and generating Effortless packages.
 	}
 )
 
+// Execute runs the root command
 func Execute() error {
 	return rootCmd.Execute()
 }

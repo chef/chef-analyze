@@ -21,6 +21,7 @@ import (
 	"github.com/chef/go-libs/credentials"
 )
 
+// Reporting holds state for the command
 type Reporting struct {
 	// our Config (default: $HOME/.chef-workstation/config.toml)
 	config.Config
@@ -30,10 +31,10 @@ type Reporting struct {
 	NoSSLVerify bool
 }
 
-// override functions to override any particular setting from the a reporting struct
+// OverrideFunc to override any particular setting from the a reporting struct
 type OverrideFunc func(*Reporting)
 
-// returns a reporting Config instance using the defaults
+// NewDefault returns a reporting Config instance using the defaults
 func NewDefault(overrides ...OverrideFunc) (Reporting, error) {
 	rCfg := Reporting{}
 
