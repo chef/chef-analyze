@@ -23,6 +23,7 @@ package cmd
 //
 
 const (
+	// MissingMinimumParametersErr user feedback
 	MissingMinimumParametersErr = `
   there are missing parameters for this tool to work, provide a credentials file:
     --credentials string

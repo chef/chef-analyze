@@ -17,6 +17,7 @@
 
 package formatter
 
+// FormattedResult contains the report and its errors
 type FormattedResult struct {
 	Report string
 	Errors string

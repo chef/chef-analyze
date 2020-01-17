@@ -36,13 +36,13 @@ func TestMakeCookbooksReportCSV_Nil(t *testing.T) {
 
 func TestMakeCookbooksReportCSV_NoRecords(t *testing.T) {
 	var expected subject.FormattedResult // empty result
-	var cbStatus reporting.CookbooksStatus
+	var cbStatus reporting.CookbooksReport
 	actual := subject.MakeCookbooksReportCSV(&cbStatus)
 	assert.Equal(t, expected, *actual)
 }
 
 func TestMakeCookbooksReportCSV_WithUnverifiedRecords(t *testing.T) {
-	cbStatus := reporting.CookbooksStatus{
+	cbStatus := reporting.CookbooksReport{
 		RunCookstyle: false,
 		Records: []*reporting.CookbookRecord{
 			&reporting.CookbookRecord{Name: "my-cookbook", Version: "1.0", Nodes: []string{"node-1", "node-2"}},
@@ -57,7 +57,7 @@ func TestMakeCookbooksReportCSV_WithUnverifiedRecords(t *testing.T) {
 }
 
 func TestMakeCookbooksReportCSV_WithVerifiedRecords(t *testing.T) {
-	cbStatus := reporting.CookbooksStatus{
+	cbStatus := reporting.CookbooksReport{
 		RunCookstyle: true,
 		Records: []*reporting.CookbookRecord{
 			&reporting.CookbookRecord{Name: "my-cookbook", Version: "1.0", Nodes: []string{"node-1", "node-2"},
@@ -76,7 +76,7 @@ func TestMakeCookbooksReportCSV_WithVerifiedRecords(t *testing.T) {
 }
 
 func TestMakeCookbooksReportCSV_NoFiles(t *testing.T) {
-	cbStatus := reporting.CookbooksStatus{
+	cbStatus := reporting.CookbooksReport{
 		RunCookstyle: true,
 		Records: []*reporting.CookbookRecord{
 			&reporting.CookbookRecord{Name: "my-cookbook", Version: "1.0", Nodes: []string{"node-1", "node-2"},
@@ -90,7 +90,7 @@ func TestMakeCookbooksReportCSV_NoFiles(t *testing.T) {
 }
 
 func TestMakeCookbooksReportCSV_NoFileOffenses(t *testing.T) {
-	cbStatus := reporting.CookbooksStatus{
+	cbStatus := reporting.CookbooksReport{
 		RunCookstyle: true,
 		Records: []*reporting.CookbookRecord{
 			&reporting.CookbookRecord{Name: "my-cookbook", Version: "1.0", Nodes: []string{"node-1", "node-2"},
@@ -105,7 +105,7 @@ func TestMakeCookbooksReportCSV_NoFileOffenses(t *testing.T) {
 }
 
 func TestMakeCookbooksReportCSV_WithMultipleRecords(t *testing.T) {
-	cbStatus := reporting.CookbooksStatus{
+	cbStatus := reporting.CookbooksReport{
 		RunCookstyle: true,
 		Records: []*reporting.CookbookRecord{
 			&reporting.CookbookRecord{Name: "my-cookbook", Version: "1.0", Nodes: []string{"node-1", "node-2"},
@@ -132,7 +132,7 @@ func TestMakeCookbooksReportCSV_WithMultipleRecords(t *testing.T) {
 }
 
 func TestMakeCookbooksReportCSV_ErrorReport(t *testing.T) {
-	cbStatus := reporting.CookbooksStatus{
+	cbStatus := reporting.CookbooksReport{
 		Records: []*reporting.CookbookRecord{
 			&reporting.CookbookRecord{Name: "my-cookbook", Version: "1.0", DownloadError: errors.New("could not download")},
 			&reporting.CookbookRecord{Name: "their-cookbook", Version: "1.1", UsageLookupError: errors.New("could not look up usage")},

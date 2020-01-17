@@ -24,7 +24,8 @@ import (
 	"github.com/chef/chef-analyze/pkg/reporting"
 )
 
-func MakeCookbooksReportTXT(state *reporting.CookbooksStatus) *FormattedResult {
+// MakeCookbooksReportTXT text output of long, non-summarize report
+func MakeCookbooksReportTXT(state *reporting.CookbooksReport) *FormattedResult {
 	var (
 		errorBuilder strings.Builder
 		strBuilder   strings.Builder
@@ -76,6 +77,7 @@ func MakeCookbooksReportTXT(state *reporting.CookbooksStatus) *FormattedResult {
 	return &FormattedResult{strBuilder.String(), errorBuilder.String()}
 }
 
+// MakeNodesReportTXT text output of long, non-summarize report
 func MakeNodesReportTXT(records []*reporting.NodeReportItem) *FormattedResult {
 	var (
 		errorBuilder strings.Builder

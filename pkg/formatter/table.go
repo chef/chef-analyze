@@ -30,9 +30,11 @@ import (
 	"github.com/chef/chef-analyze/pkg/reporting"
 )
 
+// MinTermWidth is required terminal width
 const MinTermWidth = 120
 
-func CookbooksReportSummary(state *reporting.CookbooksStatus) FormattedResult {
+// CookbooksReportSummary prints smaller, summarized report
+func CookbooksReportSummary(state *reporting.CookbooksReport) FormattedResult {
 	if state == nil || len(state.Records) == 0 {
 		return FormattedResult{"No available cookbooks to generate a report", ""}
 	}
@@ -98,6 +100,7 @@ func CookbooksReportSummary(state *reporting.CookbooksStatus) FormattedResult {
 	return FormattedResult{buffer.String(), errMsg.String()}
 }
 
+// NodesReportSummary prints smaller, summarized report
 func NodesReportSummary(records []*reporting.NodeReportItem) FormattedResult {
 	if len(records) == 0 {
 		return FormattedResult{"No nodes found to analyze.", ""}

@@ -23,8 +23,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// creates a new Chef Client instance by stablishing a connection
-// with the loaded credentials
+// NewChefClient creates an instance with the loaded credentials
 func NewChefClient(cfg *Reporting) (*chef.Client, error) {
 	// read the client key
 	key, err := ioutil.ReadFile(cfg.ClientKey)
