@@ -280,7 +280,7 @@ func (cbr *CookbooksReport) downloadCookbook(cookbookName, version string, analy
 
 	// do we need to analyze the cookbooks
 	if cbr.RunCookstyle {
-		err = cbr.cookbooks.DownloadTo(cookbookName, version, fmt.Sprintf("%s/cookbooks", analyzeCacheDir))
+		err = cbr.cookbooks.DownloadTo(cookbookName, version, cbr.cookbooksDir)
 		if err != nil {
 			cbState.DownloadError = errors.Wrapf(err, "unable to download cookbook %s", cookbookName)
 		}
