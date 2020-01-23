@@ -60,6 +60,28 @@ they can take to start upgrading their infrastructure. We are aiming to
 start with the smallest tasks that the user can take, so that they start
 immediately, and to reduce the upcoming tasks ahead.
 
+A few suggestions we can make to our users are:
+
+1. **List of unused cookbooks that can be deleted**: for IT Operators, cleaning
+up their environments should be a very common task. We should be able to give
+them a list of cookbooks that aren’t used by any node, so that they can safely
+remove them from the Chef Infra Server
+1. **The easiest node to start upgrading**: this suggestion should include a
+list of steps to follow to complete the upgrade in the order that the user must
+execute them. The node must be isolated so that there is no impact with other
+nodes in their infrastructure
+1. **A grouped list of nodes that look similar or identical**: this would be
+beneficial for the user to understand batches of nodes that can be upgraded
+together, once the user selects a pattern of nodes, we should be able to give
+instructions to upgrade them in the correct order. Depending on the complexity
+of this upgrade, users might have to create environments and move nodes to the
+upgraded environment as appropriate
+1. **A list of actions and impact from a node on demand**: our users might know
+better where do they want to start upgrading their infrastructure, and so, we
+should provide a way for them to select a node that they would like to upgrade
+and we will give a recommendation of the steps to follow to do the upgrade, as
+well as any impact that they might have while they execute the recommendations.
+
 ## Downstream Impact
 
 TBA
