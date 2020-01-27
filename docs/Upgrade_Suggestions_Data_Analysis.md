@@ -11,9 +11,9 @@ As an example, let us think about a user with X number of nodes running Chef
 11, in order to upgrade these nodes to Chef 12 a series of things needs to
 happen:
 
-1. Cookbooks need to be updated and tested to run on Chef 12
-1. The Chef client version on the node(s) needs to be upgraded
-1. (in some cases) A Chef Infra Server upgrade could be required
+* Cookbooks need to be updated and tested to run on Chef 12
+* The Chef client version on the node(s) needs to be upgraded
+* (in some cases) A Chef Infra Server upgrade could be required
 
 This problem gets bigger as the number of nodes and cookbooks increases. There
 could be cookbooks that are being used by more than one node (a very common
@@ -24,7 +24,7 @@ Through the analysis of the Chef Infra Server data, we could give our users
 a set of suggestions to point them to where they could start taking immediate
 actions to upgrade their infrastructure to the latest version of our tools.
 By starting with the most simple tasks, users could have fast results in short
-cycles, and by leaving the hard tasks at the end, though time, users will
+cycles, and by leaving the hard tasks at the end, through time, users will
 automatically reduce the level of complexity of such tasks until the
 completion of the upgrade.
 
@@ -48,10 +48,10 @@ their infrastructure. It focuses on two main reports, a nodes and a cookbooks
 report.
 
 * Nodes report: helps the user understand the list of nodes and their Chef
-Client version that the nodes are running, as well as the expanded run-listxi
-applied
+Client version that the nodes are running, as well as the expanded run-list
+applied directly to the node
 * Cookbooks report: verifies the compatibility of the cookbooks with the
-latest version of Chef Client plus, which nodes are currently using eachxi
+latest version of Chef Client plus, which nodes are currently using each
 cookbook
 
 The next step for us would be to analyze the data gathered from the reports
