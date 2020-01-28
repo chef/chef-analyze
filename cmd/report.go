@@ -212,7 +212,7 @@ func init() {
 	reportCmd.PersistentFlags().StringVarP(
 		&reportsFlags.credsFile,
 		"credentials", "c", "",
-		"Chef credentials file (default $HOME/.chef/credentials)",
+		"Chef credentials file (default $HOME/.chef/credentials)", // @afiune add Chef and .chef to dist vars
 	)
 
 	reportCmd.PersistentFlags().StringVarP(
@@ -223,22 +223,22 @@ func init() {
 	reportCmd.PersistentFlags().StringVarP(
 		&reportsFlags.clientName,
 		"client_name", "n", "",
-		"Chef Infra Server API client username",
+		fmt.Sprintf("%s API client username", dist.ServerProduct),
 	)
 	reportCmd.PersistentFlags().StringVarP(
 		&reportsFlags.clientKey,
 		"client_key", "k", "",
-		"Chef Infra Server API client key",
+		fmt.Sprintf("%s API client key", dist.ServerProduct),
 	)
 	reportCmd.PersistentFlags().StringVarP(
 		&reportsFlags.chefServerURL,
 		"chef_server_url", "s", "",
-		"Chef Infra Server URL",
+		fmt.Sprintf("%s URL", dist.ServerProduct),
 	)
 	reportCmd.PersistentFlags().StringVarP(
 		&reportsFlags.profile,
 		"profile", "p", "default",
-		"Chef Infra Server URL",
+		fmt.Sprintf("%s URL", dist.ServerProduct),
 	)
 	reportCmd.PersistentFlags().BoolVarP(
 		&reportsFlags.noSSLverify,

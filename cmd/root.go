@@ -32,10 +32,10 @@ var (
 	rootCmd = &cobra.Command{
 		Use:   dist.Exec,
 		Short: "A CLI to analyze artifacts from a Chef Infra Server",
-		Long: `Analyze your Chef Infra Server artifacts to understand the effort to upgrade
+		Long: fmt.Sprintf(`Analyze your %s artifacts to understand the effort to upgrade
 your infrastructure by generating reports, automatically fixing violations
 and/or deprecations, and generating Effortless packages.
-`,
+`, dist.ServerProduct),
 	}
 )
 
