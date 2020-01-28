@@ -1,2 +1,5 @@
 [chef-analyze]
-build_targets = [ "x86_64-linux" ]
+build_targets = [
+  "x86_64-linux",
+  "x86_64-windows"
+]

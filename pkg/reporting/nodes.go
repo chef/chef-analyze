@@ -18,13 +18,11 @@ package reporting
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/pkg/errors"
-
-	chef "github.com/chef/go-chef"
 )
 
+// CookbookVersion name and version
 type CookbookVersion struct {
 	Name    string
 	Version string
@@ -34,6 +32,7 @@ func (cbv *CookbookVersion) String() string {
 	return fmt.Sprintf("%s(%s)", cbv.Name, cbv.Version)
 }
 
+// NodeReportItem data object for nodes
 type NodeReportItem struct {
 	Name             string
 	ChefVersion      string
@@ -42,28 +41,30 @@ type NodeReportItem struct {
 	CookbookVersions []CookbookVersion
 }
 
-type PartialSearchInterface interface {
-	PartialExec(idx, statement string, params map[string]interface{}) (res chef.SearchResult, err error)
+// OsVersionPretty looks nice
+func (nri *NodeReportItem) OSVersionPretty() string {
+	// this data seems to be all or none,
+	// you'll have both OS/Version fields, or neither.
+	if nri.OS != "" {
+		return fmt.Sprintf("%s v%s", nri.OS, nri.OSVersion)
+	}
+
+	return ""
 }
 
-func (nri *NodeReportItem) Array() []string {
-	var cookbooks []string
+// CookbooksList transforms to an easily printable []string
+func (nri *NodeReportItem) CookbooksList() []string {
+	var cookbooks = make([]string, 0, len(nri.CookbookVersions))
+
 	for _, v := range nri.CookbookVersions {
 		cookbooks = append(cookbooks, v.String())
 	}
-	return []string{nri.Name,
-		nri.ChefVersion,
-		nri.OS,
-		nri.OSVersion,
-		strings.Join(cookbooks, " "),
-	}
+
+	return cookbooks
 }
 
-// NOTE - we no longer need cfg. I'm not sure that this is best - I like having a single
-//        cfg which includes the client, but did not want to create a full mock interface for
-//        chef.client here - that belongs in go-chef, where it can be maintained alongside
-//        any interface changes that originate there.
-func Nodes(cfg *Reporting, searcher PartialSearchInterface) ([]NodeReportItem, error) {
+// GenerateNodesReport generate a nodes report
+func GenerateNodesReport(searcher SearchInterface) ([]*NodeReportItem, error) {
 	var (
 		query = map[string]interface{}{
 			"name":         []string{"name"},
@@ -83,14 +84,14 @@ func Nodes(cfg *Reporting, searcher PartialSearchInterface) ([]NodeReportItem, e
 	// 	view all nodes in the result set, the actual returned number will be lower than
 	// 	the value of Rows.
 
-	results := make([]NodeReportItem, 0, len(pres.Rows))
+	results := make([]*NodeReportItem, 0, len(pres.Rows))
 	for _, element := range pres.Rows {
 
 		// cookbook version arrives as [ NAME : { version: VERSION } - we extract that here.
 		v := element.(map[string]interface{})["data"].(map[string]interface{})
 
 		if v != nil {
-			item := NodeReportItem{
+			item := &NodeReportItem{
 				Name:        safeStringFromMap(v, "name"),
 				OS:          safeStringFromMap(v, "os"),
 				OSVersion:   safeStringFromMap(v, "os_version"),

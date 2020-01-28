@@ -26,8 +26,7 @@ import (
 )
 
 func TestNewChefClientWithDefaults(t *testing.T) {
-	createCredentialsConfig(t)
-	defer os.RemoveAll(".chef") // clean up
+	defer os.RemoveAll(createCredentialsConfig(t))
 	cfg, err := subject.NewDefault()
 	if assert.Nil(t, err) {
 		client, err := subject.NewChefClient(&cfg)
@@ -46,8 +45,7 @@ func TestNewChefClientWithouAnySettings(t *testing.T) {
 }
 
 func TestNewChefClientCredsWithEmptyKey(t *testing.T) {
-	createCredentialsConfig(t)
-	defer os.RemoveAll(".chef") // clean up
+	defer os.RemoveAll(createCredentialsConfig(t))
 
 	cfg, err := subject.NewDefault()
 	if assert.Nil(t, err) {

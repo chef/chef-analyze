@@ -27,9 +27,9 @@ build_cross_platform:
 
 clean:
 	@echo "Removing local artifacts... "
-	rm -f bin/
-	rm -f results/
-	rm -f coverage/
+	rm -rf bin/
+	rm -rf results/
+	rm -rf coverage/
 
 edit:
 	$(EDITOR) Makefile

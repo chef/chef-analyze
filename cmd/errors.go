@@ -1,5 +1,6 @@
 //
 // Copyright 2019 Chef Software, Inc.
+// Author: Salim Afiune <afiune@chef.io>
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,6 +23,7 @@ package cmd
 //
 
 const (
+	// MissingMinimumParametersErr user feedback
 	MissingMinimumParametersErr = `
   there are missing parameters for this tool to work, provide a credentials file:
     --credentials string

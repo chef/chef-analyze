@@ -6,8 +6,14 @@
 results/
 coverage/
 
+# VScode
+.vscode
+
 # mac
 .DS_Store
 
 # all arch binaries
 bin/
+
+# Top level bin, for when building without Habitat.
+chef-analyze
