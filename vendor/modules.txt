@@ -2,8 +2,6 @@
 github.com/BurntSushi/toml
 # github.com/VividCortex/ewma v1.1.1
 github.com/VividCortex/ewma
-# github.com/afiune/godist v0.0.0-20191112171109-9f14d833c284
-github.com/afiune/godist
 # github.com/aws/aws-sdk-go v1.28.9
 github.com/aws/aws-sdk-go/aws
 github.com/aws/aws-sdk-go/aws/arn
@@ -49,9 +47,10 @@ github.com/aws/aws-sdk-go/service/sts
 github.com/aws/aws-sdk-go/service/sts/stsiface
 # github.com/chef/go-chef v0.4.0
 github.com/chef/go-chef
-# github.com/chef/go-libs v0.0.0-20191216182352-aa2fc405b05f
+# github.com/chef/go-libs v0.1.0
 github.com/chef/go-libs/config
 github.com/chef/go-libs/credentials
+github.com/chef/go-libs/distgen
 github.com/chef/go-libs/featflag
 # github.com/cheggaaa/pb/v3 v3.0.4
 github.com/cheggaaa/pb/v3

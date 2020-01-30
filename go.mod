@@ -6,7 +6,7 @@ require (
 	github.com/afiune/godist v0.0.0-20191112171109-9f14d833c284
 	github.com/aws/aws-sdk-go v1.28.9
 	github.com/chef/go-chef v0.4.0
-	github.com/chef/go-libs v0.0.0-20191216182352-aa2fc405b05f
+	github.com/chef/go-libs v0.1.0
 	github.com/cheggaaa/pb/v3 v3.0.4
 	github.com/fatih/color v1.9.0 // indirect
 	github.com/mattn/go-isatty v0.0.12 // indirect

@@ -1,0 +1,18 @@
+{
+  "CompanyName":        "Chef Software",
+  "ClientProduct":      "Chef Infra Client",
+  "ServerProduct":      "Chef Infra Server",
+  "SoloProduct":        "Chef Infra Solo",
+  "WorkstationProduct": "Chef Workstation",
+  "AutomateProduct":    "Chef Automate",
+  "ClientExec":         "chef-client",
+  "ZeroExec":           "chef-zero",
+  "SoloExec":           "chef-solo",
+  "ShellExec":          "chef-shell",
+  "ApplyExec":          "chef-apply",
+  "DirSuffix":          "chef",
+  "UserConfDir":        ".chef",
+  "WorkstationDir":     ".chef-workstation",
+  "DocsWebsite":        "https://docs.chef.io",
+  "MainWebsite":        "https://chef.io"
+}
