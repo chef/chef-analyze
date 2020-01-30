@@ -17,12 +17,18 @@
 
 package cmd
 
-import "github.com/spf13/cobra"
+import (
+	"fmt"
+
+	"github.com/spf13/cobra"
+
+	"github.com/chef/chef-analyze/pkg/dist"
+)
 
 var (
 	uploadCmd = &cobra.Command{
 		Use:   "upload [LOCATION] [FILE]",
-		Short: "Upload a file to Chef Software",
+		Short: fmt.Sprintf("Upload a file to %s", dist.CompanyName),
 		Args:  cobra.ExactArgs(2),
 		RunE: func(_ *cobra.Command, args []string) error {
 			// cobra will make sure we always have exactly 2 arguments

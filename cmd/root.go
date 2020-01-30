@@ -31,7 +31,7 @@ import (
 var (
 	rootCmd = &cobra.Command{
 		Use:   dist.Exec,
-		Short: "A CLI to analyze artifacts from a Chef Infra Server",
+		Short: fmt.Sprintf("A CLI to analyze artifacts from a %s", dist.ServerProduct),
 		Long: fmt.Sprintf(`Analyze your %s artifacts to understand the effort to upgrade
 your infrastructure by generating reports, automatically fixing violations
 and/or deprecations, and generating Effortless packages.

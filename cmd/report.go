@@ -212,7 +212,7 @@ func init() {
 	reportCmd.PersistentFlags().StringVarP(
 		&reportsFlags.credsFile,
 		"credentials", "c", "",
-		"Chef credentials file (default $HOME/.chef/credentials)", // @afiune add Chef and .chef to dist vars
+		fmt.Sprintf("credentials file (default $HOME/%s/credentials)", dist.UserConfDir),
 	)
 
 	reportCmd.PersistentFlags().StringVarP(
