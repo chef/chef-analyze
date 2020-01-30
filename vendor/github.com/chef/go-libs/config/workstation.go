@@ -25,7 +25,7 @@ import (
 )
 
 const (
-	DefaultChefWorkstationDirectory = ".chef-workstation"
+	DefaultChefWorkstationDirectory = WorkstationDir
 	DefaultChefWSUserConfigFile     = "config.toml"
 	DefaultChefWSAppConfigFile      = ".app-managed-config.toml"
 )

@@ -17,5 +17,11 @@ do_before() {
 }
 
 do_prepare() {
+  build_line "Setting GOFLAGS=\"-mod=vendor\""
   export GOFLAGS="-mod=vendor"
+
+  build_line "Running all 'go generate' statements before building"
+  ( cd "$SRC_PATH" || exit_with "unable to cd into source directory" 1
+    go generate ./...
+  )
 }

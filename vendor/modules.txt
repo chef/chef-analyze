@@ -2,7 +2,7 @@
 github.com/BurntSushi/toml
 # github.com/VividCortex/ewma v1.1.1
 github.com/VividCortex/ewma
-# github.com/aws/aws-sdk-go v1.26.6
+# github.com/aws/aws-sdk-go v1.28.9
 github.com/aws/aws-sdk-go/aws
 github.com/aws/aws-sdk-go/aws/arn
 github.com/aws/aws-sdk-go/aws/awserr
@@ -29,6 +29,7 @@ github.com/aws/aws-sdk-go/internal/sdkmath
 github.com/aws/aws-sdk-go/internal/sdkrand
 github.com/aws/aws-sdk-go/internal/sdkuri
 github.com/aws/aws-sdk-go/internal/shareddefaults
+github.com/aws/aws-sdk-go/internal/strings
 github.com/aws/aws-sdk-go/private/protocol
 github.com/aws/aws-sdk-go/private/protocol/eventstream
 github.com/aws/aws-sdk-go/private/protocol/eventstream/eventstreamapi
@@ -44,18 +45,19 @@ github.com/aws/aws-sdk-go/service/s3/s3iface
 github.com/aws/aws-sdk-go/service/s3/s3manager
 github.com/aws/aws-sdk-go/service/sts
 github.com/aws/aws-sdk-go/service/sts/stsiface
-# github.com/chef/go-chef v0.0.0-20191115205148-7ac24fba7a27
+# github.com/chef/go-chef v0.4.0
 github.com/chef/go-chef
-# github.com/chef/go-libs v0.0.0-20191216182352-aa2fc405b05f
+# github.com/chef/go-libs v0.1.0
 github.com/chef/go-libs/config
 github.com/chef/go-libs/credentials
+github.com/chef/go-libs/distgen
 github.com/chef/go-libs/featflag
-# github.com/cheggaaa/pb/v3 v3.0.3
+# github.com/cheggaaa/pb/v3 v3.0.4
 github.com/cheggaaa/pb/v3
 github.com/cheggaaa/pb/v3/termutil
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
-# github.com/fatih/color v1.7.0
+# github.com/fatih/color v1.9.0
 github.com/fatih/color
 # github.com/fsnotify/fsnotify v1.4.7
 github.com/fsnotify/fsnotify
@@ -78,9 +80,9 @@ github.com/jmespath/go-jmespath
 github.com/magiconair/properties
 # github.com/mattn/go-colorable v0.1.4
 github.com/mattn/go-colorable
-# github.com/mattn/go-isatty v0.0.11
+# github.com/mattn/go-isatty v0.0.12
 github.com/mattn/go-isatty
-# github.com/mattn/go-runewidth v0.0.7
+# github.com/mattn/go-runewidth v0.0.8
 github.com/mattn/go-runewidth
 # github.com/mitchellh/mapstructure v1.1.2
 github.com/mitchellh/mapstructure
@@ -88,7 +90,7 @@ github.com/mitchellh/mapstructure
 github.com/olekukonko/tablewriter
 # github.com/pelletier/go-toml v1.6.0
 github.com/pelletier/go-toml
-# github.com/pkg/errors v0.8.1
+# github.com/pkg/errors v0.9.1
 github.com/pkg/errors
 # github.com/pmezard/go-difflib v1.0.0
 github.com/pmezard/go-difflib/difflib
@@ -103,21 +105,21 @@ github.com/spf13/cobra
 github.com/spf13/jwalterweatherman
 # github.com/spf13/pflag v1.0.5
 github.com/spf13/pflag
-# github.com/spf13/viper v1.6.1
+# github.com/spf13/viper v1.6.2
 github.com/spf13/viper
 # github.com/stretchr/testify v1.4.0
 github.com/stretchr/testify/assert
 # github.com/subosito/gotenv v1.2.0
 github.com/subosito/gotenv
-# golang.org/x/crypto v0.0.0-20191219195013-becbf705a915
+# golang.org/x/crypto v0.0.0-20200117160349-530e935923ad
 golang.org/x/crypto/ssh/terminal
-# golang.org/x/sys v0.0.0-20191219235734-af0d71d358ab
+# golang.org/x/sys v0.0.0-20200124204421-9fbb57f87de9
 golang.org/x/sys/unix
 golang.org/x/sys/windows
 # golang.org/x/text v0.3.2
 golang.org/x/text/transform
 golang.org/x/text/unicode/norm
-# gopkg.in/ini.v1 v1.51.0
+# gopkg.in/ini.v1 v1.51.1
 gopkg.in/ini.v1
-# gopkg.in/yaml.v2 v2.2.7
+# gopkg.in/yaml.v2 v2.2.8
 gopkg.in/yaml.v2

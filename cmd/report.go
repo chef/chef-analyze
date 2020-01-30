@@ -29,6 +29,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
+	"github.com/chef/chef-analyze/pkg/dist"
 	"github.com/chef/chef-analyze/pkg/formatter"
 	"github.com/chef/chef-analyze/pkg/reporting"
 )
@@ -47,7 +48,7 @@ var (
 	timestamp = time.Now().Format("20060102150405")
 	reportCmd = &cobra.Command{
 		Use:   "report",
-		Short: "Generate reports from a Chef Infra Server",
+		Short: fmt.Sprintf("Generate reports from a %s", dist.ServerProduct),
 	}
 	reportCookbooksCmd = &cobra.Command{
 		Use:   "cookbooks",
@@ -211,7 +212,7 @@ func init() {
 	reportCmd.PersistentFlags().StringVarP(
 		&reportsFlags.credsFile,
 		"credentials", "c", "",
-		"Chef credentials file (default $HOME/.chef/credentials)",
+		fmt.Sprintf("credentials file (default $HOME/%s/credentials)", dist.UserConfDir),
 	)
 
 	reportCmd.PersistentFlags().StringVarP(
@@ -222,22 +223,22 @@ func init() {
 	reportCmd.PersistentFlags().StringVarP(
 		&reportsFlags.clientName,
 		"client_name", "n", "",
-		"Chef Infra Server API client username",
+		fmt.Sprintf("%s API client username", dist.ServerProduct),
 	)
 	reportCmd.PersistentFlags().StringVarP(
 		&reportsFlags.clientKey,
 		"client_key", "k", "",
-		"Chef Infra Server API client key",
+		fmt.Sprintf("%s API client key", dist.ServerProduct),
 	)
 	reportCmd.PersistentFlags().StringVarP(
 		&reportsFlags.chefServerURL,
 		"chef_server_url", "s", "",
-		"Chef Infra Server URL",
+		fmt.Sprintf("%s URL", dist.ServerProduct),
 	)
 	reportCmd.PersistentFlags().StringVarP(
 		&reportsFlags.profile,
 		"profile", "p", "default",
-		"Chef Infra Server URL",
+		fmt.Sprintf("%s URL", dist.ServerProduct),
 	)
 	reportCmd.PersistentFlags().BoolVarP(
 		&reportsFlags.noSSLverify,

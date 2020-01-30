@@ -18,17 +18,20 @@
 package cmd
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+
+	"github.com/chef/chef-analyze/pkg/dist"
 )
 
 var (
 	sessionCmd = &cobra.Command{
 		Use:    "session [MINUTES]",
 		Hidden: true,
-		Short:  "Creates new access credentials to upload files to Chef Software",
+		Short:  fmt.Sprintf("Creates new access credentials to upload files to %s", dist.CompanyName),
 		Args:   cobra.ExactArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
 			min, err := strconv.ParseInt(args[0], 10, 64)

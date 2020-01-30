@@ -15,7 +15,26 @@
 // limitations under the License.
 //
 
-package credentials
+// An abstraction of the Chef credentials file (credentials).
+//
+// Basic usage
+//
+// In this example loading the credentials file and printing the client name from
+// the "dev" profile:
+//  package main
+//
+//  import "github.com/chef/go-libs/credentials"
+//
+//  func main() {
+//      profile := "dev"
+//      creds, err := credentials.New(profile)
+//      if err != nil {
+//        fmt.Println("unable to read the credentials", err)
+//      }
+//      fmt.Printf("The client_name from the '%s' profile is: %s", creds.ClientName)
+//  }
+//
+package credentials // import "github.com/chef/go-libs/credentials"
 
 import (
 	"io/ioutil"
