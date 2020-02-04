@@ -102,7 +102,7 @@ provided when the report is generated.
 			}
 
 			if cookbooksState.TotalCookbooks == 0 {
-				fmt.Printf(" No cookbooks available for analysis\n")
+				fmt.Printf(" (0 found)\n\nNo cookbooks available for analysis.\n")
 				return nil
 			}
 			fmt.Printf(" (%d found)\n", cookbooksState.TotalCookbooks)
