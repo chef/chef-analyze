@@ -32,6 +32,8 @@ import (
 	"github.com/chef/go-libs/config"
 	"github.com/cheggaaa/pb/v3"
 	"github.com/pkg/errors"
+
+	"github.com/chef/chef-analyze/pkg/dist"
 )
 
 const analyzeTokensDir = "tokens" // Used for $HOME/.chef-workstation/tokens
@@ -96,7 +98,9 @@ func GetSessionToken(minDuration int64) error {
 	}
 
 	fmt.Printf("A new session has been created and will be active for %d minutes.\n", minDuration)
-	fmt.Printf("Share these environment variables with a user that desires to upload files to Chef Software:\n\n")
+	fmt.Printf(
+		"Share these environment variables with a user that desires to upload files to %s:\n\n",
+		dist.CompanyName)
 	fmt.Printf("* Unix systems:\n%s", awsCredentialsToUnixVariables(result))
 	fmt.Printf("\n* Windows systems:\n%s\n", awsCredentialsToPowershellVariables(result))
 	return saveSessionToken(result, minDuration)

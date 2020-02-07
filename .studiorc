@@ -55,6 +55,16 @@ function update_deps() {
   )
 }
 
+document "gocode_generation" <<DOC
+  Run 'go generate' for code generation
+DOC
+function gocode_generation() {
+  install_if_missing core/go go
+  ( cd /src || return 1
+    go generate ./...
+  )
+}
+
 document "unit_tests" <<DOC
   Run unit tests (go-based)
 DOC

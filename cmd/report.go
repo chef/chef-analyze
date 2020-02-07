@@ -26,9 +26,11 @@ import (
 
 	"github.com/chef/go-libs/config"
 	"github.com/chef/go-libs/credentials"
+	"github.com/cheggaaa/pb/v3"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
+	"github.com/chef/chef-analyze/pkg/dist"
 	"github.com/chef/chef-analyze/pkg/formatter"
 	"github.com/chef/chef-analyze/pkg/reporting"
 )
@@ -47,7 +49,7 @@ var (
 	timestamp = time.Now().Format("20060102150405")
 	reportCmd = &cobra.Command{
 		Use:   "report",
-		Short: "Generate reports from a Chef Infra Server",
+		Short: fmt.Sprintf("Generate reports from a %s", dist.ServerProduct),
 	}
 	reportCookbooksCmd = &cobra.Command{
 		Use:   "cookbooks",
@@ -86,17 +88,33 @@ provided when the report is generated.
 				return err
 			}
 
-			cookbooksState, err := reporting.GenerateCookbooksReport(
+			fmt.Printf("Finding available cookbooks...")
+			cookbooksState, err := reporting.NewCookbooksReport(
 				chefClient.Cookbooks,
 				chefClient.Search,
 				cookbooksFlags.runCookstyle,
 				cookbooksFlags.onlyUnused,
 				cookbooksFlags.workers,
 			)
+
 			if err != nil {
 				return err
 			}
 
+			if cookbooksState.TotalCookbooks == 0 {
+				fmt.Printf(" (0 found)\n\nNo cookbooks available for analysis.\n")
+				return nil
+			}
+			fmt.Printf(" (%d found)\n", cookbooksState.TotalCookbooks)
+			fmt.Println("Analyzing cookbooks...")
+
+			progressBar := pb.New(cookbooksState.TotalCookbooks)
+			progressBar.Start()
+			go cookbooksState.Generate()
+			for _ = range cookbooksState.Progress {
+				progressBar.Increment()
+			}
+			progressBar.Finish()
 			var (
 				formattedSummary = formatter.CookbooksReportSummary(cookbooksState)
 				results          *formatter.FormattedResult
@@ -211,7 +229,7 @@ func init() {
 	reportCmd.PersistentFlags().StringVarP(
 		&reportsFlags.credsFile,
 		"credentials", "c", "",
-		"Chef credentials file (default $HOME/.chef/credentials)",
+		fmt.Sprintf("credentials file (default $HOME/%s/credentials)", dist.UserConfDir),
 	)
 
 	reportCmd.PersistentFlags().StringVarP(
@@ -222,22 +240,22 @@ func init() {
 	reportCmd.PersistentFlags().StringVarP(
 		&reportsFlags.clientName,
 		"client_name", "n", "",
-		"Chef Infra Server API client username",
+		fmt.Sprintf("%s API client username", dist.ServerProduct),
 	)
 	reportCmd.PersistentFlags().StringVarP(
 		&reportsFlags.clientKey,
 		"client_key", "k", "",
-		"Chef Infra Server API client key",
+		fmt.Sprintf("%s API client key", dist.ServerProduct),
 	)
 	reportCmd.PersistentFlags().StringVarP(
 		&reportsFlags.chefServerURL,
 		"chef_server_url", "s", "",
-		"Chef Infra Server URL",
+		fmt.Sprintf("%s URL", dist.ServerProduct),
 	)
 	reportCmd.PersistentFlags().StringVarP(
 		&reportsFlags.profile,
 		"profile", "p", "default",
-		"Chef Infra Server URL",
+		fmt.Sprintf("%s URL", dist.ServerProduct),
 	)
 	reportCmd.PersistentFlags().BoolVarP(
 		&reportsFlags.noSSLverify,
@@ -258,7 +276,7 @@ func init() {
 	)
 	reportCookbooksCmd.PersistentFlags().BoolVarP(
 		&cookbooksFlags.runCookstyle,
-		"verify-upgrade", "v", false,
+		"verify-upgrade", "V", false,
 		"verify the upgrade compatibility of every cookbook",
 	)
 	// adds the cookbooks command as a sub-command of the report command

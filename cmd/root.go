@@ -24,16 +24,18 @@ import (
 	"github.com/chef/go-libs/credentials"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+
+	"github.com/chef/chef-analyze/pkg/dist"
 )
 
 var (
 	rootCmd = &cobra.Command{
-		Use:   "chef-analyze",
-		Short: "A CLI to analyze artifacts from a Chef Infra Server",
-		Long: `Analyze your Chef Infra Server artifacts to understand the effort to upgrade
+		Use:   dist.Exec,
+		Short: fmt.Sprintf("A CLI to analyze artifacts from a %s", dist.ServerProduct),
+		Long: fmt.Sprintf(`Analyze your %s artifacts to understand the effort to upgrade
 your infrastructure by generating reports, automatically fixing violations
 and/or deprecations, and generating Effortless packages.
-`,
+`, dist.ServerProduct),
 	}
 )
 

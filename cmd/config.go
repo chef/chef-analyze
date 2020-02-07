@@ -17,17 +17,26 @@
 
 package cmd
 
-import "github.com/spf13/cobra"
+import (
+	"fmt"
+
+	"github.com/spf13/cobra"
+
+	"github.com/chef/chef-analyze/pkg/dist"
+)
 
 var (
 	configCmd = &cobra.Command{
 		Use:    "config",
 		Hidden: true, // this will avoid the command to be displayed in the help/usage message
-		Short:  "Manage your local Chef configuration (default: $HOME/.chef/credentials)",
+		Short: fmt.Sprintf(
+			"Manage your local %s configuration (default: $HOME/.chef/credentials)",
+			dist.ServerProduct,
+		),
 	}
 	configVerifyCmd = &cobra.Command{
 		Use:   "verify",
-		Short: "Verify your Chef configuration",
+		Short: fmt.Sprintf("Verify your %s configuration", dist.ServerProduct),
 		Args:  cobra.NoArgs,
 		RunE: func(_ *cobra.Command, args []string) error {
 			// TODO @afiune verify the config
@@ -36,7 +45,7 @@ var (
 	}
 	configInitCmd = &cobra.Command{
 		Use:   "init",
-		Short: "Initialize a local Chef configuration",
+		Short: fmt.Sprintf("Initialize a local %s configuration", dist.ServerProduct),
 		Args:  cobra.NoArgs,
 		RunE: func(_ *cobra.Command, args []string) error {
 			// TODO @afiune help user initialize a local config file

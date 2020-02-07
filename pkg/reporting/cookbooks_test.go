@@ -63,7 +63,7 @@ func TestCookbooksRecordNumNodesAffected(t *testing.T) {
 }
 
 func TestCookbooksEmpty(t *testing.T) {
-	c, err := subject.GenerateCookbooksReport(
+	cbr, err := subject.NewCookbooksReport(
 		newMockCookbook(chef.CookbookListResult{}, nil, nil),
 		makeMockSearch("[]", nil),
 		false,
@@ -71,9 +71,9 @@ func TestCookbooksEmpty(t *testing.T) {
 		Workers,
 	)
 	assert.Nil(t, err)
-	if assert.NotNil(t, c) {
-		assert.Empty(t, c.Records)
-		assert.Equal(t, 0, c.TotalCookbooks)
+	if assert.NotNil(t, cbr) {
+		assert.Empty(t, cbr.Records)
+		assert.Equal(t, 0, cbr.TotalCookbooks)
 	}
 }
 
@@ -95,29 +95,35 @@ func TestCookbooksInUseDisplayOnlyUnused(t *testing.T) {
 			},
 		},
 	}
-	c, err := subject.GenerateCookbooksReport(
+	c, err := subject.NewCookbooksReport(
 		newMockCookbook(cookbookList, nil, nil),
 		makeMockSearch(mockedNodesSearchRows(), nil), // nodes are found
-		false,
-		true, // display only unused cookbooks
+		false, // do not download or cookstyle
+		true,  // display only unused cookbooks
 		Workers,
 	)
 	assert.Nil(t, err)
 	if assert.NotNil(t, c) {
-		assert.Empty(t, c.Records)
+		c.Generate()
+
+		assert.Equal(t, 4, len(c.Progress))
 		assert.Equal(t, 4, c.TotalCookbooks)
+		assert.Empty(t, c.Records)
 	}
 
-	c, err = subject.GenerateCookbooksReport(
+	// Verify that used cookbooks list is complete and correct
+	c, err = subject.NewCookbooksReport(
 		newMockCookbook(cookbookList, nil, nil),
 		makeMockSearch(mockedNodesSearchRows(), nil), // nodes are found
-		false,
-		false, // display only used cookbooks
+		false, // do not download or cookstyle
+		false, // display only used cookbooks, as determined by search results
 		Workers,
 	)
 	assert.Nil(t, err)
 	if assert.NotNil(t, c) {
 		assert.Equal(t, 4, c.TotalCookbooks)
+		c.Generate()
+		assert.Equal(t, 4, len(c.Progress))
 		if assert.Equal(t, 4, len(c.Records)) {
 			// we check for only one bar and 3 foo cookbooks
 			var (
@@ -162,7 +168,7 @@ func TestCookbooksNotUsedDisplayOnlyUnused(t *testing.T) {
 			},
 		},
 	}
-	c, err := subject.GenerateCookbooksReport(
+	c, err := subject.NewCookbooksReport(
 		newMockCookbook(cookbookList, nil, nil),
 		makeMockSearch("[]", nil), // no nodes are returned
 		false,
@@ -170,6 +176,9 @@ func TestCookbooksNotUsedDisplayOnlyUnused(t *testing.T) {
 		Workers,
 	)
 	assert.Nil(t, err)
+	c.Generate()
+	assert.Equal(t, 4, len(c.Progress)) // verify all progress events arrived
+
 	if assert.NotNil(t, c) {
 		assert.Equal(t, 4, c.TotalCookbooks)
 		if assert.Equal(t, 4, len(c.Records)) {
@@ -197,7 +206,7 @@ func TestCookbooksNotUsedDisplayOnlyUnused(t *testing.T) {
 		}
 	}
 
-	c, err = subject.GenerateCookbooksReport(
+	c, err = subject.NewCookbooksReport(
 		newMockCookbook(cookbookList, nil, nil),
 		makeMockSearch("[]", nil), // no nodes are returned
 		false,
@@ -206,7 +215,9 @@ func TestCookbooksNotUsedDisplayOnlyUnused(t *testing.T) {
 	)
 	assert.Nil(t, err)
 	if assert.NotNil(t, c) {
+		c.Generate()
 		assert.Empty(t, c.Records)
+		assert.Equal(t, 4, len(c.Progress)) // verify all progress events arrived
 		assert.Equal(t, 4, c.TotalCookbooks)
 	}
 
@@ -233,7 +244,7 @@ func TestCookbooks(t *testing.T) {
 			},
 		},
 	}
-	c, err := subject.GenerateCookbooksReport(
+	c, err := subject.NewCookbooksReport(
 		newMockCookbook(cookbookList, nil, nil),
 		makeMockSearch(mockedNodesSearchRows(), nil),
 		true,
@@ -243,6 +254,8 @@ func TestCookbooks(t *testing.T) {
 	assert.Nil(t, err)
 	if assert.NotNil(t, c) {
 		assert.Equal(t, 4, c.TotalCookbooks)
+		c.Generate()
+		assert.Equal(t, 4, len(c.Progress)) // verify all progress events arrived
 		if assert.Equal(t, 4, len(c.Records)) {
 			// we check for only one bar and 3 foo cookbooks
 			var (
@@ -272,7 +285,7 @@ func TestCookbooks(t *testing.T) {
 // Given a failure trying to get the list of cookbooks,
 // verify the result set is as expected
 func TestCookbooks_ListCookbooksErrors(t *testing.T) {
-	c, err := subject.GenerateCookbooksReport(
+	c, err := subject.NewCookbooksReport(
 		newMockCookbook(chef.CookbookListResult{}, errors.New("i/o timeout"), nil),
 		makeMockSearch("[]", nil),
 		false,
@@ -287,7 +300,7 @@ func TestCookbooks_ListCookbooksErrors(t *testing.T) {
 
 func TestCookbooks_ListAvailableVersionsError(t *testing.T) {
 	cookbookList := chef.CookbookListResult{}
-	c, err := subject.GenerateCookbooksReport(
+	c, err := subject.NewCookbooksReport(
 		newMockCookbook(cookbookList, errors.New("list error"), nil),
 		nil,
 		false,
@@ -300,7 +313,7 @@ func TestCookbooks_ListAvailableVersionsError(t *testing.T) {
 
 func TestCookbooks_NoneAvailable(t *testing.T) {
 
-	c, err := subject.GenerateCookbooksReport(
+	c, err := subject.NewCookbooksReport(
 		newMockCookbook(chef.CookbookListResult{}, nil, nil),
 		makeMockSearch(mockedEmptyNodesSearchRows(), nil),
 		false,
@@ -327,7 +340,7 @@ func TestCookbooks_DownloadErrors(t *testing.T) {
 			},
 		},
 	}
-	c, err := subject.GenerateCookbooksReport(
+	c, err := subject.NewCookbooksReport(
 		newMockCookbook(cookbookList, nil, errors.New("download error")),
 		makeMockSearch(mockedNodesSearchRows(), nil),
 		true, // run cookstyle, which means that we will download the cookbooks
@@ -337,6 +350,8 @@ func TestCookbooks_DownloadErrors(t *testing.T) {
 	assert.Nil(t, err)
 	if assert.NotNil(t, c) {
 		assert.Equal(t, 1, c.TotalCookbooks)
+		c.Generate()
+		assert.Equal(t, 1, len(c.Progress)) // Verify that all progress events got queued
 		if assert.Equal(t, 1, len(c.Records)) {
 			for _, rec := range c.Records {
 				assert.EqualError(t, rec.DownloadError, "unable to download cookbook foo: download error")
@@ -360,10 +375,10 @@ func TestCookbooks_UsageStatErrors(t *testing.T) {
 			},
 		},
 	}
-	c, err := subject.GenerateCookbooksReport(
+	c, err := subject.NewCookbooksReport(
 		newMockCookbook(cookbookList, nil, nil),
 		makeMockSearch(mockedNodesSearchRows(), errors.New("lookup error")),
-		false,
+		false, // do not download or cookstyle
 		// Because the usage error makes it look like no nodes are attached to this cookbook
 		// we need to return only unused cookbooks
 		true,
@@ -372,6 +387,8 @@ func TestCookbooks_UsageStatErrors(t *testing.T) {
 	assert.Nil(t, err)
 	if assert.NotNil(t, c) {
 		assert.Equal(t, 1, c.TotalCookbooks)
+		c.Generate()
+		assert.Equal(t, 1, len(c.Progress)) // Verify that all progress events got queued
 		if assert.Equal(t, 1, len(c.Records)) {
 			for _, rec := range c.Records {
 				assert.NoError(t, rec.DownloadError, "unexpected DownloadError")
@@ -416,7 +433,7 @@ func TestCookbooks_withCookstyleError(t *testing.T) {
 			},
 		},
 	}
-	c, err := subject.GenerateCookbooksReport(
+	c, err := subject.NewCookbooksReport(
 		newMockCookbook(cookbookList, nil, nil),
 		makeMockSearch(mockedNodesSearchRows(), nil),
 		true,
@@ -426,6 +443,8 @@ func TestCookbooks_withCookstyleError(t *testing.T) {
 	assert.Nil(t, err)
 	if assert.NotNil(t, c) {
 		assert.Equal(t, 4, c.TotalCookbooks)
+		c.Generate()
+		assert.Equal(t, 4, len(c.Progress)) // Verify that all progress events got queued
 		if assert.Equal(t, 4, len(c.Records)) {
 			for _, rec := range c.Records {
 				allErrors := rec.Errors()
@@ -456,7 +475,7 @@ func TestCookbooks_withHeavyLoad(t *testing.T) {
 
 	assert.Equal(t, TotalCookbooks, len(cookbookList))
 
-	c, err := subject.GenerateCookbooksReport(
+	c, err := subject.NewCookbooksReport(
 		newMockCookbook(cookbookList, nil, nil),
 		makeMockSearch(mockedNodesSearchRows(), nil),
 		true,
@@ -467,8 +486,11 @@ func TestCookbooks_withHeavyLoad(t *testing.T) {
 	if assert.NotNil(t, c) {
 		// we should have a total of three times the number of TotalCookbooks
 		// since every cookbook contains three versions
-		assert.Equal(t, TotalCookbooks*3, c.TotalCookbooks)
-		if assert.Equal(t, TotalCookbooks*3, len(c.Records)) {
+		expectedCookbookCount := TotalCookbooks * 3
+		assert.Equal(t, expectedCookbookCount, c.TotalCookbooks)
+		c.Generate()
+		assert.Equal(t, expectedCookbookCount, len(c.Progress)) // Verify that all progress events got queued
+		if assert.Equal(t, expectedCookbookCount, len(c.Records)) {
 			for _, rec := range c.Records {
 				assert.Emptyf(t, rec.Errors(),
 					"there should not be any errors for %s-%s", rec.Name, rec.Version)

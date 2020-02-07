@@ -17,28 +17,32 @@
 
 package credentials
 
+import "fmt"
+
 //
 // The intend of this file is to have a single place where we can easily
 // visualize the list of all error messages that we present to users.
 //
 
-const (
-	ProfileNotFoundErr = `
+var (
+	ProfileNotFoundErr = fmt.Sprintf(`
   profile not found in credentials file.
 
   verify the format of the credentials file by following this documentation:
-    - https://docs.chef.io/knife_setup.html#knife-profiles
-`
-	CredentialsNotFoundErr = `
-  credentials file not found. (default: $HOME/.chef/credentials)
+    - %s/knife_setup.html#knife-profiles
+`, DocsWebsite)
+
+	CredentialsNotFoundErr = fmt.Sprintf(`
+  credentials file not found. (default: $HOME/%s/credentials)
 
   setup your local credentials config by following this documentation:
-    - https://docs.chef.io/knife_setup.html#knife-profiles
-`
-	MalformedCredentialsFileErr = `
+    - %s/knife_setup.html#knife-profiles
+`, UserConfDir, DocsWebsite)
+
+	MalformedCredentialsFileErr = fmt.Sprintf(`
   unable to parse credentials file.
 
   verify the format of the credentials file by following this documentation:
-    - https://docs.chef.io/knife_setup.html#knife-profiles
-`
+    - %s/knife_setup.html#knife-profiles
+`, DocsWebsite)
 )
