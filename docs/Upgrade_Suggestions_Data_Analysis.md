@@ -54,11 +54,32 @@ applied directly to the node
 latest version of Chef Client plus, which nodes are currently using each
 cookbook
 
-The next step for us would be to analyze the data gathered from the reports
-and give upgrade suggestions to the user. Guiding them with a few actions
-they can take to start upgrading their infrastructure. We are aiming to
-start with the smallest tasks that the user can take, so that they start
-immediately, and to reduce the upcoming tasks ahead.
+One outstanding detail for us to verify is that the current reports are
+covering Chef Environments and Chef Roles correctly.
+
+The tool currently is not aware of Policyfiles and Policygroups, for the nodes
+report we need to add a column that tell the user that a node has a policy
+attached, and for the cookbooks report we need to, in addition to gather the
+cookbooks from the Chef Infra Server, fetch the list of policies that are being
+use by one or more nodes and resolve the cookbooks listed it on each policy.
+
+To implement the above statement, it will be neccesary to change the way we
+collect the data. We will start storing the data locally so that we can
+leverage it from other parts of the tool. For instance, after the generation
+of a nodes report, we would have on disk the information needed for the
+cookbooks report that requires the verification of the policies that are being
+used by one or more nodes.
+
+A few implications of this approach are:
+* When and how do we reload the data stored on disk?
+* Do we need to add a process to collect all the data at once?
+
+Once we are generating accurate reports, the next step would be to analyze the
+data gathered and give upgrade suggestions to the user. We will provide ranked
+suggestions based on measured impact to the infrastructure, preferring least-impactful
+changes so that the operator can move forward with some assurance of safety.
+
+The recommended usage of these suggestions is to apply and deploy them iteratively.
 
 A few suggestions we can make to our users are:
 
@@ -84,4 +105,4 @@ well as any impact that they might have while they execute the recommendations.
 
 ## Downstream Impact
 
-TBA
+We do not consider to have any downstream impact since this is a new tool.
