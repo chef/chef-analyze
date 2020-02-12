@@ -27,13 +27,18 @@ import (
 
 func TestNodesReportSummary_Nil(t *testing.T) {
 	expected := subject.FormattedResult{"No nodes found to analyze.", ""}
-	assert.Equal(t, expected, subject.NodesReportSummary(nil))
+	assert.Equal(t, expected, subject.NodesReportSummary(nil, ""))
 }
 
 func TestNodesReportSummary_noRecords(t *testing.T) {
 	nri := []*reporting.NodeReportItem{}
 	expected := subject.FormattedResult{"No nodes found to analyze.", ""}
-	assert.Equal(t, expected, subject.NodesReportSummary(nri))
+	assert.Equal(t, expected, subject.NodesReportSummary(nri, ""))
+}
+func TestNodesReportSummary_noRecordsAndFilter(t *testing.T) {
+	nri := []*reporting.NodeReportItem{}
+	expected := subject.FormattedResult{"No nodes found with filter applied: name:blah", ""}
+	assert.Equal(t, expected, subject.NodesReportSummary(nri, "name:blah"))
 }
 
 func TestNodesReportSummary_withRecords(t *testing.T) {
@@ -59,7 +64,7 @@ func TestNodesReportSummary_withRecords(t *testing.T) {
 			},
 		},
 	}
-	report := subject.NodesReportSummary(nri)
+	report := subject.NodesReportSummary(nri, "")
 
 	assert.Contains(t,
 		report.Report,
@@ -93,6 +98,63 @@ func TestNodesReportSummary_withRecords(t *testing.T) {
 	}
 }
 
+func TestNodesReportSummary_withRecordsAndFilter(t *testing.T) {
+	nri := []*reporting.NodeReportItem{
+		&reporting.NodeReportItem{
+			Name:        "abc-1",
+			ChefVersion: "15.4",
+			OS:          "os",
+			OSVersion:   "1.0",
+			CookbookVersions: []reporting.CookbookVersion{
+				reporting.CookbookVersion{Name: "cookbook1", Version: "0.3.0"},
+			},
+		},
+		&reporting.NodeReportItem{
+			Name:        "abc-2",
+			ChefVersion: "13.1.20",
+			OS:          "os",
+			OSVersion:   "1.0",
+			CookbookVersions: []reporting.CookbookVersion{
+				reporting.CookbookVersion{Name: "cool", Version: "0.1.0"},
+				reporting.CookbookVersion{Name: "awesome", Version: "1.2.3"},
+				reporting.CookbookVersion{Name: "cookbook1", Version: "0.3.0"},
+			},
+		},
+	}
+	report := subject.NodesReportSummary(nri, "name:blah")
+
+	assert.Contains(t,
+		report.Report,
+		"REPORT SUMMARY",
+		"stdout missing report summary header")
+	assert.Contains(t,
+		report.Report,
+		"Node Name",
+		"stdout missing Node Name header")
+	assert.Contains(t,
+		report.Report,
+		"Chef Version", "stdout missing Chef Version header")
+	assert.Contains(t,
+		report.Report,
+		"Operating System", "stdout missing Operating System header")
+	assert.Contains(t,
+		report.Report,
+		"Node Filter applied: name:blah", "stdout missing filter description",
+		report.Report)
+
+	listOfStringTheReportMustHave := []string{
+		"abc-1",
+		"abc-2",
+		"15.4",
+		"os v1.0",
+		"13.1.20",
+	}
+	for _, s := range listOfStringTheReportMustHave {
+		assert.Containsf(t, report.Report, s,
+			"there is something missing in the stdout: '%s' is missing", s,
+		)
+	}
+}
 func TestNodesReportSummary_withRecords_NoCookbooks(t *testing.T) {
 	nri := []*reporting.NodeReportItem{
 		&reporting.NodeReportItem{
@@ -108,7 +170,7 @@ func TestNodesReportSummary_withRecords_NoCookbooks(t *testing.T) {
 			OSVersion:   "1.0",
 		},
 	}
-	report := subject.NodesReportSummary(nri)
+	report := subject.NodesReportSummary(nri, "")
 
 	assert.Contains(t,
 		report.Report,
@@ -162,6 +224,23 @@ func TestCookbooksReportSummary_noRecords(t *testing.T) {
 		},
 		subject.CookbooksReportSummary(state),
 	)
+}
+
+func TestCookbooksReportSummary_noRecordsWithFilter(t *testing.T) {
+	state := &reporting.CookbooksReport{NodeFilter: "blah"}
+	assert.Equal(t,
+		subject.FormattedResult{
+			"No available cookbooks to generate a report",
+			"",
+		},
+		subject.CookbooksReportSummary(state),
+	)
+}
+func TestCookbooksReportSummary_noRecordsBecauseFiltered(t *testing.T) {
+	state := &reporting.CookbooksReport{NodeFilter: "blah", TotalCookbooks: 1}
+	summary := subject.CookbooksReportSummary(state)
+	assert.Contains(t, summary.Report, "run lists of any filtered nodes")
+	assert.Equal(t, summary.Errors, "")
 }
 
 func TestCookbooksReportSummary_withRecords(t *testing.T) {

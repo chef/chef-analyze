@@ -30,10 +30,16 @@ func MakeCookbooksReportTXT(state *reporting.CookbooksReport) *FormattedResult {
 		errorBuilder strings.Builder
 		strBuilder   strings.Builder
 	)
+	if state == nil {
+		return &FormattedResult{strBuilder.String(), ""}
+	}
 
-	if state == nil || len(state.Records) == 0 {
+	if len(state.NodeFilter) != 0 {
+		strBuilder.WriteString(fmt.Sprintf("Node filter applied: %s\n", state.NodeFilter))
+	}
+	if len(state.Records) == 0 {
 		// nothing to do
-		return &FormattedResult{"", ""}
+		return &FormattedResult{strBuilder.String(), ""}
 	}
 
 	for _, record := range state.Records {
@@ -78,15 +84,18 @@ func MakeCookbooksReportTXT(state *reporting.CookbooksReport) *FormattedResult {
 }
 
 // MakeNodesReportTXT text output of long, non-summarize report
-func MakeNodesReportTXT(records []*reporting.NodeReportItem) *FormattedResult {
+func MakeNodesReportTXT(records []*reporting.NodeReportItem, nodeFilter string) *FormattedResult {
 	var (
 		errorBuilder strings.Builder
 		strBuilder   strings.Builder
 	)
+	if len(nodeFilter) > 0 {
+		strBuilder.WriteString(fmt.Sprintf("Node Filter Applied: %s\n", nodeFilter))
+	}
 
 	if len(records) == 0 {
 		// nothing to do
-		return &FormattedResult{"", ""}
+		return &FormattedResult{strBuilder.String(), ""}
 	}
 
 	for _, record := range records {

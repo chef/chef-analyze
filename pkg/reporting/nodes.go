@@ -64,7 +64,7 @@ func (nri *NodeReportItem) CookbooksList() []string {
 }
 
 // GenerateNodesReport generate a nodes report
-func GenerateNodesReport(searcher SearchInterface) ([]*NodeReportItem, error) {
+func GenerateNodesReport(searcher SearchInterface, filter string) ([]*NodeReportItem, error) {
 	var (
 		query = map[string]interface{}{
 			"name":         []string{"name"},
@@ -74,8 +74,10 @@ func GenerateNodesReport(searcher SearchInterface) ([]*NodeReportItem, error) {
 			"cookbooks":    []string{"cookbooks"},
 		}
 	)
-
-	pres, err := searcher.PartialExec("node", "*:*", query)
+	if filter == "" {
+		filter = "*:*"
+	}
+	pres, err := searcher.PartialExec("node", filter, query)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to get node(s) information")
 	}
