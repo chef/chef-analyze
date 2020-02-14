@@ -571,3 +571,44 @@ func TestCookbooks_withHeavyLoad(t *testing.T) {
 		}
 	}
 }
+
+func TestCookbookRecordsByNameVersion_Len(t *testing.T) {
+	crs := []*subject.CookbookRecord{
+		&subject.CookbookRecord{Name: "cookbook_name"},
+	}
+	assert.Equal(t, 1, subject.CookbookRecordsByNameVersion.Len(crs))
+}
+
+func TestCookbookRecordsByNameVersion_Swap(t *testing.T) {
+	crs := []*subject.CookbookRecord{
+		&subject.CookbookRecord{Name: "cb1"},
+		&subject.CookbookRecord{Name: "cb2"},
+	}
+	expected := []*subject.CookbookRecord{
+		&subject.CookbookRecord{Name: "cb2"},
+		&subject.CookbookRecord{Name: "cb1"},
+	}
+	subject.CookbookRecordsByNameVersion.Swap(crs, 0, 1)
+	assert.Equal(t, expected, crs)
+}
+
+func TestCookbookRecordsByNameVersion_Less(t *testing.T) {
+	crs := []*subject.CookbookRecord{
+		&subject.CookbookRecord{Name: "cb1", Version: "1.0.1"},
+		&subject.CookbookRecord{Name: "cb2", Version: "1.0.1"},
+		&subject.CookbookRecord{Name: "cb2", Version: "1.0.0"},
+		&subject.CookbookRecord{Name: "cb1", Version: "1.0.0"},
+	}
+	assert.True(t, subject.CookbookRecordsByNameVersion.Less(crs, 0, 1))
+	assert.True(t, subject.CookbookRecordsByNameVersion.Less(crs, 0, 2))
+	assert.False(t, subject.CookbookRecordsByNameVersion.Less(crs, 0, 3))
+	assert.False(t, subject.CookbookRecordsByNameVersion.Less(crs, 1, 0))
+	assert.False(t, subject.CookbookRecordsByNameVersion.Less(crs, 1, 2))
+	assert.False(t, subject.CookbookRecordsByNameVersion.Less(crs, 1, 3))
+	assert.False(t, subject.CookbookRecordsByNameVersion.Less(crs, 2, 0))
+	assert.True(t, subject.CookbookRecordsByNameVersion.Less(crs, 2, 1))
+	assert.False(t, subject.CookbookRecordsByNameVersion.Less(crs, 2, 3))
+	assert.True(t, subject.CookbookRecordsByNameVersion.Less(crs, 3, 0))
+	assert.True(t, subject.CookbookRecordsByNameVersion.Less(crs, 3, 1))
+	assert.True(t, subject.CookbookRecordsByNameVersion.Less(crs, 3, 2))
+}

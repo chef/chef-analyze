@@ -76,12 +76,6 @@ func (cr CookbookRecord) Errors() []error {
 	return errs
 }
 
-// internally used to submit items to the workers
-type cookbookItem struct {
-	Name    string
-	Version string
-}
-
 // NumNodesAffected shortcut
 func (cr *CookbookRecord) NumNodesAffected() int {
 	return len(cr.Nodes)
@@ -107,6 +101,28 @@ func (cr *CookbookRecord) NumCorrectable() int {
 		}
 	}
 	return i
+}
+
+// Sort interface the sorts cookbook records by name.
+type CookbookRecordsByNameVersion []*CookbookRecord
+
+func (crs CookbookRecordsByNameVersion) Len() int {
+	return len(crs)
+}
+func (crs CookbookRecordsByNameVersion) Swap(i, j int) {
+	crs[i], crs[j] = crs[j], crs[i]
+}
+func (crs CookbookRecordsByNameVersion) Less(i, j int) bool {
+	if crs[i].Name != crs[j].Name {
+		return crs[i].Name < crs[j].Name
+	}
+	return crs[i].Version < crs[j].Version
+}
+
+// internally used to submit items to the workers
+type cookbookItem struct {
+	Name    string
+	Version string
 }
 
 func NewCookbooksReport(

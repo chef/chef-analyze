@@ -98,8 +98,8 @@ func TestMakeCookbooksReportTXT_ErrorReport(t *testing.T) {
 	lines := strings.Split(actual.Errors, "\n")
 	assert.Equal(t, 4, len(lines))
 	assert.Equal(t, lines[0], " - my-cookbook (1.0): could not download")
-	assert.Equal(t, lines[1], " - their-cookbook (1.1): could not look up usage")
-	assert.Equal(t, lines[2], " - our-cookbook (1.2): cookstyle error")
+	assert.Equal(t, lines[1], " - our-cookbook (1.2): cookstyle error")
+	assert.Equal(t, lines[2], " - their-cookbook (1.1): could not look up usage")
 	assert.Equal(t, lines[3], "")
 }
 

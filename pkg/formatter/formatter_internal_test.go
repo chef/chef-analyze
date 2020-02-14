@@ -21,6 +21,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/chef/chef-analyze/pkg/reporting"
 )
 
 func TestStringOrEmptyPlaceholder(t *testing.T) {
@@ -36,4 +38,95 @@ func TestStringOrUnknownPlaceholder(t *testing.T) {
 func TestStringOrPlaceholder(t *testing.T) {
 	assert.Equal(t, "placeholder", stringOrPlaceholder("", "placeholder"))
 	assert.Equal(t, "foo", stringOrPlaceholder("foo", "placeholder"))
+}
+
+func TestSortCookbookRecords(t *testing.T) {
+	records := []*reporting.CookbookRecord{
+		&reporting.CookbookRecord{
+			Name:    "foo",
+			Version: "1.0.0",
+		},
+		&reporting.CookbookRecord{
+			Name:    "baz",
+			Version: "1.0.0",
+		},
+		&reporting.CookbookRecord{
+			Name:    "zaz",
+			Version: "1.0.0",
+		},
+		&reporting.CookbookRecord{
+			Name:    "foo",
+			Version: "2.0.0",
+		},
+		&reporting.CookbookRecord{
+			Name:    "bar",
+			Version: "1.0.0",
+		},
+		&reporting.CookbookRecord{
+			Name:    "foo",
+			Version: "1.1.0",
+		},
+		&reporting.CookbookRecord{
+			Name:    "raz",
+			Version: "1.0.0",
+		},
+		&reporting.CookbookRecord{
+			Name:    "foo",
+			Version: "1.0.1",
+		},
+	}
+	expected := []*reporting.CookbookRecord{
+		&reporting.CookbookRecord{
+			Name:    "bar",
+			Version: "1.0.0",
+		},
+		&reporting.CookbookRecord{
+			Name:    "baz",
+			Version: "1.0.0",
+		},
+		&reporting.CookbookRecord{
+			Name:    "foo",
+			Version: "1.0.0",
+		},
+		&reporting.CookbookRecord{
+			Name:    "foo",
+			Version: "1.0.1",
+		},
+		&reporting.CookbookRecord{
+			Name:    "foo",
+			Version: "1.1.0",
+		},
+		&reporting.CookbookRecord{
+			Name:    "foo",
+			Version: "2.0.0",
+		},
+		&reporting.CookbookRecord{
+			Name:    "raz",
+			Version: "1.0.0",
+		},
+		&reporting.CookbookRecord{
+			Name:    "zaz",
+			Version: "1.0.0",
+		},
+	}
+	sortCookbookRecords(records)
+	assert.Equal(t, expected, records)
+}
+
+func TestSortCookbookRecordsSortsNodes(t *testing.T) {
+	records := []*reporting.CookbookRecord{
+		&reporting.CookbookRecord{
+			Name: "foo",
+			Nodes: []string{
+				"node2",
+				"node1",
+			},
+		},
+	}
+	expected := []string{
+		"node1",
+		"node2",
+	}
+	sortCookbookRecords(records)
+	assert.Equal(t, expected, records[0].Nodes)
 }
