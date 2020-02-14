@@ -69,6 +69,7 @@ func TestCookbooksEmpty(t *testing.T) {
 		false,
 		false,
 		Workers,
+		"", // no filter
 	)
 	assert.Nil(t, err)
 	if assert.NotNil(t, cbr) {
@@ -101,6 +102,7 @@ func TestCookbooksInUseDisplayOnlyUnused(t *testing.T) {
 		false, // do not download or cookstyle
 		true,  // display only unused cookbooks
 		Workers,
+		"", // no filter
 	)
 	assert.Nil(t, err)
 	if assert.NotNil(t, c) {
@@ -118,6 +120,7 @@ func TestCookbooksInUseDisplayOnlyUnused(t *testing.T) {
 		false, // do not download or cookstyle
 		false, // display only used cookbooks, as determined by search results
 		Workers,
+		"", // no filter
 	)
 	assert.Nil(t, err)
 	if assert.NotNil(t, c) {
@@ -174,6 +177,7 @@ func TestCookbooksNotUsedDisplayOnlyUnused(t *testing.T) {
 		false,
 		true, // display only unused cookbooks
 		Workers,
+		"", // no filter
 	)
 	assert.Nil(t, err)
 	c.Generate()
@@ -212,6 +216,7 @@ func TestCookbooksNotUsedDisplayOnlyUnused(t *testing.T) {
 		false,
 		false, // display only used cookbooks
 		Workers,
+		"", // no filter
 	)
 	assert.Nil(t, err)
 	if assert.NotNil(t, c) {
@@ -250,6 +255,67 @@ func TestCookbooks(t *testing.T) {
 		true,
 		false,
 		Workers,
+		"", // no filter
+	)
+	assert.Nil(t, err)
+	if assert.NotNil(t, c) {
+		assert.Equal(t, 4, c.TotalCookbooks)
+		c.Generate()
+		assert.Equal(t, 4, len(c.Progress)) // verify all progress events arrived
+		if assert.Equal(t, 4, len(c.Records)) {
+			// we check for only one bar and 3 foo cookbooks
+			var (
+				foo = 0
+				bar = 0
+			)
+
+			for _, rec := range c.Records {
+				switch rec.Name {
+				case "foo":
+					foo++
+				case "bar":
+					bar++
+				default:
+					t.Fatal("unexpected cookbook name")
+				}
+				assert.Emptyf(t, rec.Errors(),
+					"there should not be any errors for %s-%s", rec.Name, rec.Version)
+			}
+
+			assert.Equal(t, 3, foo, "unexpected number of cookbooks foo")
+			assert.Equal(t, 1, bar, "unexpected number of cookbooks bar")
+		}
+	}
+}
+
+// Given a valid set of cookbooks in use by nodes,
+// verify that the result set is as expected.
+func TestCookbooksWithNodeFilter(t *testing.T) {
+	savedPath := setupBinstubsDir()
+	defer os.Setenv("PATH", savedPath)
+	defer os.RemoveAll(createConfigToml(t))
+
+	cookbookList := chef.CookbookListResult{
+		"foo": chef.CookbookVersions{
+			Versions: []chef.CookbookVersion{
+				chef.CookbookVersion{Version: "0.1.0"},
+				chef.CookbookVersion{Version: "0.2.0"},
+				chef.CookbookVersion{Version: "0.3.0"},
+			},
+		},
+		"bar": chef.CookbookVersions{
+			Versions: []chef.CookbookVersion{
+				chef.CookbookVersion{Version: "0.1.0"},
+			},
+		},
+	}
+	c, err := subject.NewCookbooksReport(
+		newMockCookbook(cookbookList, nil, nil),
+		makeMockSearch(mockedNodesSearchRows(), nil),
+		true,
+		false,
+		Workers,
+		"name:blah", // node name filter
 	)
 	assert.Nil(t, err)
 	if assert.NotNil(t, c) {
@@ -291,6 +357,7 @@ func TestCookbooks_ListCookbooksErrors(t *testing.T) {
 		false,
 		false,
 		Workers,
+		"", // no filter
 	)
 	if assert.NotNil(t, err) {
 		assert.Equal(t, "unable to retrieve cookbooks: i/o timeout", err.Error())
@@ -306,6 +373,7 @@ func TestCookbooks_ListAvailableVersionsError(t *testing.T) {
 		false,
 		false,
 		Workers,
+		"", // no filter
 	)
 	assert.Nil(t, c)
 	assert.EqualError(t, err, "unable to retrieve cookbooks: list error")
@@ -319,6 +387,7 @@ func TestCookbooks_NoneAvailable(t *testing.T) {
 		false,
 		false,
 		Workers,
+		"", // no filter
 	)
 	assert.Nil(t, err)
 	if assert.NotNil(t, c) {
@@ -346,6 +415,7 @@ func TestCookbooks_DownloadErrors(t *testing.T) {
 		true, // run cookstyle, which means that we will download the cookbooks
 		false,
 		Workers,
+		"", // no filter
 	)
 	assert.Nil(t, err)
 	if assert.NotNil(t, c) {
@@ -383,6 +453,7 @@ func TestCookbooks_UsageStatErrors(t *testing.T) {
 		// we need to return only unused cookbooks
 		true,
 		Workers,
+		"", // no filter
 	)
 	assert.Nil(t, err)
 	if assert.NotNil(t, c) {
@@ -439,6 +510,7 @@ func TestCookbooks_withCookstyleError(t *testing.T) {
 		true,
 		false,
 		Workers,
+		"", // no filter
 	)
 	assert.Nil(t, err)
 	if assert.NotNil(t, c) {
@@ -481,6 +553,7 @@ func TestCookbooks_withHeavyLoad(t *testing.T) {
 		true,
 		false,
 		Workers,
+		"", // no filter
 	)
 	assert.Nil(t, err)
 	if assert.NotNil(t, c) {

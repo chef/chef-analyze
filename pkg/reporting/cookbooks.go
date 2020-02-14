@@ -39,6 +39,7 @@ type CookbooksReport struct {
 	TotalCookbooks        int
 	onlyUnused            bool
 	RunCookstyle          bool
+	NodeFilter            string
 	cookbooksDir          string
 	cookbooks             CookbookInterface
 	searcher              SearchInterface
@@ -111,6 +112,7 @@ func (cr *CookbookRecord) NumCorrectable() int {
 func NewCookbooksReport(
 	cbi CookbookInterface, searcher SearchInterface,
 	runCookstyle bool, onlyUnused bool, workers int,
+	nodeFilter string,
 ) (*CookbooksReport, error) {
 	wsDir, err := config.ChefWorkstationDir()
 	if err != nil {
@@ -134,6 +136,7 @@ func NewCookbooksReport(
 		Progress:              make(chan int, totalCookbooks),
 		TotalCookbooks:        totalCookbooks,
 		RunCookstyle:          runCookstyle,
+		NodeFilter:            nodeFilter,
 		cookbooks:             cbi,
 		onlyUnused:            onlyUnused,
 		searcher:              searcher,
@@ -278,7 +281,12 @@ func (cbr *CookbooksReport) nodesUsingCookbookVersion(cookbook string, version s
 	}
 
 	// TODO add pagination
-	pres, err := cbr.searcher.PartialExec("node", fmt.Sprintf("cookbooks_%s_version:%s", cookbook, version), query)
+	nodeFilter := fmt.Sprintf("cookbooks_%s_version:%s", cookbook, version)
+	if cbr.NodeFilter != "" {
+		nodeFilter = fmt.Sprintf("%s AND %s", nodeFilter, cbr.NodeFilter)
+	}
+
+	pres, err := cbr.searcher.PartialExec("node", nodeFilter, query)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to get cookbook usage information")
 	}

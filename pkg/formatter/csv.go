@@ -46,7 +46,11 @@ func MakeCookbooksReportCSV(state *reporting.CookbooksReport) *FormattedResult {
 			"Message",
 		)
 	}
-	tableHeaders = append(tableHeaders, "Nodes")
+	if len(state.NodeFilter) == 0 {
+		tableHeaders = append(tableHeaders, "Nodes")
+	} else {
+		tableHeaders = append(tableHeaders, fmt.Sprintf("Nodes (filtered: %s)", state.NodeFilter))
+	}
 	csvWriter.Write(tableHeaders)
 
 	for _, record := range state.Records {
@@ -92,7 +96,7 @@ func MakeCookbooksReportCSV(state *reporting.CookbooksReport) *FormattedResult {
 }
 
 // MakeNodesReportCSV generates a CSV formatted nodes report
-func MakeNodesReportCSV(records []*reporting.NodeReportItem) *FormattedResult {
+func MakeNodesReportCSV(records []*reporting.NodeReportItem, nodeFilter string) *FormattedResult {
 	var (
 		strBuilder strings.Builder
 		errBuilder strings.Builder
@@ -104,6 +108,9 @@ func MakeNodesReportCSV(records []*reporting.NodeReportItem) *FormattedResult {
 	}
 
 	tableHeaders := []string{"Node Name", "Chef Version", "Operating System", "Cookbooks"}
+	if len(nodeFilter) > 0 {
+		tableHeaders[0] = fmt.Sprintf("Node Name (node filter: %s)", nodeFilter)
+	}
 	csvWriter.Write(tableHeaders)
 
 	for _, record := range records {

@@ -95,6 +95,7 @@ provided when the report is generated.
 				cookbooksFlags.runCookstyle,
 				cookbooksFlags.onlyUnused,
 				cookbooksFlags.workers,
+				reportsFlags.nodeFilter,
 			)
 
 			if err != nil {
@@ -132,7 +133,7 @@ provided when the report is generated.
 				results = formatter.MakeCookbooksReportTXT(cookbooksState)
 			}
 
-			err = saveReport(repNameCookbooks, ext, results.Report)
+			err = saveReport(repNameCookbooks, ext, cookbooksState.NodeFilter, results.Report)
 			if err != nil {
 				return err
 			}
@@ -174,13 +175,13 @@ provided when the report is generated.
 			}
 
 			fmt.Println("Analyzing nodes...")
-			report, err := reporting.GenerateNodesReport(chefClient.Search)
+			report, err := reporting.GenerateNodesReport(chefClient.Search, reportsFlags.nodeFilter)
 			if err != nil {
 				return err
 			}
 
 			var (
-				formattedSummary = formatter.NodesReportSummary(report)
+				formattedSummary = formatter.NodesReportSummary(report, reportsFlags.nodeFilter)
 				results          *formatter.FormattedResult
 				ext              string
 			)
@@ -190,13 +191,13 @@ provided when the report is generated.
 			switch reportsFlags.format {
 			case "csv":
 				ext = CsvExt
-				results = formatter.MakeNodesReportCSV(report)
+				results = formatter.MakeNodesReportCSV(report, reportsFlags.nodeFilter)
 			default:
 				ext = TxtExt
-				results = formatter.MakeNodesReportTXT(report)
+				results = formatter.MakeNodesReportTXT(report, reportsFlags.nodeFilter)
 			}
 
-			err = saveReport(repNameNodes, ext, results.Report)
+			err = saveReport(repNameNodes, ext, reportsFlags.nodeFilter, results.Report)
 			if err != nil {
 				return err
 			}
@@ -221,6 +222,7 @@ provided when the report is generated.
 		profile       string
 		noSSLverify   bool
 		format        string
+		nodeFilter    string
 	}
 )
 
@@ -262,6 +264,11 @@ func init() {
 		"ssl-no-verify", "o", false,
 		"Disable SSL certificate verification",
 	)
+	reportCmd.PersistentFlags().StringVarP(
+		&reportsFlags.nodeFilter,
+		"node-filter", "F", "",
+		"Search filter to apply to nodes",
+	)
 
 	// cookbooks cmd flags
 	reportCookbooksCmd.PersistentFlags().IntVarP(
@@ -272,7 +279,7 @@ func init() {
 	reportCookbooksCmd.PersistentFlags().BoolVarP(
 		&cookbooksFlags.onlyUnused,
 		"only-unused", "u", false,
-		"generate a report with only cookbooks that are not applied to any node",
+		"generate a report with only cookbooks that are not included in any node's runlist",
 	)
 	reportCookbooksCmd.PersistentFlags().BoolVarP(
 		&cookbooksFlags.runCookstyle,
@@ -338,7 +345,7 @@ func saveErrorReport(baseName string, content string) error {
 	return nil
 }
 
-func saveReport(baseName string, ext string, content string) error {
+func saveReport(baseName string, ext string, nodeFilter string, content string) error {
 	if len(content) == 0 {
 		return nil
 	}
@@ -348,9 +355,13 @@ func saveReport(baseName string, ext string, content string) error {
 		return err
 	}
 
+	filtered := ""
+	if len(nodeFilter) > 0 {
+		filtered = "-filtered"
+	}
 	var (
 		reportsDir = filepath.Join(wsDir, analyzeReportsDir)
-		reportName = fmt.Sprintf("%s-%s.%s", baseName, timestamp, ext)
+		reportName = fmt.Sprintf("%s-%s%s.%s", baseName, timestamp, filtered, ext)
 		reportPath = filepath.Join(reportsDir, reportName)
 	)
 	reportFile, err := os.Create(reportPath) // create a new report file
