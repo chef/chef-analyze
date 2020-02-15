@@ -307,6 +307,36 @@ func TestCookbooksReportSummary_withRecords(t *testing.T) {
 	}
 }
 
+func TestCookbooksReportSummary_withFilterFooter(t *testing.T) {
+	state := &reporting.CookbooksReport{
+		Records: []*reporting.CookbookRecord{
+			&reporting.CookbookRecord{
+				Name:    "foo",
+				Version: "0.1.0",
+				Nodes:   []string{"node1", "node2"},
+				Files: []reporting.CookbookFile{
+					reporting.CookbookFile{
+						Path:     "metadata.rb",
+						Offenses: []reporting.CookstyleOffense{},
+					},
+				},
+			},
+		},
+		RunCookstyle: true,
+		NodeFilter:   "blah",
+	}
+	report := subject.CookbooksReportSummary(state)
+
+	assert.Contains(t,
+		report.Report,
+		"REPORT SUMMARY",
+		"stdout missing report summary header")
+	assert.Contains(t,
+		report.Report,
+		"Node Filter applied: blah",
+		"stdout missing nodes filter footer")
+}
+
 func TestCookbooksReportSummary_withRecords_NoNodes(t *testing.T) {
 	state := &reporting.CookbooksReport{
 		Records: []*reporting.CookbookRecord{
