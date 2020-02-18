@@ -53,6 +53,8 @@ func MakeCookbooksReportCSV(state *reporting.CookbooksReport) *FormattedResult {
 	}
 	csvWriter.Write(tableHeaders)
 
+	sortCookbookRecords(state.Records)
+
 	for _, record := range state.Records {
 		nodesString := "None"
 		if record.NumNodesAffected() != 0 {

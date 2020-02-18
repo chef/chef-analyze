@@ -81,6 +81,8 @@ func CookbooksReportSummary(state *reporting.CookbooksReport) FormattedResult {
 	// unwrappable content will expand beyond this limit.
 	table.SetColWidth(MinTermWidth / len(CookbooksReportHeader))
 
+	sortCookbookRecords(state.Records)
+
 	for _, record := range state.Records {
 		row := []string{record.Name, record.Version}
 

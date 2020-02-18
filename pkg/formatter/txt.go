@@ -42,6 +42,8 @@ func MakeCookbooksReportTXT(state *reporting.CookbooksReport) *FormattedResult {
 		return &FormattedResult{strBuilder.String(), ""}
 	}
 
+	sortCookbookRecords(state.Records)
+
 	for _, record := range state.Records {
 		strBuilder.WriteString(fmt.Sprintf("> Cookbook: %v (%v)\n", record.Name, record.Version))
 

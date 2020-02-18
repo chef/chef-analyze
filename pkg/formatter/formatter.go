@@ -17,6 +17,12 @@
 
 package formatter
 
+import (
+	"sort"
+
+	"github.com/chef/chef-analyze/pkg/reporting"
+)
+
 // FormattedResult contains the report and its errors
 type FormattedResult struct {
 	Report string
@@ -41,4 +47,13 @@ func stringOrPlaceholder(s, placeholder string) string {
 		return placeholder
 	}
 	return s
+}
+
+func sortCookbookRecords(records []*reporting.CookbookRecord) {
+	sort.Sort(reporting.CookbookRecordsByNameVersion(records))
+
+	// Also sort the node names.
+	for _, record := range records {
+		sort.Strings(record.Nodes)
+	}
 }
