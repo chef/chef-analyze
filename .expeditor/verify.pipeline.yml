@@ -27,6 +27,17 @@ steps:
       executor:
         docker:
           privileged: true
+  - label: ":linux: go-static-test"
+    command:
+      - hab studio run "source .studiorc && static_tests"
+    expeditor:
+      secrets:
+        GITHUB_TOKEN:
+          account: github
+          field: token
+      executor:
+        docker:
+          privileged: true
   - label: ":linux: go-integration"
     command:
       - hab studio run "source .studiorc && integration_tests"
