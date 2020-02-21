@@ -57,3 +57,12 @@ func sortCookbookRecords(records []*reporting.CookbookRecord) {
 		sort.Strings(record.Nodes)
 	}
 }
+
+func sortNodeRecords(records []*reporting.NodeReportItem) {
+	sort.Sort(reporting.NodeRecordsByName(records))
+
+	// Also sort the cookbooks alphanumerically
+	for _, record := range records {
+		sort.Sort(reporting.CookbookByNameVersion(record.CookbookVersions))
+	}
+}

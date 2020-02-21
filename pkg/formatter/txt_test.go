@@ -142,11 +142,11 @@ func TestMakeNodesReportTXT_WithRecords(t *testing.T) {
 		expectedReport = `> Node: node1
   Chef Version: 12.22
   Operating System: windows v10.1
-  Cookbooks Applied: mycookbook(1.0)
+  Cookbooks Applied (alphanumeric order): mycookbook(1.0)
 > Node: node2
   Chef Version: 13.11
   Operating System: unknown
-  Cookbooks Applied: mycookbook(1.0), test(9.9)
+  Cookbooks Applied (alphanumeric order): mycookbook(1.0), test(9.9)
 > Node: node3
   Chef Version: 15.00
   Operating System: ubuntu v16.04
@@ -154,6 +154,59 @@ func TestMakeNodesReportTXT_WithRecords(t *testing.T) {
 `
 	)
 	if assert.Equal(t, 13, len(lines)) {
+		assert.Equal(t, expectedReport, actual.Report)
+	}
+}
+
+func TestMakeNodesReportTXT_WithRecordsSorted(t *testing.T) {
+	nodesReport := []*reporting.NodeReportItem{
+		&reporting.NodeReportItem{Name: "zzz", ChefVersion: "13.11", OS: "", OSVersion: "",
+			CookbookVersions: []reporting.CookbookVersion{
+				reporting.CookbookVersion{Name: "yyy", Version: "1.0"},
+				reporting.CookbookVersion{Name: "ccc", Version: "9.9"},
+			},
+		},
+		&reporting.NodeReportItem{Name: "Aaa", ChefVersion: "13.11", OS: "", OSVersion: "",
+			CookbookVersions: []reporting.CookbookVersion{
+				reporting.CookbookVersion{Name: "yyy", Version: "1.0"},
+				reporting.CookbookVersion{Name: "YYY", Version: "9.9"},
+				reporting.CookbookVersion{Name: "yyy", Version: "10.0"},
+				reporting.CookbookVersion{Name: "YYY", Version: "99.9"},
+			},
+		},
+		&reporting.NodeReportItem{Name: "123", ChefVersion: "13.11", OS: "", OSVersion: "",
+			CookbookVersions: []reporting.CookbookVersion{},
+		},
+		&reporting.NodeReportItem{Name: "aaa", ChefVersion: "13.11", OS: "", OSVersion: "",
+			CookbookVersions: []reporting.CookbookVersion{
+				reporting.CookbookVersion{Name: "ddd", Version: "1.0"},
+				reporting.CookbookVersion{Name: "ccc", Version: "9.9"},
+			},
+		},
+	}
+
+	var (
+		actual         = subject.MakeNodesReportTXT(nodesReport, "")
+		lines          = strings.Split(actual.Report, "\n")
+		expectedReport = `> Node: 123
+  Chef Version: 13.11
+  Operating System: unknown
+  Cookbooks Applied: none
+> Node: Aaa
+  Chef Version: 13.11
+  Operating System: unknown
+  Cookbooks Applied (alphanumeric order): yyy(1.0), yyy(10.0), YYY(9.9), YYY(99.9)
+> Node: aaa
+  Chef Version: 13.11
+  Operating System: unknown
+  Cookbooks Applied (alphanumeric order): ccc(9.9), ddd(1.0)
+> Node: zzz
+  Chef Version: 13.11
+  Operating System: unknown
+  Cookbooks Applied (alphanumeric order): ccc(9.9), yyy(1.0)
+`
+	)
+	if assert.Equal(t, 17, len(lines)) {
 		assert.Equal(t, expectedReport, actual.Report)
 	}
 }
@@ -181,11 +234,11 @@ func TestMakeNodesReportTXT_WithRecordsAndFilter(t *testing.T) {
 > Node: node1
   Chef Version: 12.22
   Operating System: windows v10.1
-  Cookbooks Applied: mycookbook(1.0)
+  Cookbooks Applied (alphanumeric order): mycookbook(1.0)
 > Node: node2
   Chef Version: 13.11
   Operating System: unknown
-  Cookbooks Applied: mycookbook(1.0), test(9.9)
+  Cookbooks Applied (alphanumeric order): mycookbook(1.0), test(9.9)
 > Node: node3
   Chef Version: 15.00
   Operating System: ubuntu v16.04

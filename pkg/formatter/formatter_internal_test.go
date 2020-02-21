@@ -130,3 +130,103 @@ func TestSortCookbookRecordsSortsNodes(t *testing.T) {
 	sortCookbookRecords(records)
 	assert.Equal(t, expected, records[0].Nodes)
 }
+
+func TestSortNodeRecords(t *testing.T) {
+	records := []*reporting.NodeReportItem{
+		&reporting.NodeReportItem{
+			Name: "foo",
+		},
+		&reporting.NodeReportItem{
+			Name: "baz",
+		},
+		&reporting.NodeReportItem{
+			Name: "123",
+		},
+		&reporting.NodeReportItem{
+			Name: "zzz",
+		},
+		&reporting.NodeReportItem{
+			Name: "ZZZ",
+		},
+		&reporting.NodeReportItem{
+			Name: "BAZ",
+		},
+		&reporting.NodeReportItem{
+			Name: "FOO",
+		},
+	}
+	expected := []*reporting.NodeReportItem{
+		&reporting.NodeReportItem{
+			Name: "123",
+		},
+		&reporting.NodeReportItem{
+			Name: "baz",
+		},
+		&reporting.NodeReportItem{
+			Name: "BAZ",
+		},
+		&reporting.NodeReportItem{
+			Name: "foo",
+		},
+		&reporting.NodeReportItem{
+			Name: "FOO",
+		},
+		&reporting.NodeReportItem{
+			Name: "zzz",
+		},
+		&reporting.NodeReportItem{
+			Name: "ZZZ",
+		},
+	}
+	sortNodeRecords(records)
+	assert.Equal(t, expected, records)
+}
+
+func TestSortNodeRecordsSortCookbooks(t *testing.T) {
+	records := []*reporting.NodeReportItem{
+		&reporting.NodeReportItem{
+			Name: "foo",
+			CookbookVersions: []reporting.CookbookVersion{
+				reporting.CookbookVersion{Name: "zzz", Version: "1.0"},
+				reporting.CookbookVersion{Name: "zzz", Version: "10.0"},
+				reporting.CookbookVersion{Name: "zzz", Version: "0.0"},
+				reporting.CookbookVersion{Name: "xxx", Version: "9.9"},
+				reporting.CookbookVersion{Name: "xxx", Version: "9.0"},
+			},
+		},
+		&reporting.NodeReportItem{
+			Name: "baz",
+			CookbookVersions: []reporting.CookbookVersion{
+				reporting.CookbookVersion{Name: "zzz", Version: "1.0"},
+				reporting.CookbookVersion{Name: "zzz", Version: "10.0"},
+				reporting.CookbookVersion{Name: "zzz", Version: "0.0"},
+				reporting.CookbookVersion{Name: "xxx", Version: "9.9"},
+				reporting.CookbookVersion{Name: "xxx", Version: "9.0"},
+			},
+		},
+	}
+	expected := []*reporting.NodeReportItem{
+		&reporting.NodeReportItem{
+			Name: "baz",
+			CookbookVersions: []reporting.CookbookVersion{
+				reporting.CookbookVersion{Name: "xxx", Version: "9.0"},
+				reporting.CookbookVersion{Name: "xxx", Version: "9.9"},
+				reporting.CookbookVersion{Name: "zzz", Version: "0.0"},
+				reporting.CookbookVersion{Name: "zzz", Version: "1.0"},
+				reporting.CookbookVersion{Name: "zzz", Version: "10.0"},
+			},
+		},
+		&reporting.NodeReportItem{
+			Name: "foo",
+			CookbookVersions: []reporting.CookbookVersion{
+				reporting.CookbookVersion{Name: "xxx", Version: "9.0"},
+				reporting.CookbookVersion{Name: "xxx", Version: "9.9"},
+				reporting.CookbookVersion{Name: "zzz", Version: "0.0"},
+				reporting.CookbookVersion{Name: "zzz", Version: "1.0"},
+				reporting.CookbookVersion{Name: "zzz", Version: "10.0"},
+			},
+		},
+	}
+	sortNodeRecords(records)
+	assert.Equal(t, expected, records)
+}

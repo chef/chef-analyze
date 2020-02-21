@@ -100,6 +100,8 @@ func MakeNodesReportTXT(records []*reporting.NodeReportItem, nodeFilter string) 
 		return &FormattedResult{strBuilder.String(), ""}
 	}
 
+	sortNodeRecords(records)
+
 	for _, record := range records {
 		strBuilder.WriteString(fmt.Sprintf("> Node: %s\n", record.Name))
 		strBuilder.WriteString(
@@ -114,7 +116,7 @@ func MakeNodesReportTXT(records []*reporting.NodeReportItem, nodeFilter string) 
 		if len(record.CookbooksList()) == 0 {
 			strBuilder.WriteString("  Cookbooks Applied: none\n")
 		} else {
-			strBuilder.WriteString("  Cookbooks Applied: ")
+			strBuilder.WriteString("  Cookbooks Applied (alphanumeric order): ")
 			strBuilder.WriteString(strings.Join(record.CookbooksList(), ", "))
 			strBuilder.WriteString("\n")
 		}
