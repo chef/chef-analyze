@@ -135,7 +135,7 @@ func NodesReportSummary(records []*reporting.NodeReportItem, appliedNodesFilter 
 	var (
 		buffer           = bytes.NewBufferString("\n-- REPORT SUMMARY --\n\n")
 		table            = tablewriter.NewWriter(buffer)
-		NodeReportHeader = []string{"Node Name", "Chef Version", "Operating System", "Cookbooks"}
+		NodeReportHeader = []string{"Node Name", "Chef Version", "Operating System", "Number Cookbooks"}
 	)
 	if len(appliedNodesFilter) > 0 {
 		NodeReportHeader[0] = fmt.Sprintf("Node Name (filter applied: %s)", appliedNodesFilter)
@@ -153,6 +153,8 @@ func NodesReportSummary(records []*reporting.NodeReportItem, appliedNodesFilter 
 	// sets max for each col to 30 chars, this is not strictly enforced
 	// unwrappable content will expand beyond this limit
 	table.SetColWidth(MinTermWidth / len(NodeReportHeader))
+
+	sortNodeRecords(records)
 
 	for _, record := range records {
 		table.Append(

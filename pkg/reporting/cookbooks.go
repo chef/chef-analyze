@@ -20,6 +20,7 @@ package reporting
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	chef "github.com/chef/go-chef"
@@ -113,10 +114,11 @@ func (crs CookbookRecordsByNameVersion) Swap(i, j int) {
 	crs[i], crs[j] = crs[j], crs[i]
 }
 func (crs CookbookRecordsByNameVersion) Less(i, j int) bool {
-	if crs[i].Name != crs[j].Name {
-		return crs[i].Name < crs[j].Name
+	l1, l2 := strings.ToLower(crs[i].Name), strings.ToLower(crs[j].Name)
+	if l1 != l2 {
+		return l1 < l2
 	}
-	return crs[i].Version < crs[j].Version
+	return strings.ToLower(crs[i].Version) < strings.ToLower(crs[j].Version)
 }
 
 // internally used to submit items to the workers

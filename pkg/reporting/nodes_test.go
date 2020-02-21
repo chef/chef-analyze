@@ -143,6 +143,87 @@ func TestNodeReportItemCookbooksList(t *testing.T) {
 	}
 }
 
+func TestCookbookByNameVersion_Len(t *testing.T) {
+	crs := []subject.CookbookVersion{
+		subject.CookbookVersion{Name: "cookbook_name"},
+	}
+	assert.Equal(t, 1, subject.CookbookByNameVersion.Len(crs))
+}
+
+func TestCookbookByNameVersion_Swap(t *testing.T) {
+	crs := []subject.CookbookVersion{
+		subject.CookbookVersion{Name: "cb1"},
+		subject.CookbookVersion{Name: "cb2"},
+	}
+	expected := []subject.CookbookVersion{
+		subject.CookbookVersion{Name: "cb2"},
+		subject.CookbookVersion{Name: "cb1"},
+	}
+	subject.CookbookByNameVersion.Swap(crs, 0, 1)
+	assert.Equal(t, expected, crs)
+}
+
+func TestCookbookByNameVersion_Less(t *testing.T) {
+	crs := []subject.CookbookVersion{
+		subject.CookbookVersion{Name: "cb1", Version: "1.0.1"},
+		subject.CookbookVersion{Name: "cb2", Version: "1.0.1"},
+		subject.CookbookVersion{Name: "cb2", Version: "1.0.0"},
+		subject.CookbookVersion{Name: "cb1", Version: "1.0.0"},
+		subject.CookbookVersion{Name: "CB1", Version: "1.0.0"},
+		subject.CookbookVersion{Name: "CB2", Version: "1.0.0"},
+	}
+	assert.True(t, subject.CookbookByNameVersion.Less(crs, 0, 1))
+	assert.True(t, subject.CookbookByNameVersion.Less(crs, 0, 2))
+	assert.False(t, subject.CookbookByNameVersion.Less(crs, 0, 3))
+	assert.False(t, subject.CookbookByNameVersion.Less(crs, 1, 0))
+	assert.False(t, subject.CookbookByNameVersion.Less(crs, 1, 2))
+	assert.False(t, subject.CookbookByNameVersion.Less(crs, 1, 3))
+	assert.False(t, subject.CookbookByNameVersion.Less(crs, 2, 0))
+	assert.True(t, subject.CookbookByNameVersion.Less(crs, 2, 1))
+	assert.False(t, subject.CookbookByNameVersion.Less(crs, 2, 3))
+	assert.True(t, subject.CookbookByNameVersion.Less(crs, 3, 0))
+	assert.True(t, subject.CookbookByNameVersion.Less(crs, 3, 1))
+	assert.True(t, subject.CookbookByNameVersion.Less(crs, 3, 2))
+	assert.False(t, subject.CookbookByNameVersion.Less(crs, 4, 3))
+	assert.False(t, subject.CookbookByNameVersion.Less(crs, 5, 2))
+}
+
+func TestNodeRecordsByName_Len(t *testing.T) {
+	crs := []*subject.NodeReportItem{
+		&subject.NodeReportItem{Name: "node_name"},
+	}
+	assert.Equal(t, 1, subject.NodeRecordsByName.Len(crs))
+}
+
+func TestNodeRecordsByName_Swap(t *testing.T) {
+	crs := []*subject.NodeReportItem{
+		&subject.NodeReportItem{Name: "n1"},
+		&subject.NodeReportItem{Name: "n2"},
+	}
+	expected := []*subject.NodeReportItem{
+		&subject.NodeReportItem{Name: "n2"},
+		&subject.NodeReportItem{Name: "n1"},
+	}
+	subject.NodeRecordsByName.Swap(crs, 0, 1)
+	assert.Equal(t, expected, crs)
+}
+
+func TestNodeRecordsByName_Less(t *testing.T) {
+	nodes := []*subject.NodeReportItem{
+		&subject.NodeReportItem{Name: "n1"},
+		&subject.NodeReportItem{Name: "n2"},
+		&subject.NodeReportItem{Name: "N2"},
+		&subject.NodeReportItem{Name: "N1"},
+	}
+	assert.True(t, subject.NodeRecordsByName.Less(nodes, 0, 1))
+	assert.True(t, subject.NodeRecordsByName.Less(nodes, 0, 2))
+	assert.False(t, subject.NodeRecordsByName.Less(nodes, 0, 3))
+	assert.False(t, subject.NodeRecordsByName.Less(nodes, 1, 2))
+	assert.False(t, subject.NodeRecordsByName.Less(nodes, 1, 3))
+	assert.False(t, subject.NodeRecordsByName.Less(nodes, 0, 3))
+	assert.False(t, subject.NodeRecordsByName.Less(nodes, 2, 3))
+}
+
 func equalsCookbookVersionsArray(t *testing.T, expected, actual []subject.CookbookVersion) {
 	if assert.Equal(t, len(expected), len(actual)) {
 		for _, a := range actual {

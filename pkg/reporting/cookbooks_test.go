@@ -598,6 +598,8 @@ func TestCookbookRecordsByNameVersion_Less(t *testing.T) {
 		&subject.CookbookRecord{Name: "cb2", Version: "1.0.1"},
 		&subject.CookbookRecord{Name: "cb2", Version: "1.0.0"},
 		&subject.CookbookRecord{Name: "cb1", Version: "1.0.0"},
+		&subject.CookbookRecord{Name: "CB1", Version: "1.0.0"},
+		&subject.CookbookRecord{Name: "CB2", Version: "1.0.0"},
 	}
 	assert.True(t, subject.CookbookRecordsByNameVersion.Less(crs, 0, 1))
 	assert.True(t, subject.CookbookRecordsByNameVersion.Less(crs, 0, 2))
@@ -611,4 +613,6 @@ func TestCookbookRecordsByNameVersion_Less(t *testing.T) {
 	assert.True(t, subject.CookbookRecordsByNameVersion.Less(crs, 3, 0))
 	assert.True(t, subject.CookbookRecordsByNameVersion.Less(crs, 3, 1))
 	assert.True(t, subject.CookbookRecordsByNameVersion.Less(crs, 3, 2))
+	assert.False(t, subject.CookbookRecordsByNameVersion.Less(crs, 4, 3))
+	assert.False(t, subject.CookbookRecordsByNameVersion.Less(crs, 5, 2))
 }

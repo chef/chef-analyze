@@ -18,18 +18,49 @@ package reporting
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/pkg/errors"
 )
 
-// CookbookVersion name and version
+// CookbookVersion name and version (sortable by name)
 type CookbookVersion struct {
 	Name    string
 	Version string
 }
 
+// Sort interface the sorts cookbooks by name and version.
+type CookbookByNameVersion []CookbookVersion
+
+func (cnv CookbookByNameVersion) Len() int {
+	return len(cnv)
+}
+func (cnv CookbookByNameVersion) Swap(i, j int) {
+	cnv[i], cnv[j] = cnv[j], cnv[i]
+}
+func (cnv CookbookByNameVersion) Less(i, j int) bool {
+	l1, l2 := strings.ToLower(cnv[i].Name), strings.ToLower(cnv[j].Name)
+	if l1 != l2 {
+		return l1 < l2
+	}
+	return strings.ToLower(cnv[i].Version) < strings.ToLower(cnv[j].Version)
+}
+
 func (cbv *CookbookVersion) String() string {
 	return fmt.Sprintf("%s(%s)", cbv.Name, cbv.Version)
+}
+
+// Sort interface the sorts node records by name.
+type NodeRecordsByName []*NodeReportItem
+
+func (nrs NodeRecordsByName) Len() int {
+	return len(nrs)
+}
+func (nrs NodeRecordsByName) Swap(i, j int) {
+	nrs[i], nrs[j] = nrs[j], nrs[i]
+}
+func (nrs NodeRecordsByName) Less(i, j int) bool {
+	return strings.ToLower(nrs[i].Name) < strings.ToLower(nrs[j].Name)
 }
 
 // NodeReportItem data object for nodes
@@ -41,7 +72,7 @@ type NodeReportItem struct {
 	CookbookVersions []CookbookVersion
 }
 
-// OsVersionPretty looks nice
+// OSVersionPretty looks nice
 func (nri *NodeReportItem) OSVersionPretty() string {
 	// this data seems to be all or none,
 	// you'll have both OS/Version fields, or neither.

@@ -109,11 +109,13 @@ func MakeNodesReportCSV(records []*reporting.NodeReportItem, nodeFilter string) 
 		return &FormattedResult{"", ""}
 	}
 
-	tableHeaders := []string{"Node Name", "Chef Version", "Operating System", "Cookbooks"}
+	tableHeaders := []string{"Node Name", "Chef Version", "Operating System", "Cookbooks (alphanumeric order)"}
 	if len(nodeFilter) > 0 {
 		tableHeaders[0] = fmt.Sprintf("Node Name (node filter: %s)", nodeFilter)
 	}
 	csvWriter.Write(tableHeaders)
+
+	sortNodeRecords(records)
 
 	for _, record := range records {
 		var (

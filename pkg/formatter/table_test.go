@@ -17,6 +17,7 @@
 package formatter_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -95,6 +96,46 @@ func TestNodesReportSummary_withRecords(t *testing.T) {
 		assert.Containsf(t, report.Report, s,
 			"there is something missing in the stdout: '%s' is missing", s,
 		)
+	}
+}
+
+func TestNodesReportSummary_withRecordsSorted(t *testing.T) {
+	nri := []*reporting.NodeReportItem{
+		&reporting.NodeReportItem{Name: "zzz", ChefVersion: "13.11", OS: "", OSVersion: "",
+			CookbookVersions: []reporting.CookbookVersion{
+				reporting.CookbookVersion{Name: "yyy", Version: "1.0"},
+				reporting.CookbookVersion{Name: "ccc", Version: "9.9"},
+			},
+		},
+		&reporting.NodeReportItem{Name: "Aaa", ChefVersion: "13.11", OS: "", OSVersion: "",
+			CookbookVersions: []reporting.CookbookVersion{
+				reporting.CookbookVersion{Name: "yyy", Version: "1.0"},
+				reporting.CookbookVersion{Name: "YYY", Version: "9.9"},
+				reporting.CookbookVersion{Name: "yyy", Version: "10.0"},
+				reporting.CookbookVersion{Name: "YYY", Version: "99.9"},
+			},
+		},
+		&reporting.NodeReportItem{Name: "123", ChefVersion: "13.11", OS: "", OSVersion: "",
+			CookbookVersions: []reporting.CookbookVersion{},
+		},
+		&reporting.NodeReportItem{Name: "aaa", ChefVersion: "13.11", OS: "", OSVersion: "",
+			CookbookVersions: []reporting.CookbookVersion{
+				reporting.CookbookVersion{Name: "ddd", Version: "1.0"},
+				reporting.CookbookVersion{Name: "ccc", Version: "9.9"},
+			},
+		},
+	}
+	report := subject.NodesReportSummary(nri, "")
+
+	lines := strings.Split(report.Report, "\n")
+	if assert.Equal(t, 10, len(lines)) {
+		assert.Equal(t, "-- REPORT SUMMARY --", lines[1])
+		assert.Equal(t, "  Node Name   Chef Version   Operating System   Number Cookbooks  ", lines[3])
+		assert.Equal(t, "        123          13.11   -                                 0  ", lines[5])
+		assert.Equal(t, "  Aaa                13.11   -                                 4  ", lines[6])
+		assert.Equal(t, "  aaa                13.11   -                                 2  ", lines[7])
+		assert.Equal(t, "  zzz                13.11   -                                 2  ", lines[8])
+		assert.Equal(t, "", lines[9])
 	}
 }
 
