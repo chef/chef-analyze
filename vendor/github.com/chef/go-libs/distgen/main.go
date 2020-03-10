@@ -90,6 +90,11 @@ func main() {
 		globDistJson = os.Args[3]
 	}
 
+	file, ok := os.LookupEnv("DIST_FILE")
+	if ok {
+		globDistJson = file
+	}
+
 	rsp, err := http.Get(globDistJson)
 	if err != nil {
 		fatal("failed to get global variables file", err)
