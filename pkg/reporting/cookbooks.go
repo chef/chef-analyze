@@ -45,6 +45,7 @@ type CookbooksReport struct {
 	cookstyle             *CookstyleRunner
 	Progress              chan int
 	numWorkers            int
+	anonymize             bool
 	cookbookSearchResults chef.CookbookListResult
 }
 
@@ -111,6 +112,7 @@ func (cr *CookbookRecord) NumCorrectable() int {
 func NewCookbooksReport(
 	cbi CookbookInterface, searcher SearchInterface,
 	runCookstyle bool, onlyUnused bool, workers int,
+	anonymize bool,
 ) (*CookbooksReport, error) {
 	wsDir, err := config.ChefWorkstationDir()
 	if err != nil {
@@ -141,6 +143,7 @@ func NewCookbooksReport(
 		cookbooksDir:          cookbooksDir,
 		numWorkers:            workers,
 		cookbookSearchResults: results,
+		anonymize:             anonymize,
 	}, nil
 }
 
@@ -245,6 +248,12 @@ func (cbr *CookbooksReport) downloadCookbook(cookbookName, version string) *Cook
 			Version: version,
 		}
 	)
+	if cbr.anonymize {
+		cbState.Name = hashString(cookbookName)
+	} else {
+		cbState.Name = cookbookName
+	}
+
 	if err != nil {
 		cbState.UsageLookupError = err
 	}
@@ -265,7 +274,14 @@ func (cbr *CookbooksReport) downloadCookbook(cookbookName, version string) *Cook
 	if cbr.RunCookstyle {
 		err = cbr.cookbooks.DownloadTo(cookbookName, version, cbr.cookbooksDir)
 		if err != nil {
-			cbState.DownloadError = errors.Wrapf(err, "unable to download cookbook %s", cookbookName)
+			name := ""
+			if cbr.anonymize {
+				name = hashString(cookbookName)
+			} else {
+				name = cookbookName
+			}
+
+			cbState.DownloadError = errors.Wrapf(err, "unable to download cookbook %s", name)
 		}
 	}
 
@@ -288,7 +304,11 @@ func (cbr *CookbooksReport) nodesUsingCookbookVersion(cookbook string, version s
 	for _, element := range pres.Rows {
 		v := element.(map[string]interface{})["data"].(map[string]interface{})
 		if v != nil {
-			results = append(results, safeStringFromMap(v, "name"))
+			nodeName := safeStringFromMap(v, "name")
+			if cbr.anonymize {
+				nodeName = hashString(nodeName)
+			}
+			results = append(results, nodeName)
 		}
 	}
 

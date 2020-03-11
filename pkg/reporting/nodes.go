@@ -64,7 +64,7 @@ func (nri *NodeReportItem) CookbooksList() []string {
 }
 
 // GenerateNodesReport generate a nodes report
-func GenerateNodesReport(searcher SearchInterface) ([]*NodeReportItem, error) {
+func GenerateNodesReport(searcher SearchInterface, anonymize bool) ([]*NodeReportItem, error) {
 	var (
 		query = map[string]interface{}{
 			"name":         []string{"name"},
@@ -92,10 +92,16 @@ func GenerateNodesReport(searcher SearchInterface) ([]*NodeReportItem, error) {
 
 		if v != nil {
 			item := &NodeReportItem{
-				Name:        safeStringFromMap(v, "name"),
 				OS:          safeStringFromMap(v, "os"),
 				OSVersion:   safeStringFromMap(v, "os_version"),
 				ChefVersion: safeStringFromMap(v, "chef_version"),
+			}
+
+			nodeName := safeStringFromMap(v, "name")
+			if anonymize {
+				item.Name = hashString(nodeName)
+			} else {
+				item.Name = nodeName
 			}
 
 			if v["cookbooks"] != nil {
@@ -103,6 +109,12 @@ func GenerateNodesReport(searcher SearchInterface) ([]*NodeReportItem, error) {
 				item.CookbookVersions = make([]CookbookVersion, 0, len(cookbooks))
 				for k, v := range cookbooks {
 					cbv := CookbookVersion{Name: k, Version: safeStringFromMap(v.(map[string]interface{}), "version")}
+					if anonymize {
+						cbv.Name = hashString(k)
+					} else {
+						cbv.Name = k
+					}
+
 					item.CookbookVersions = append(item.CookbookVersions, cbv)
 				}
 			}
@@ -110,14 +122,4 @@ func GenerateNodesReport(searcher SearchInterface) ([]*NodeReportItem, error) {
 		}
 	}
 	return results, nil
-}
-
-// This returns the value referenced by `key` in `values`. If value is nil,
-// it returns an empty string; otherwise it returns the original string.
-// Will probably be more generally useful exposed as public in the reporting package.
-func safeStringFromMap(values map[string]interface{}, key string) string {
-	if values[key] == nil {
-		return ""
-	}
-	return values[key].(string)
 }

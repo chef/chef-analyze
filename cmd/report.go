@@ -95,6 +95,7 @@ provided when the report is generated.
 				cookbooksFlags.runCookstyle,
 				cookbooksFlags.onlyUnused,
 				cookbooksFlags.workers,
+				reportsFlags.anonymize,
 			)
 
 			if err != nil {
@@ -174,7 +175,7 @@ provided when the report is generated.
 			}
 
 			fmt.Println("Analyzing nodes...")
-			report, err := reporting.GenerateNodesReport(chefClient.Search)
+			report, err := reporting.GenerateNodesReport(chefClient.Search, reportsFlags.anonymize)
 			if err != nil {
 				return err
 			}
@@ -221,6 +222,7 @@ provided when the report is generated.
 		profile       string
 		noSSLverify   bool
 		format        string
+		anonymize     bool
 	}
 )
 
@@ -263,6 +265,11 @@ func init() {
 		"Disable SSL certificate verification",
 	)
 
+	reportCmd.PersistentFlags().BoolVarP(
+		&reportsFlags.anonymize,
+		"anonymize", "a", false,
+		"replace cookbook and node names with hash values",
+	)
 	// cookbooks cmd flags
 	reportCookbooksCmd.PersistentFlags().IntVarP(
 		&cookbooksFlags.workers,
@@ -279,6 +286,7 @@ func init() {
 		"verify-upgrade", "V", false,
 		"verify the upgrade compatibility of every cookbook",
 	)
+
 	// adds the cookbooks command as a sub-command of the report command
 	// => chef-analyze report cookbooks
 	reportCmd.AddCommand(reportCookbooksCmd)
