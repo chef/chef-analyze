@@ -61,6 +61,8 @@ func CookbooksReportSummary(state *reporting.CookbooksReport) FormattedResult {
 		buffer                = bytes.NewBufferString("\n-- REPORT SUMMARY --\n\n")
 		table                 = tablewriter.NewWriter(buffer)
 		CookbooksReportHeader = []string{"Cookbook", "Version"}
+		redColor              = "\033[1;31m%s\033[0m"
+		yellowColor           = "\033[1;33m%s\033[0m"
 	)
 
 	if state.RunCookstyle {
@@ -88,9 +90,23 @@ func CookbooksReportSummary(state *reporting.CookbooksReport) FormattedResult {
 
 		// only include violations if we ran cookstyle
 		if state.RunCookstyle {
+			numOffenses := record.NumOffenses()
+			numCorrectable := record.NumCorrectable()
+			numOffensesStr := strconv.Itoa(numOffenses)
+			numCorrectableStr := strconv.Itoa(numCorrectable)
+			if numOffenses != 0 {
+				// Enable per-cell colorization
+				if numOffenses == numCorrectable {
+					numOffensesStr = fmt.Sprintf(yellowColor,numOffensesStr)
+					numCorrectableStr = fmt.Sprintf(yellowColor,numCorrectableStr)
+				} else {
+					numOffensesStr = fmt.Sprintf(redColor,numOffensesStr)
+					numCorrectableStr = fmt.Sprintf(redColor,numCorrectableStr)
+				}
+			}
 			row = append(row,
-				strconv.Itoa(record.NumOffenses()),
-				strconv.Itoa(record.NumCorrectable()),
+				numOffensesStr,
+				numCorrectableStr,
 			)
 		}
 
