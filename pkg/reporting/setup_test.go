@@ -95,6 +95,13 @@ chef_server_url = "chef-server.example.com/organizations/dev"
 client_name = "empty"
 client_key = "` + emptyPemPath + `"
 chef_server_url = "chef-server.example.com/organizations/empty"
+
+[inlined]
+client_name = "inlined"
+client_key ="""
+` + string(key()) + `
+"""
+chef_server_url = "chef-server.example.com/organizations/inlined"
 `)
 	)
 	err := ioutil.WriteFile(credsPath, creds, 0644)
