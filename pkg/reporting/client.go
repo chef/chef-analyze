@@ -32,3 +32,13 @@ type CookbookInterface interface {
 type SearchInterface interface {
 	PartialExec(idx, statement string, params map[string]interface{}) (res chef.SearchResult, err error)
 }
+
+type NodesInterface interface {
+	Get(name string) (node chef.Node, err error)
+}
+type RolesInterface interface {
+	Get(name string) (node *chef.Role, err error)
+}
+type EnvironmentInterface interface {
+	Get(name string) (node *chef.Environment, err error)
+}
