@@ -19,10 +19,12 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 
 	"github.com/chef/chef-analyze/pkg/reporting"
 	"github.com/chef/go-libs/credentials"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -76,15 +78,38 @@ can then be used to converge locally.`,
 			}
 
 			repoName := fmt.Sprintf("node-%s-repo", nodeName)
-			// TODO - configurable?
+			// TODO - future iteration - give option to set the destination path.
 			dirName := fmt.Sprintf("./%s", repoName)
-			// TODO - abort if it exists, have them remove it first.
+
+			// abort if it exists, have them remove it first.
+			_, err = os.Stat(dirName)
+			if err == nil {
+				fmt.Printf("\nThe repository already exists in %s.\n\n", dirName)
+				// In future versions we should permit specifying a --repo-save-path  as an alternative
+				// to deletion.
+				fmt.Printf("To re-run capture for node %s, delete this directory\n\n", nodeName)
+			} else {
+				if !os.IsNotExist(err) {
+					return err
+				}
+			}
 
 			fmt.Println(" - Setting up local repository")
 			cmd := exec.Command("chef", "generate", "repo", repoName)
 			_, err = cmd.Output()
 			if err != nil {
 				return err
+			}
+
+			// Some files are created that we don't need in our repo, let's remove them
+			err = os.RemoveAll(fmt.Sprintf("%s/cookbooks/example", dirName))
+			if err != nil {
+				return errors.Wrap(err, "Could not remove pre-created repo content: example cookbook")
+			}
+
+			err = os.RemoveAll(fmt.Sprintf("%s/cookbooks/example", dirName))
+			if err != nil {
+				return errors.Wrap(err, "Could not remove pre-created repo content: example cookbook")
 			}
 
 			nc := reporting.NewNodeCapture(nodeName, dirName,
