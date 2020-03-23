@@ -84,10 +84,16 @@ can then be used to converge locally.`,
 			// abort if it exists, have them remove it first.
 			_, err = os.Stat(dirName)
 			if err == nil {
-				fmt.Printf("\nThe repository already exists in %s.\n\n", dirName)
-				// In future versions we should permit specifying a --repo-save-path  as an alternative
-				// to deletion.
-				fmt.Printf("To re-run capture for node %s, delete this directory\n\n", nodeName)
+				fmt.Printf(RepositoryAlreadyExistsE002, dirName, nodeName)
+
+				// TODO we'll need finer-grained control over errors/output.  For example
+				// in order to exit non-zero we have to return an error. But if we return an error,
+				// gt
+				// TODO all of our error returns (including this one) cause usage a message to be displayed.
+				// If we can't control when that happens, we should disable it since it's ofte
+				// not the right behavior - most error scenarios aren't usage-related.
+				return nil
+
 			} else {
 				if !os.IsNotExist(err) {
 					return err
@@ -134,7 +140,6 @@ can then be used to converge locally.`,
 				return nc.Error
 			}
 
-			// TODO - be smart enough to nkow if we should say 'created' or 'updated'
 			fmt.Printf("Repository has been created in '%s'\n", dirName)
 			return nil
 		},
