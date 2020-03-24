@@ -34,11 +34,11 @@ type SearchInterface interface {
 }
 
 type NodesInterface interface {
-	Get(name string) (node chef.Node, err error)
+	Get(name string) (chef.Node, error)
 }
 type RolesInterface interface {
-	Get(name string) (node *chef.Role, err error)
+	Get(name string) (*chef.Role, error)
 }
 type EnvironmentInterface interface {
-	Get(name string) (node *chef.Environment, err error)
+	Get(name string) (*chef.Environment, error)
 }

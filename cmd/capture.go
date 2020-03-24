@@ -63,10 +63,6 @@ can then be used to converge locally.`,
 				return err
 			}
 
-			// TODO - puting this in reporting for now, because
-			// of common bits already in that package.  Longer-term
-			// we'll want to move the common bits to their own package
-			// (credentials handling, common object structures like chef client)
 			cfg := &reporting.Reporting{Credentials: creds}
 			if reportsFlags.noSSLverify {
 				cfg.NoSSLVerify = true
@@ -86,12 +82,6 @@ can then be used to converge locally.`,
 			if err == nil {
 				fmt.Printf(RepositoryAlreadyExistsE002, dirName, nodeName)
 
-				// TODO we'll need finer-grained control over errors/output.  For example
-				// in order to exit non-zero we have to return an error. But if we return an error,
-				// gt
-				// TODO all of our error returns (including this one) cause usage a message to be displayed.
-				// If we can't control when that happens, we should disable it since it's ofte
-				// not the right behavior - most error scenarios aren't usage-related.
 				return nil
 
 			} else {
@@ -121,6 +111,7 @@ can then be used to converge locally.`,
 			nc := reporting.NewNodeCapture(nodeName, dirName,
 				chefClient.Nodes, chefClient.Roles,
 				chefClient.Environments, chefClient.Cookbooks,
+				reporting.ObjectWriter{RootDir: dirName},
 			)
 			go nc.Run()
 			for progress := range nc.Progress {
