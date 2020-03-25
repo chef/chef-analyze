@@ -39,7 +39,7 @@ type NodeCapture struct {
 	roles         RolesInterface
 	env           EnvironmentInterface
 	cookbooks     CookbookInterface
-	writer        ObjectWriter
+	writer        ObjectWriterInterface
 }
 
 // Events that we publish on the Progress channel when
@@ -54,7 +54,7 @@ const (
 
 // Initialize a NodeCapture. Creates a Progress channel that callers can monitor for updates
 func NewNodeCapture(nodeName string, repositoryDir string, nodes NodesInterface,
-	roles RolesInterface, env EnvironmentInterface, cookbooks CookbookInterface, writer ObjectWriter) *NodeCapture {
+	roles RolesInterface, env EnvironmentInterface, cookbooks CookbookInterface, writer ObjectWriterInterface) *NodeCapture {
 	return &NodeCapture{name: nodeName, nodes: nodes, roles: roles,
 		env: env, cookbooks: cookbooks, repositoryDir: repositoryDir,
 		writer: writer,
@@ -67,28 +67,28 @@ func (nc *NodeCapture) Run() {
 	defer func() { close(nc.Progress) }()
 
 	nc.Progress <- FetchingNode
-	node, err := nc.captureNodeObject()
+	node, err := nc.CaptureNodeObject()
 	if err != nil {
 		nc.Error = errors.Wrapf(err, "unable to capture node '%s'", nc.name)
 		return
 	}
 
 	nc.Progress <- FetchingCookbooks
-	err = nc.captureCookbookObjects(node.AutomaticAttributes["cookbooks"].(map[string]interface{}))
+	err = nc.CaptureCookbooks(node.AutomaticAttributes["cookbooks"].(map[string]interface{}))
 	if err != nil {
 		nc.Error = errors.Wrapf(err, "unable to capture node cookbooks for '%s'", nc.name)
 		return
 	}
 
 	nc.Progress <- FetchingEnvironment
-	err = nc.captureEnvObject(node.Environment)
+	err = nc.CaptureEnvObject(node.Environment)
 	if err != nil {
 		nc.Error = errors.Wrapf(err, "unable to capture environment")
 		return
 	}
 
 	nc.Progress <- FetchingRoles
-	err = nc.captureRoleObjects(node.RunList)
+	err = nc.CaptureRoleObjects(node.RunList)
 	if err != nil {
 		nc.Error = errors.Wrapf(err, "unable to capture role(s)")
 		return
@@ -100,28 +100,28 @@ func (nc *NodeCapture) Run() {
 // Capture the the node nc.Name from Chef Server to
 // repositoryDir/nodes/NAME.json
 // Returns the chef.Node object.
-func (nc *NodeCapture) captureNodeObject() (*chef.Node, error) {
+func (nc *NodeCapture) CaptureNodeObject() (*chef.Node, error) {
 	node, err := nc.nodes.Get(nc.name)
 	if err != nil {
-		return nil, errors.Wrapf(err, "unable  retrieve node: %s", nc.name)
+		return nil, errors.Wrapf(err, "unable to retrieve node '%s'", nc.name)
 	}
-	err = nc.writer.WriteNode(&node)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to save node. This is a bug, please report it.")
-	}
-
 	// In this pass we are not supporting policyfiles. For now, that
 	// means we'll raise an error when the node has policyfile enabled,
 	// to avoid the risk of reporting back inaccurate results based on non-PF assumptions.
 	if node.PolicyName != "" || node.PolicyGroup != "" {
 		return nil, errors.New(fmt.Sprintf("Node %s is managed by Policyfile. Unsupported at this time.", nc.name))
 	}
+	err = nc.writer.WriteNode(&node)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to save node. This is a bug, please report it.")
+	}
+
 	return &node, nil
 }
 
 // Given a map of cookbook [ name ] : { "version" : version }, download the cookbooks
 // from Chef Server into repositoryDir/cookbooks
-func (nc *NodeCapture) captureCookbookObjects(cookbooks map[string]interface{}) error {
+func (nc *NodeCapture) CaptureCookbooks(cookbooks map[string]interface{}) error {
 	cookbookDir := fmt.Sprintf("%s/cookbooks", nc.repositoryDir)
 	for name, version_data := range cookbooks {
 		version := safeStringFromMap(version_data.(map[string]interface{}), "version")
@@ -140,7 +140,7 @@ func (nc *NodeCapture) captureCookbookObjects(cookbooks map[string]interface{}) 
 	return nil
 }
 
-func (nc *NodeCapture) captureEnvObject(environment string) error {
+func (nc *NodeCapture) CaptureEnvObject(environment string) error {
 	env, err := nc.env.Get(environment)
 	if err != nil {
 		return errors.Wrapf(err, "unable to retrieve node environment: %s", environment)
@@ -153,8 +153,7 @@ func (nc *NodeCapture) captureEnvObject(environment string) error {
 	return nil
 }
 
-func (nc *NodeCapture) captureRoleObjects(runList []string) error {
-
+func (nc *NodeCapture) CaptureRoleObjects(runList []string) error {
 	roleNames := filterRoles(runList)
 	for _, roleName := range roleNames {
 		role, err := nc.roles.Get(roleName)

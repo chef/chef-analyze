@@ -30,6 +30,12 @@ type ObjectWriter struct {
 	RootDir string
 }
 
+type ObjectWriterInterface interface {
+	WriteRole(*chef.Role) error
+	WriteEnvironment(*chef.Environment) error
+	WriteNode(*chef.Node) error
+}
+
 func (ow *ObjectWriter) WriteRole(role *chef.Role) error {
 	return ow.save("roles", role.Name, role)
 }

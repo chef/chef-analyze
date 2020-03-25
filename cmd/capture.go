@@ -111,7 +111,7 @@ can then be used to converge locally.`,
 			nc := reporting.NewNodeCapture(nodeName, dirName,
 				chefClient.Nodes, chefClient.Roles,
 				chefClient.Environments, chefClient.Cookbooks,
-				reporting.ObjectWriter{RootDir: dirName},
+				&reporting.ObjectWriter{RootDir: dirName},
 			)
 			go nc.Run()
 			for progress := range nc.Progress {
