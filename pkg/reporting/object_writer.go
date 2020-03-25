@@ -36,19 +36,22 @@ type ObjectWriterInterface interface {
 	WriteNode(*chef.Node) error
 }
 
+// Takes a chef.Role and saves it as json in RootDir/roles
 func (ow *ObjectWriter) WriteRole(role *chef.Role) error {
-	return ow.save("roles", role.Name, role)
+	return ow.WriteJSON("roles", role.Name, role)
 }
 
+// Takes a chef.Role and saves it as json in RootDir/environments
 func (ow *ObjectWriter) WriteEnvironment(env *chef.Environment) error {
-	return ow.save("environments", env.Name, env)
+	return ow.WriteJSON("environments", env.Name, env)
 }
 
+// Takes a chef.Role and saves it as json in RootDir/nodes
 func (ow *ObjectWriter) WriteNode(node *chef.Node) error {
-	return ow.save("nodes", node.Name, node)
+	return ow.WriteJSON("nodes", node.Name, node)
 }
 
-func (ow *ObjectWriter) save(objGroupingName string, objName string, object interface{}) error {
+func (ow *ObjectWriter) WriteJSON(objGroupingName string, objName string, object interface{}) error {
 	var err error
 	dirName := fmt.Sprintf("%s/%s", ow.RootDir, objGroupingName)
 	path := fmt.Sprintf("%s/%s/%s.json", ow.RootDir, objGroupingName, objName)

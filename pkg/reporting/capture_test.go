@@ -28,6 +28,29 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestCaptureRun(t *testing.T) {
+	expectedNode := chef.Node{
+		Name:        "node1",
+		Environment: "_default",
+		RunList:     []string{"cookbook1::recipe1", "role:mockrole"},
+		PolicyName:  "",
+		PolicyGroup: "",
+	}
+	writer := ObjectWriterMock{}
+	nc := subject.NewNodeCapture("",
+		"",
+		NodeMock{Error: nil, Node: expectedNode},
+		RoleMock{},
+		EnvMock{},
+		CookbookMock{},
+		&writer,
+	)
+	actualNode, err := nc.CaptureNodeObject()
+	assert.Equal(t, &expectedNode, actualNode)
+	assert.Equal(t, &expectedNode, writer.ReceivedObject)
+	assert.Equal(t, nil, err)
+}
+
 func TestCaptureNodeObject(t *testing.T) {
 	expectedNode := chef.Node{
 		Name:        "node1",
@@ -88,6 +111,7 @@ func TestCaptureNodeObjectWithErrorOnFetch(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "fetch error") // because it's wrapped
 }
+
 func TestCaptureNodeObjectWithErrorOnSave(t *testing.T) {
 	node := chef.Node{}
 	writer := ObjectWriterMock{Error: errors.New("failed to write")}

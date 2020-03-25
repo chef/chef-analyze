@@ -47,9 +47,7 @@ var (
 		Long: `Captures a node's state as a local chef-repo, which
 can then be used to converge locally.`,
 		RunE: func(_ *cobra.Command, args []string) error {
-			// TODO - support multiple node names?
 			creds, err := credentials.FromViper(
-				// TODO this isn't just reportsflags any longer.
 				reportsFlags.profile,
 				overrideCredentials(),
 			)
@@ -81,9 +79,7 @@ can then be used to converge locally.`,
 			_, err = os.Stat(dirName)
 			if err == nil {
 				fmt.Printf(RepositoryAlreadyExistsE002, dirName, nodeName)
-
 				return nil
-
 			} else {
 				if !os.IsNotExist(err) {
 					return err

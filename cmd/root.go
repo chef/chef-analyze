@@ -33,7 +33,7 @@ var (
 		Use:   dist.Exec,
 		Short: fmt.Sprintf("A CLI to analyze artifacts from a %s", dist.ServerProduct),
 		Long: fmt.Sprintf(`Analyze your %s artifacts to understand the effort to upgrade
-your infrastructure by generating eports, automatically fixing violations
+your infrastructure by generating reports, automatically fixing violations
 and/or deprecations, and generating Effortless packages.
 `, dist.ServerProduct),
 	}
