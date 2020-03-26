@@ -25,7 +25,7 @@ import (
 	chef "github.com/chef/go-chef"
 )
 
-// This contains mocks implementations for the client interfaces
+// This module contains mocks implementations for the client interfaces
 // defined in client.go
 
 type SearchMock struct {
@@ -41,6 +41,7 @@ type CookbookMock struct {
 	desiredCookbookList      chef.CookbookListResult
 	desiredCookbookListError error
 	desiredDownloadError     error
+	createDirOnDownload      bool
 }
 
 func (cm CookbookMock) ListAvailableVersions(limit string) (chef.CookbookListResult, error) {
@@ -48,21 +49,21 @@ func (cm CookbookMock) ListAvailableVersions(limit string) (chef.CookbookListRes
 }
 
 func (cm CookbookMock) DownloadTo(name, version, localDir string) error {
-	var (
-		dirToMock = filepath.Join(localDir, fmt.Sprintf("%s-%s", name, version))
-		err       = os.MkdirAll(dirToMock, os.ModePerm)
-	)
-	if err != nil {
-		panic(err)
+	if cm.createDirOnDownload {
+		dirToMock := filepath.Join(localDir, fmt.Sprintf("%s-%s", name, version))
+		err := os.MkdirAll(dirToMock, os.ModePerm)
+		if err != nil {
+			panic(err)
+		}
 	}
 	return cm.desiredDownloadError
 }
-
 func newMockCookbook(cookbookList chef.CookbookListResult, desiredCbListErr, desiredDownloadErr error) *CookbookMock {
 	return &CookbookMock{
 		desiredCookbookList:      cookbookList,
 		desiredCookbookListError: desiredCbListErr,
 		desiredDownloadError:     desiredDownloadErr,
+		createDirOnDownload:      true,
 	}
 }
 
@@ -85,4 +86,40 @@ func makeMockSearch(searchResultJSON string, desiredError error) *SearchMock {
 		desiredResults: chef.SearchResult{Rows: convertedSearchResult},
 		desiredError:   desiredError,
 	}
+}
+
+type NodeMock struct {
+	Error error
+	Node  chef.Node
+}
+
+func (nm NodeMock) Get(name string) (chef.Node, error) {
+	if nm.Error != nil {
+		return chef.Node{}, nm.Error
+	}
+	return nm.Node, nil
+}
+
+type RoleMock struct {
+	Error error
+	Role  *chef.Role
+}
+
+func (rm RoleMock) Get(name string) (*chef.Role, error) {
+	if rm.Error != nil {
+		return nil, rm.Error
+	}
+	return rm.Role, nil
+}
+
+type EnvMock struct {
+	Error error
+	Env   *chef.Environment
+}
+
+func (em EnvMock) Get(name string) (*chef.Environment, error) {
+	if em.Error != nil {
+		return nil, em.Error
+	}
+	return em.Env, nil
 }

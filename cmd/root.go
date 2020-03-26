@@ -64,6 +64,8 @@ func init() {
 	rootCmd.AddCommand(uploadCmd)
 	// adds the session command from 'cmd/session.go'
 	rootCmd.AddCommand(sessionCmd)
+	// adds the capture command from 'cmd/capture.go'
+	rootCmd.AddCommand(captureCmd)
 }
 
 func initConfig() {

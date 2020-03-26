@@ -25,6 +25,8 @@ package cmd
 const (
 	// MissingMinimumParametersErr user feedback
 	MissingMinimumParametersErr = `
+  E001
+
   there are missing parameters for this tool to work, provide a credentials file:
     --credentials string
 
@@ -32,5 +34,15 @@ const (
     --client_key string
     --client_name string
     --chef_server_url string
+
+`
+
+	RepositoryAlreadyExistsE002 = `
+  E002
+
+  The repository already exists in %s.
+
+  To re-run capture for node %s, delete this directory.
+
 `
 )
