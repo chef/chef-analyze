@@ -104,11 +104,12 @@ can then be used to converge locally.`,
 				return errors.Wrap(err, "Could not remove pre-created repo content: example cookbook")
 			}
 
-			nc := reporting.NewNodeCapture(nodeName, dirName,
+			capturer := reporting.NewNodeCapturer(
 				chefClient.Nodes, chefClient.Roles,
 				chefClient.Environments, chefClient.Cookbooks,
 				&reporting.ObjectWriter{RootDir: dirName},
 			)
+			nc := reporting.NewNodeCapture(nodeName, dirName, capturer)
 			go nc.Run()
 			for progress := range nc.Progress {
 				switch progress {

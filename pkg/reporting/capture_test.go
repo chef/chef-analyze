@@ -28,7 +28,113 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCaptureRun(t *testing.T) {
+type CapturerMock struct {
+	NodeReturn          *chef.Node
+	NodeErrorReturn     error
+	EnvErrorReturn      error
+	RoleErrorReturn     error
+	CookbookErrorReturn error
+}
+
+func (cm *CapturerMock) CaptureCookbooks(string, map[string]interface{}) error {
+	return cm.CookbookErrorReturn
+}
+
+func (cm *CapturerMock) CaptureNodeObject(node string) (*chef.Node, error) {
+	return cm.NodeReturn, cm.NodeErrorReturn
+}
+func (cm *CapturerMock) CaptureEnvObject(string) error {
+	return cm.EnvErrorReturn
+}
+func (cm *CapturerMock) CaptureRoleObjects([]string) error {
+	return cm.RoleErrorReturn
+}
+func defaultNode() *chef.Node {
+	return &chef.Node{
+		Name:        "node1",
+		Environment: "_default",
+		RunList:     []string{"cookbook1::recipe1", "role:mockrole"},
+		PolicyName:  "",
+		PolicyGroup: "",
+		AutomaticAttributes: map[string]interface{}{
+			"cookbooks": map[string]interface{}{
+				"foo": map[string]interface{}{
+					"version": "0.1.0",
+				},
+			},
+		},
+	}
+}
+
+func TestCapture_Run(t *testing.T) {
+	baseDir, err := ioutil.TempDir(os.TempDir(), "chefanalyze-unit*")
+	if err != nil {
+		panic(err)
+	}
+	defer os.RemoveAll(baseDir)
+	nc := subject.NewNodeCapture("node1", baseDir, &CapturerMock{NodeReturn: defaultNode()})
+	go nc.Run()
+	val := <-nc.Progress
+	assert.Equal(t, subject.FetchingNode, val)
+	val = <-nc.Progress
+	assert.Equal(t, subject.FetchingCookbooks, val)
+	val = <-nc.Progress
+	assert.Equal(t, subject.FetchingEnvironment, val)
+	val = <-nc.Progress
+	assert.Equal(t, subject.FetchingRoles, val)
+	val = <-nc.Progress
+	assert.Equal(t, subject.FetchingComplete, val)
+
+	assert.Nil(t, nc.Error)
+
+}
+
+func TestCapture_RunWithNodeFailure(t *testing.T) {
+	nc := subject.NewNodeCapture("node1", "", &CapturerMock{NodeErrorReturn: errors.New("no node")})
+	nc.Run()
+	if assert.NotNil(t, nc.Error) {
+		assert.Contains(t, nc.Error.Error(), "no node")
+		assert.Contains(t, nc.Error.Error(), "unable to capture node 'node1'")
+	}
+}
+
+func TestCapture_RunWithNoCookbooksAvailable(t *testing.T) {
+	nc := subject.NewNodeCapture("node1", "", &CapturerMock{NodeReturn: &chef.Node{}})
+	nc.Run()
+	assert.Nil(t, nc.Error)
+}
+
+func TestCapture_RunWithCookbookFailure(t *testing.T) {
+	nc := subject.NewNodeCapture("node1", "", &CapturerMock{NodeReturn: defaultNode(),
+		CookbookErrorReturn: errors.New("no cookbook")})
+	nc.Run()
+	if assert.NotNil(t, nc.Error) {
+		assert.Contains(t, nc.Error.Error(), "no cookbook")
+		assert.Contains(t, nc.Error.Error(), "unable to capture node cookbooks")
+	}
+}
+
+func TestCapture_RunWithEnvironmentFailure(t *testing.T) {
+	nc := subject.NewNodeCapture("node1", "", &CapturerMock{NodeReturn: defaultNode(),
+		EnvErrorReturn: errors.New("no env")})
+	nc.Run()
+	if assert.NotNil(t, nc.Error) {
+		assert.Contains(t, nc.Error.Error(), "no env")
+		assert.Contains(t, nc.Error.Error(), "unable to capture environment")
+	}
+}
+
+func TestCapture_RunWithRoleFailure(t *testing.T) {
+	nc := subject.NewNodeCapture("node1", "", &CapturerMock{NodeReturn: defaultNode(),
+		RoleErrorReturn: errors.New("no role")})
+	nc.Run()
+	if assert.NotNil(t, nc.Error) {
+		assert.Contains(t, nc.Error.Error(), "no role")
+		assert.Contains(t, nc.Error.Error(), "unable to capture role")
+	}
+}
+
+func TestCapturer_CaptureNodeObject(t *testing.T) {
 	expectedNode := chef.Node{
 		Name:        "node1",
 		Environment: "_default",
@@ -37,43 +143,19 @@ func TestCaptureRun(t *testing.T) {
 		PolicyGroup: "",
 	}
 	writer := ObjectWriterMock{}
-	nc := subject.NewNodeCapture("",
-		"",
+	nc := subject.NewNodeCapturer(
 		NodeMock{Error: nil, Node: expectedNode},
 		RoleMock{},
 		EnvMock{},
 		CookbookMock{},
 		&writer,
 	)
-	actualNode, err := nc.CaptureNodeObject()
-	assert.Equal(t, &expectedNode, actualNode)
-	assert.Equal(t, &expectedNode, writer.ReceivedObject)
-	assert.Equal(t, nil, err)
-}
-
-func TestCaptureNodeObject(t *testing.T) {
-	expectedNode := chef.Node{
-		Name:        "node1",
-		Environment: "_default",
-		RunList:     []string{"cookbook1::recipe1", "role:mockrole"},
-		PolicyName:  "",
-		PolicyGroup: "",
-	}
-	writer := ObjectWriterMock{}
-	nc := subject.NewNodeCapture("",
-		"",
-		NodeMock{Error: nil, Node: expectedNode},
-		RoleMock{},
-		EnvMock{},
-		CookbookMock{},
-		&writer,
-	)
-	actualNode, err := nc.CaptureNodeObject()
+	actualNode, err := nc.CaptureNodeObject("node1")
 	assert.Equal(t, &expectedNode, actualNode)
 	assert.Equal(t, nil, err)
 }
 
-func TestCaptureNodeObjectWithPolicyError(t *testing.T) {
+func TestCapturer_CaptureNodeObjectWithPolicyError(t *testing.T) {
 	expectedNode := chef.Node{
 		Name:        "node1",
 		Environment: "_default",
@@ -82,58 +164,57 @@ func TestCaptureNodeObjectWithPolicyError(t *testing.T) {
 		PolicyGroup: "mypolicygroup",
 	}
 	writer := ObjectWriterMock{}
-	nc := subject.NewNodeCapture("",
-		"",
+	nc := subject.NewNodeCapturer(
 		NodeMock{Error: nil, Node: expectedNode},
 		RoleMock{},
 		EnvMock{},
 		CookbookMock{},
 		&writer,
 	)
-	actualNode, err := nc.CaptureNodeObject()
+	actualNode, err := nc.CaptureNodeObject("node1")
 	assert.Nil(t, actualNode)
 	if assert.NotNil(t, err) {
 		assert.Contains(t, err.Error(), "managed by Policyfile")
 	}
 }
 
-func TestCaptureNodeObjectWithErrorOnFetch(t *testing.T) {
+func TestCapturer_CaptureNodeObjectWithErrorOnFetch(t *testing.T) {
 	underlyingErr := errors.New("fetch error")
 	writer := ObjectWriterMock{}
-	nc := subject.NewNodeCapture("node1", "",
+	nc := subject.NewNodeCapturer(
 		NodeMock{Error: underlyingErr},
 		RoleMock{},
 		EnvMock{},
 		CookbookMock{},
 		&writer,
 	)
-	_, err := nc.CaptureNodeObject()
+	_, err := nc.CaptureNodeObject("node1")
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "fetch error") // because it's wrapped
 }
 
-func TestCaptureNodeObjectWithErrorOnSave(t *testing.T) {
+func TestCapturer_CaptureNodeObjectWithErrorOnSave(t *testing.T) {
 	node := chef.Node{}
 	writer := ObjectWriterMock{Error: errors.New("failed to write")}
-	nc := subject.NewNodeCapture("", "",
+	nc := subject.NewNodeCapturer(
 		NodeMock{Node: node},
 		RoleMock{},
 		EnvMock{},
 		CookbookMock{},
 		&writer,
 	)
-	_, err := nc.CaptureNodeObject()
+	_, err := nc.CaptureNodeObject("node1")
 	if assert.NotNil(t, err) {
 		assert.Contains(t, err.Error(), "failed to write")
 	}
 }
 
-func TestCaptureRoleObjects(t *testing.T) {
+func TestCapturer_CaptureRoleObjects(t *testing.T) {
 	expectedRole := chef.Role{
 		Name: "role1",
 	}
 	writer := ObjectWriterMock{}
-	nc := subject.NewNodeCapture("", "",
+	nc := subject.NewNodeCapturer(
 		NodeMock{},
 		RoleMock{Role: &expectedRole},
 		EnvMock{},
@@ -145,10 +226,9 @@ func TestCaptureRoleObjects(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestCaptureRoleObjectsWithErrorOnFetch(t *testing.T) {
+func TestCapturer_CaptureRoleObjectsWithErrorOnFetch(t *testing.T) {
 	writer := ObjectWriterMock{}
-	nc := subject.NewNodeCapture("",
-		"",
+	nc := subject.NewNodeCapturer(
 		NodeMock{},
 		RoleMock{Error: errors.New("failed to fetch")},
 		EnvMock{},
@@ -162,10 +242,9 @@ func TestCaptureRoleObjectsWithErrorOnFetch(t *testing.T) {
 	}
 }
 
-func TestCaptureRoleObjectsWithErrorOnSave(t *testing.T) {
+func TestCapturer_CaptureRoleObjectsWithErrorOnSave(t *testing.T) {
 	writer := ObjectWriterMock{Error: errors.New("failed to write")}
-	nc := subject.NewNodeCapture("",
-		"",
+	nc := subject.NewNodeCapturer(
 		NodeMock{},
 		RoleMock{},
 		EnvMock{},
@@ -179,12 +258,12 @@ func TestCaptureRoleObjectsWithErrorOnSave(t *testing.T) {
 	}
 }
 
-func TestCaptureEnvObject(t *testing.T) {
+func TestCapturer_CaptureEnvObject(t *testing.T) {
 	expectedEnv := chef.Environment{
 		Name: "env1",
 	}
 	writer := ObjectWriterMock{}
-	nc := subject.NewNodeCapture("", "",
+	nc := subject.NewNodeCapturer(
 		NodeMock{},
 		RoleMock{},
 		EnvMock{Env: &expectedEnv},
@@ -196,10 +275,9 @@ func TestCaptureEnvObject(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestCaptureEnvObjectWithErrorOnFetch(t *testing.T) {
+func TestCapturer_CaptureEnvObjectWithErrorOnFetch(t *testing.T) {
 	writer := ObjectWriterMock{}
-	nc := subject.NewNodeCapture("",
-		"",
+	nc := subject.NewNodeCapturer(
 		NodeMock{},
 		RoleMock{},
 		EnvMock{Error: errors.New("failed to fetch")},
@@ -211,10 +289,9 @@ func TestCaptureEnvObjectWithErrorOnFetch(t *testing.T) {
 	assert.Contains(t, err.Error(), "failed to fetch")
 }
 
-func TestCaptureEnvObjectWithErrorOnSave(t *testing.T) {
+func TestCapturer_CaptureEnvObjectWithErrorOnSave(t *testing.T) {
 	writer := ObjectWriterMock{Error: errors.New("failed to write")}
-	nc := subject.NewNodeCapture("",
-		"",
+	nc := subject.NewNodeCapturer(
 		NodeMock{},
 		RoleMock{},
 		EnvMock{},
@@ -227,7 +304,7 @@ func TestCaptureEnvObjectWithErrorOnSave(t *testing.T) {
 
 }
 
-func TestCaptureCookbooks(t *testing.T) {
+func TestCapturer_CaptureCookbooks(t *testing.T) {
 	baseDir, err := ioutil.TempDir(os.TempDir(), "chefanalyze-unit*")
 	if err != nil {
 		panic(err)
@@ -243,7 +320,7 @@ func TestCaptureCookbooks(t *testing.T) {
 	}
 
 	writer := ObjectWriterMock{}
-	nc := subject.NewNodeCapture("temp", baseDir,
+	nc := subject.NewNodeCapturer(
 		NodeMock{},
 		RoleMock{},
 		EnvMock{},
@@ -257,11 +334,11 @@ func TestCaptureCookbooks(t *testing.T) {
 		},
 	}
 
-	err = nc.CaptureCookbooks(cbmap)
+	err = nc.CaptureCookbooks(baseDir, cbmap)
 	assert.Nil(t, err)
 }
 
-func TestCaptureCookbooksWithDownloadError(t *testing.T) {
+func TestCapturer_CaptureCookbooksWithDownloadError(t *testing.T) {
 	baseDir, err := ioutil.TempDir(os.TempDir(), "chefanalyze-unit*")
 	if err != nil {
 		panic(err)
@@ -278,7 +355,7 @@ func TestCaptureCookbooksWithDownloadError(t *testing.T) {
 	}
 
 	writer := ObjectWriterMock{}
-	nc := subject.NewNodeCapture("temp", baseDir,
+	nc := subject.NewNodeCapturer(
 		NodeMock{},
 		RoleMock{},
 		EnvMock{},
@@ -300,13 +377,13 @@ func TestCaptureCookbooksWithDownloadError(t *testing.T) {
 		},
 	}
 
-	err = nc.CaptureCookbooks(cbmap)
+	err = nc.CaptureCookbooks(baseDir, cbmap)
 	if assert.NotNil(t, err) {
 		assert.Contains(t, err.Error(), "download error in test1")
 		assert.Contains(t, err.Error(), "Failed to download cookbook")
 	}
 }
-func TestCaptureCookbooksWithRenameError(t *testing.T) {
+func TestCapturer_CaptureCookbooksWithRenameError(t *testing.T) {
 	baseDir, err := ioutil.TempDir(os.TempDir(), "chefanalyze-unit*")
 	if err != nil {
 		panic(err)
@@ -324,7 +401,7 @@ func TestCaptureCookbooksWithRenameError(t *testing.T) {
 	writer := ObjectWriterMock{}
 	cbMock := newMockCookbook(cookbookList, nil, nil)
 	cbMock.createDirOnDownload = false
-	nc := subject.NewNodeCapture("temp", baseDir,
+	nc := subject.NewNodeCapturer(
 		NodeMock{},
 		RoleMock{},
 		EnvMock{},
@@ -342,7 +419,7 @@ func TestCaptureCookbooksWithRenameError(t *testing.T) {
 		},
 	}
 
-	err = nc.CaptureCookbooks(cbmap)
+	err = nc.CaptureCookbooks(baseDir, cbmap)
 	if assert.NotNil(t, err) {
 		assert.Contains(t, err.Error(), "failed to rename cookbook")
 	}
