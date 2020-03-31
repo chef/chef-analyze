@@ -99,9 +99,9 @@ can then be used to converge locally.`,
 				return errors.Wrap(err, "Could not remove pre-created repo content: example cookbook")
 			}
 
-			err = os.RemoveAll(fmt.Sprintf("%s/cookbooks/example", dirName))
+			err = os.RemoveAll(fmt.Sprintf("%s/data_bags/example", dirName))
 			if err != nil {
-				return errors.Wrap(err, "Could not remove pre-created repo content: example cookbook")
+				return errors.Wrap(err, "Could not remove pre-created repo content: example data bag")
 			}
 
 			capturer := reporting.NewNodeCapturer(
@@ -121,6 +121,8 @@ can then be used to converge locally.`,
 					fmt.Println(" - Capturing roles...")
 				case reporting.FetchingEnvironment:
 					fmt.Println(" - Capturing environment...")
+				case reporting.WritingKitchenConfig:
+					fmt.Println(" - Writing kitchen configuration...")
 				case reporting.FetchingComplete:
 				}
 			}

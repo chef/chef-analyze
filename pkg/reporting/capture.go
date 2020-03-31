@@ -22,9 +22,12 @@
 package reporting
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
 	"os"
 	"strings"
+	"text/template"
 
 	chef "github.com/chef/go-chef"
 	"github.com/pkg/errors"
@@ -35,11 +38,13 @@ type NodeCaptureInterface interface {
 	CaptureNodeObject(node string) (*chef.Node, error)
 	CaptureEnvObject(string) error
 	CaptureRoleObjects([]string) error
+	SaveKitchenYML(node *chef.Node) error
 }
 
 type NodeCapture struct {
 	name          string
 	capturer      NodeCaptureInterface
+	node          *chef.Node
 	repositoryDir string
 	Progress      chan int
 	Error         error
@@ -53,6 +58,23 @@ type NodeCapturer struct {
 	writer    ObjectWriterInterface
 }
 
+// Represents platform data extracted from a node's
+// Automatic attributes.
+type nodePlatformData struct {
+	OS      string
+	Name    string
+	Family  string
+	Version string
+}
+
+// Struct for providing arguments to the
+// kitchen.yml template
+type kitchenYMLArgs struct {
+	ChefVersion string
+	NodeName    string
+	Image       string
+}
+
 // Events that we publish on the Progress channel when
 // performing a node capture
 const (
@@ -60,6 +82,7 @@ const (
 	FetchingEnvironment
 	FetchingRoles
 	FetchingCookbooks
+	WritingKitchenConfig
 	FetchingComplete
 )
 
@@ -68,9 +91,9 @@ func NewNodeCapture(name string, repositoryDir string, capturer NodeCaptureInter
 		name:          name,
 		capturer:      capturer,
 		repositoryDir: repositoryDir,
-		// 5 possible events in a Run - let's not block our activity in case the caller
+		// 6 possible events in a Run - let's not block our activity in case the caller
 		// doesn't pick them up
-		Progress: make(chan int, 5),
+		Progress: make(chan int, 6),
 	}
 }
 
@@ -110,6 +133,12 @@ func (nc *NodeCapture) Run() {
 		return
 	}
 
+	nc.Progress <- WritingKitchenConfig
+	err = nc.capturer.SaveKitchenYML(node)
+	if err != nil {
+		nc.Error = errors.Wrapf(err, "unable to write Kitchen config")
+	}
+
 	nc.Progress <- FetchingComplete
 }
 
@@ -129,6 +158,7 @@ func NewNodeCapturer(
 // Capture the the node nc.Name from Chef Server to
 // repositoryDir/nodes/NAME.json
 // Returns the chef.Node object.
+
 func (nc *NodeCapturer) CaptureNodeObject(name string) (*chef.Node, error) {
 	node, err := nc.nodes.Get(name)
 	if err != nil {
@@ -197,6 +227,72 @@ func (nc *NodeCapturer) CaptureRoleObjects(runList []string) error {
 	return nil
 }
 
+func (nc *NodeCapturer) SaveKitchenYML(node *chef.Node) error {
+
+	packages := node.AutomaticAttributes["chef_packages"]
+	if packages == nil {
+		return errors.New("could not determine chef client version: node missing automatic attribute 'chef_packages'")
+	}
+
+	chef := packages.(map[string]interface{})["chef"]
+	if chef == nil {
+		return errors.New("could not determine chef client version: node missing automatic attribute chef_packages['chef']")
+	}
+
+	version := safeStringFromMap(chef.(map[string]interface{}), "version")
+	if version == "" {
+		return errors.New("could not determine chef client version: node missing automatic attribute chef_packages['chef']['version']")
+	}
+
+	args := kitchenYMLArgs{version, node.Name, determineKitchenImage(node)}
+	tmpl_text := `
+---
+driver:
+  name: vagrant
+
+provisioner:
+  name: chef_zero
+  product_name: chef
+  product_version: {{.ChefVersion}}
+  json_attributes: false
+  client_rb:
+    node_name: {{.NodeName}}
+
+platforms:
+  - name: {{.Image}}
+
+suites:
+  - name: {{.NodeName}}
+`
+	tmpl, err := template.New("kitchen.yml").Parse(tmpl_text)
+	if err != nil {
+		return errors.Wrap(err, "could not create new template")
+	}
+	var b bytes.Buffer
+	writer := bufio.NewWriter(&b)
+	err = tmpl.Execute(writer, args)
+	writer.Flush()
+	if err != nil {
+		return errors.Wrap(err, "failed to execute template")
+	}
+
+	err = nc.writer.WriteContent("kitchen.yml", b.Bytes())
+	if err != nil {
+		return errors.Wrap(err, "failed to save")
+	}
+	return nil
+
+}
+
+func extractPlatformFromNode(node *chef.Node) nodePlatformData {
+	return nodePlatformData{
+		Name:    safeStringFromMap(node.AutomaticAttributes, "platform"),
+		Family:  safeStringFromMap(node.AutomaticAttributes, "platform_family"),
+		Version: safeStringFromMap(node.AutomaticAttributes, "platform_version"),
+		OS:      safeStringFromMap(node.AutomaticAttributes, "os"),
+	}
+}
+
 // filters a run list, return an array of roles
 // as identified by a run list item being in the form "role[...]"
 // Will return zero-size array if no roles are in the run list.
@@ -215,4 +311,16 @@ func filterRoles(possibleRoles []string) []string {
 	}
 
 	return roles
+}
+
+// In a very limited way takes a guess at the name of the kitchen
+// image to use for the node being captured. We will probably
+// want to look closer at how and where this is invoked -
+// ideally we nee dto provide for user entry of an image name if
+// we can't resolve it, or resolve it incorrectly. This is also an
+// opportunity to be smart about providers - for example if the original
+// node is provided by AWS and we have an AMI we can use, we should do that.
+func determineKitchenImage(node *chef.Node) string {
+	platform := extractPlatformFromNode(node)
+	return fmt.Sprintf("%s-%s", platform.Name, platform.Version)
 }

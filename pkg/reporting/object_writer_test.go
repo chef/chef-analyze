@@ -42,13 +42,45 @@ func TestObjectWriterWriteJSONObject(t *testing.T) {
 
 }
 
+func TestObjectWriter_WriteContent(t *testing.T) {
+	baseDir, err := ioutil.TempDir(os.TempDir(), "chefanalyze-unit*")
+	if err != nil {
+		panic(err)
+	}
+	defer os.RemoveAll(baseDir)
+	expectedContent := []byte("hello world")
+	expectedPath := fmt.Sprintf("%s/kitchen.yml", baseDir)
+
+	ow := subject.ObjectWriter{RootDir: baseDir}
+	err = ow.WriteContent("kitchen.yml", expectedContent)
+
+	if assert.Nil(t, err) {
+		readContent, err := ioutil.ReadFile(expectedPath)
+		assert.Nil(t, err)
+		assert.Equal(t, expectedContent, readContent)
+	}
+}
+
+func TestObjectWriter_WriteContentInvalidPath(t *testing.T) {
+	expectedContent := []byte("hello world")
+	ow := subject.ObjectWriter{RootDir: "invalid"}
+	err := ow.WriteContent("kitchen.yml", expectedContent)
+	if assert.NotNil(t, err) {
+		assert.Contains(t, err.Error(), "failed to create")
+	}
+}
+
 // This mock is defined here for shared use in other tests.
 type ObjectWriterMock struct {
-	Error                 error
-	SavedRoleCount        int
-	SavedEnvironmentCount int
-	SavedNodeCount        int
-	ReceivedObject        interface{}
+	Error          error
+	ReceivedObject interface{}
+}
+
+func (ow *ObjectWriterMock) WriteContent(path string, content []byte) error {
+	if ow.Error == nil {
+		ow.ReceivedObject = content
+	}
+	return ow.Error
 }
 
 func (ow *ObjectWriterMock) WriteRole(role *chef.Role) error {
