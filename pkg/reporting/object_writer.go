@@ -34,6 +34,7 @@ type ObjectWriterInterface interface {
 	WriteRole(*chef.Role) error
 	WriteEnvironment(*chef.Environment) error
 	WriteNode(*chef.Node) error
+	WriteContent(string, []byte) error
 }
 
 // Takes a chef.Role and saves it as json in RootDir/roles
@@ -49,6 +50,20 @@ func (ow *ObjectWriter) WriteEnvironment(env *chef.Environment) error {
 // Takes a chef.Role and saves it as json in RootDir/nodes
 func (ow *ObjectWriter) WriteNode(node *chef.Node) error {
 	return ow.WriteJSON("nodes", node.Name, node)
+}
+
+// Writes "content" to RootDir/"fileName"
+func (ow *ObjectWriter) WriteContent(fileName string, content []byte) error {
+	path := fmt.Sprintf("%s/%s", ow.RootDir, fileName)
+	f, err := os.Create(path)
+	if err != nil {
+		return errors.Wrapf(err, "failed to create %s", path)
+	}
+	_, err = f.Write(content)
+	if err != nil {
+		return errors.Wrapf(err, "failed to write to %s", path)
+	}
+	return nil
 }
 
 func (ow *ObjectWriter) WriteJSON(objGroupingName string, objName string, object interface{}) error {

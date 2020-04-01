@@ -34,6 +34,7 @@ type CapturerMock struct {
 	EnvErrorReturn      error
 	RoleErrorReturn     error
 	CookbookErrorReturn error
+	KitchenErrorReturn  error
 }
 
 func (cm *CapturerMock) CaptureCookbooks(string, map[string]interface{}) error {
@@ -48,6 +49,34 @@ func (cm *CapturerMock) CaptureEnvObject(string) error {
 }
 func (cm *CapturerMock) CaptureRoleObjects([]string) error {
 	return cm.RoleErrorReturn
+}
+func (cm *CapturerMock) SaveKitchenYML(node *chef.Node) error {
+	return cm.KitchenErrorReturn
+}
+func nodeWithChefInstall() *chef.Node {
+	return &chef.Node{
+		Name:        "node1",
+		Environment: "_default",
+		RunList:     []string{"cookbook1::recipe1", "role:mockrole"},
+		PolicyName:  "",
+		PolicyGroup: "",
+		AutomaticAttributes: map[string]interface{}{
+			"cookbooks": map[string]interface{}{
+				"foo": map[string]interface{}{
+					"version": "0.1.0",
+				},
+			},
+			"chef_packages": map[string]interface{}{
+				"chef": map[string]interface{}{
+					"version": "99.0",
+				},
+			},
+			"os":               "linux",
+			"platform":         "ubuntu",
+			"platform_version": "18.04",
+			"platform_family":  "debian",
+		},
+	}
 }
 func defaultNode() *chef.Node {
 	return &chef.Node{
@@ -82,6 +111,8 @@ func TestCapture_Run(t *testing.T) {
 	assert.Equal(t, subject.FetchingEnvironment, val)
 	val = <-nc.Progress
 	assert.Equal(t, subject.FetchingRoles, val)
+	val = <-nc.Progress
+	assert.Equal(t, subject.WritingKitchenConfig, val)
 	val = <-nc.Progress
 	assert.Equal(t, subject.FetchingComplete, val)
 
@@ -131,6 +162,16 @@ func TestCapture_RunWithRoleFailure(t *testing.T) {
 	if assert.NotNil(t, nc.Error) {
 		assert.Contains(t, nc.Error.Error(), "no role")
 		assert.Contains(t, nc.Error.Error(), "unable to capture role")
+	}
+}
+
+func TestCapture_RunWithKitchenYMLFailure(t *testing.T) {
+	nc := subject.NewNodeCapture("node1", "", &CapturerMock{NodeReturn: defaultNode(),
+		KitchenErrorReturn: errors.New("failure here")})
+	nc.Run()
+	if assert.NotNil(t, nc.Error) {
+		assert.Contains(t, nc.Error.Error(), "failure here")
+		assert.Contains(t, nc.Error.Error(), "unable to write Kitchen config")
 	}
 }
 
@@ -384,12 +425,6 @@ func TestCapturer_CaptureCookbooksWithDownloadError(t *testing.T) {
 	}
 }
 func TestCapturer_CaptureCookbooksWithRenameError(t *testing.T) {
-	baseDir, err := ioutil.TempDir(os.TempDir(), "chefanalyze-unit*")
-	if err != nil {
-		panic(err)
-	}
-	defer os.RemoveAll(baseDir)
-
 	cookbookList := chef.CookbookListResult{
 		"foo": chef.CookbookVersions{
 			Versions: []chef.CookbookVersion{
@@ -398,7 +433,7 @@ func TestCapturer_CaptureCookbooksWithRenameError(t *testing.T) {
 		},
 	}
 
-	writer := ObjectWriterMock{}
+	writerMock := ObjectWriterMock{}
 	cbMock := newMockCookbook(cookbookList, nil, nil)
 	cbMock.createDirOnDownload = false
 	nc := subject.NewNodeCapturer(
@@ -406,21 +441,101 @@ func TestCapturer_CaptureCookbooksWithRenameError(t *testing.T) {
 		RoleMock{},
 		EnvMock{},
 		cbMock,
-		&writer,
+		&writerMock,
 	)
 
 	// To force this error, we will not manually create the versioned cookbook
 	// directory name that a real download cookbooks would do. This will cause the
 	// rename to fail since the directory to be renamed won't exist.
-
 	cbmap := map[string]interface{}{
 		"foo": map[string]interface{}{
 			"version": "0.1.0",
 		},
 	}
 
-	err = nc.CaptureCookbooks(baseDir, cbmap)
+	err := nc.CaptureCookbooks("/mocked/anyway", cbmap)
 	if assert.NotNil(t, err) {
 		assert.Contains(t, err.Error(), "failed to rename cookbook")
 	}
+}
+
+func TestCapturer_SaveKitchenYML(t *testing.T) {
+	writerMock := ObjectWriterMock{}
+	node := nodeWithChefInstall()
+	nc := subject.NewNodeCapturer(
+		NodeMock{},
+		RoleMock{},
+		EnvMock{},
+		CookbookMock{},
+		&writerMock,
+	)
+	err := nc.SaveKitchenYML(node)
+
+	expectedYML := []byte(`
+---
+driver:
+  name: vagrant
+
+provisioner:
+  name: chef_zero
+  product_name: chef
+  product_version: 99.0
+  json_attributes: false
+  client_rb:
+    node_name: node1
+
+platforms:
+  - name: ubuntu-18.04
+
+suites:
+  - name: node1
+`)
+
+	if assert.Nil(t, err) {
+		// cast to string to keep it readable if it fails
+		assert.Equal(t, string(expectedYML), string(writerMock.ReceivedObject.([]byte)))
+	}
+}
+
+func TestCapturer_SaveKitchenYMLWithMissingAttrs(t *testing.T) {
+	writerMock := ObjectWriterMock{}
+	nc := subject.NewNodeCapturer(
+		NodeMock{},
+		RoleMock{},
+		EnvMock{},
+		CookbookMock{},
+		&writerMock,
+	)
+
+	// Missing chef_packages['chef_packages']
+	node := defaultNode()
+	err := nc.SaveKitchenYML(node)
+	if assert.NotNil(t, err) {
+		// cast to string to keep it readable if it fails
+		assert.Contains(t, err.Error(), "missing automatic attribute 'chef_packages'")
+	}
+
+	// Missing chef_packages['chef']
+	node = nodeWithChefInstall()
+	i := node.AutomaticAttributes["chef_packages"].(map[string]interface{})
+	delete(i, "chef")
+	err = nc.SaveKitchenYML(node)
+	if assert.NotNil(t, err) {
+		// cast to string to keep it readable if it fails
+		assert.Contains(t, err.Error(), "missing automatic attribute chef_packages['chef']")
+	}
+
+	// Missing chef_packages['chef'].version
+	node = nodeWithChefInstall()
+	i = node.AutomaticAttributes["chef_packages"].(map[string]interface{})["chef"].(map[string]interface{})
+	delete(i, "version")
+	err = nc.SaveKitchenYML(node)
+	if assert.NotNil(t, err) {
+		// cast to string to keep it readable if it fails
+		assert.Contains(t, err.Error(), "missing automatic attribute chef_packages['chef']['version']")
+	}
+}
+
+func TestCapturer_SaveKitchenYMLWithFailedWrite(t *testing.T) {
+
 }
