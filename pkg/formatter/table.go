@@ -63,6 +63,7 @@ func CookbooksReportSummary(state *reporting.CookbooksReport) FormattedResult {
 		CookbooksReportHeader = []string{"Cookbook", "Version"}
 		redColor              = "\033[1;31m%s\033[0m"
 		yellowColor           = "\033[1;33m%s\033[0m"
+		padding               = "\033[0m%s\033[0m"  // No-op but will trigger table formatting bug
 	)
 
 	if state.RunCookstyle {
@@ -103,6 +104,10 @@ func CookbooksReportSummary(state *reporting.CookbooksReport) FormattedResult {
 					numOffensesStr = fmt.Sprintf(redColor,numOffensesStr)
 					numCorrectableStr = fmt.Sprintf(redColor,numCorrectableStr)
 				}
+			} else {
+				// We still need to re-pad the number, or the table alignment will be bad
+				numOffensesStr = fmt.Sprintf(padding,numOffensesStr)
+				numCorrectableStr = fmt.Sprintf(padding,numCorrectableStr)
 			}
 			row = append(row,
 				numOffensesStr,
@@ -110,7 +115,7 @@ func CookbooksReportSummary(state *reporting.CookbooksReport) FormattedResult {
 			)
 		}
 
-		row = append(row, strconv.Itoa(record.NumNodesAffected()))
+		row = append(row, fmt.Sprintf(padding,strconv.Itoa(record.NumNodesAffected())))
 
 		table.Append(row)
 	}
