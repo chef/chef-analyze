@@ -340,6 +340,8 @@ func TestCookbooksReportSummary_withRecords(t *testing.T) {
 		"5", // Violations
 		"3", // auto-correctable
 		"2", // nodes affected
+		"\033[1;31m",  // ANSI Color code for red
+		"\033[0m",     // ANSI Code to reset color
 	}
 	for _, s := range listOfStringTheReportMustHave {
 		assert.Containsf(t, report.Report, s,
