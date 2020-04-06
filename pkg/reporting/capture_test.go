@@ -30,6 +30,7 @@ import (
 
 type CapturerMock struct {
 	NodeReturn          *chef.Node
+	CookbookReturn      []subject.NodeCookbook
 	NodeErrorReturn     error
 	EnvErrorReturn      error
 	RoleErrorReturn     error
@@ -37,8 +38,8 @@ type CapturerMock struct {
 	KitchenErrorReturn  error
 }
 
-func (cm *CapturerMock) CaptureCookbooks(string, map[string]interface{}) error {
-	return cm.CookbookErrorReturn
+func (cm *CapturerMock) CaptureCookbooks(string, map[string]interface{}) ([]subject.NodeCookbook, error) {
+	return cm.CookbookReturn, cm.CookbookErrorReturn
 }
 
 func (cm *CapturerMock) CaptureNodeObject(node string) (*chef.Node, error) {
@@ -375,8 +376,10 @@ func TestCapturer_CaptureCookbooks(t *testing.T) {
 		},
 	}
 
-	err = nc.CaptureCookbooks(baseDir, cbmap)
-	assert.Nil(t, err)
+	cbs, err := nc.CaptureCookbooks(baseDir, cbmap)
+	if assert.Nil(t, err) {
+		assert.Contains(t, cbs, subject.NodeCookbook{"foo", "0.1.0"})
+	}
 }
 
 func TestCapturer_CaptureCookbooksWithDownloadError(t *testing.T) {
@@ -418,7 +421,7 @@ func TestCapturer_CaptureCookbooksWithDownloadError(t *testing.T) {
 		},
 	}
 
-	err = nc.CaptureCookbooks(baseDir, cbmap)
+	_, err = nc.CaptureCookbooks(baseDir, cbmap)
 	if assert.NotNil(t, err) {
 		assert.Contains(t, err.Error(), "download error in test1")
 		assert.Contains(t, err.Error(), "Failed to download cookbook")
@@ -453,7 +456,7 @@ func TestCapturer_CaptureCookbooksWithRenameError(t *testing.T) {
 		},
 	}
 
-	err := nc.CaptureCookbooks("/mocked/anyway", cbmap)
+	_, err := nc.CaptureCookbooks("/mocked/anyway", cbmap)
 	if assert.NotNil(t, err) {
 		assert.Contains(t, err.Error(), "failed to rename cookbook")
 	}

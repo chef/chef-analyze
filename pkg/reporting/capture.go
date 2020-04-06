@@ -34,7 +34,7 @@ import (
 )
 
 type NodeCaptureInterface interface {
-	CaptureCookbooks(string, map[string]interface{}) error
+	CaptureCookbooks(string, map[string]interface{}) ([]NodeCookbook, error)
 	CaptureNodeObject(node string) (*chef.Node, error)
 	CaptureEnvObject(string) error
 	CaptureRoleObjects([]string) error
@@ -42,6 +42,7 @@ type NodeCaptureInterface interface {
 }
 
 type NodeCapture struct {
+	Cookbooks     []NodeCookbook
 	name          string
 	capturer      NodeCaptureInterface
 	node          *chef.Node
@@ -56,6 +57,11 @@ type NodeCapturer struct {
 	env       EnvironmentInterface
 	cookbooks CookbookInterface
 	writer    ObjectWriterInterface
+}
+
+type NodeCookbook struct {
+	Name    string
+	Version string
 }
 
 // Represents platform data extracted from a node's
@@ -112,7 +118,7 @@ func (nc *NodeCapture) Run() {
 	// If a node has never converged, it will not have this attribute:
 	cookbooks := node.AutomaticAttributes["cookbooks"]
 	if cookbooks != nil {
-		err = nc.capturer.CaptureCookbooks(nc.repositoryDir, cookbooks.(map[string]interface{}))
+		nc.Cookbooks, err = nc.capturer.CaptureCookbooks(nc.repositoryDir, cookbooks.(map[string]interface{}))
 		if err != nil {
 			nc.Error = errors.Wrapf(err, "unable to capture node cookbooks for '%s'", nc.name)
 			return
@@ -180,23 +186,25 @@ func (nc *NodeCapturer) CaptureNodeObject(name string) (*chef.Node, error) {
 
 // Given a map of cookbook [ name ] : { "version" : version }, download the cookbooks
 // from Chef Server into repositoryDir/cookbooks
-func (nc *NodeCapturer) CaptureCookbooks(repositoryDir string, cookbooks map[string]interface{}) error {
+func (nc *NodeCapturer) CaptureCookbooks(repositoryDir string, cookbooks map[string]interface{}) ([]NodeCookbook, error) {
+	var outCookbooks []NodeCookbook
 	cookbookDir := fmt.Sprintf("%s/cookbooks", repositoryDir)
+
 	for name, version_data := range cookbooks {
 		version := safeStringFromMap(version_data.(map[string]interface{}), "version")
 		err := nc.cookbooks.DownloadTo(name, version, cookbookDir)
 		if err != nil {
-			return errors.Wrapf(err, "Failed to download cookbook %s v%s", name, version)
+			return nil, errors.Wrapf(err, "Failed to download cookbook %s v%s", name, version)
 		}
-
+		outCookbooks = append(outCookbooks, NodeCookbook{name, version})
 		// The cookbook directory will have been created as 'name-version'.  We need it to be just 'name'
 		// so that it can be picked up by chef-zero when requested from within kitchen.
 		err = os.Rename(fmt.Sprintf("%s/%s-%s", cookbookDir, name, version), fmt.Sprintf("%s/%s", cookbookDir, name))
 		if err != nil {
-			return errors.Wrapf(err, "failed to rename cookbook %s-%s to non-versioned name", name, version)
+			return nil, errors.Wrapf(err, "failed to rename cookbook %s-%s to non-versioned name", name, version)
 		}
 	}
-	return nil
+	return outCookbooks, nil
 }
 
 func (nc *NodeCapturer) CaptureEnvObject(environment string) error {
@@ -293,7 +301,7 @@ func extractPlatformFromNode(node *chef.Node) nodePlatformData {
 	}
 }
 
-// filters a run list, return an array of roles
+// filters a run list, return an array of role names
 // as identified by a run list item being in the form "role[...]"
 // Will return zero-size array if no roles are in the run list.
 func filterRoles(possibleRoles []string) []string {
