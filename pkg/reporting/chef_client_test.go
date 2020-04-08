@@ -63,3 +63,19 @@ func TestNewChefClientCredsWithEmptyKey(t *testing.T) {
 		}
 	}
 }
+
+func TestNewChefClientCredsWithInlinedKey(t *testing.T) {
+	defer os.RemoveAll(createCredentialsConfig(t))
+
+	cfg, err := subject.NewDefault()
+	if assert.Nil(t, err) {
+		assert.NotNil(t, cfg)
+
+		// activate a profile that has an inlined key pem
+		err := cfg.SwitchProfile("inlined")
+		assert.Nil(t, err)
+
+		client, err := subject.NewChefClient(&cfg)
+		assert.NotNil(t, client)
+	}
+}

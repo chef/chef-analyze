@@ -18,7 +18,7 @@ package reporting
 
 import (
 	"io/ioutil"
-
+	"strings"
 	chef "github.com/chef/go-chef"
 	"github.com/pkg/errors"
 )
@@ -26,15 +26,23 @@ import (
 // NewChefClient creates an instance with the loaded credentials
 func NewChefClient(cfg *Reporting) (*chef.Client, error) {
 	// read the client key
-	key, err := ioutil.ReadFile(cfg.ClientKey)
-	if err != nil {
-		return nil, errors.Wrapf(err, "couldn't read key '%s'", cfg.ClientKey)
+	key := ""
+	if strings.Contains(cfg.ClientKey, "BEGIN RSA PRIVATE KEY") {
+		// Key was directly placed in credentials file
+		key = cfg.ClientKey
+	}	else {
+		// cfg.ClientKey is a path to a key file
+		keyBytes, err := ioutil.ReadFile(cfg.ClientKey)
+		if err != nil {
+			return nil, errors.Wrapf(err, "couldn't read key '%s'", cfg.ClientKey)
+		}
+		key = string(keyBytes)
 	}
 
 	// create a chef client
 	client, err := chef.NewClient(&chef.Config{
 		Name: cfg.ClientName,
-		Key:  string(key),
+		Key:  key,
 		// TODO @afiune fix this upstream, if you do not add a '/' at the end of th URL
 		// the client will be malformed for any further request
 		BaseURL: cfg.ChefServerUrl + "/",
