@@ -30,7 +30,7 @@ import (
 
 var (
 	rootCmd = &cobra.Command{
-		Use:   dist.Exec,
+		Use:   dist.AnalyzeExec,
 		Short: fmt.Sprintf("A CLI to analyze artifacts from a %s", dist.ServerProduct),
 		Long: fmt.Sprintf(`Analyze your %s artifacts to understand the effort to upgrade
 your infrastructure by generating reports, automatically fixing violations
