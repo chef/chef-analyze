@@ -23,19 +23,11 @@ import (
 	"github.com/chef/go-libs/featflag"
 
 	"github.com/chef/chef-analyze/cmd"
-	"github.com/spf13/cobra"
 )
 
 func main() {
 	if featflag.ChefFeatAnalyze.Enabled() {
 		if err := cmd.Execute(); err != nil {
-			// Cobra returns this error if the root command (`chef-analyze`) is called without _any_
-			// arguments, because our root command does not have a `Run` field. Cobra automatically
-			// prints the help text in this case so we do not need to do anything custom. But it is
-			// not a failure so we should not have a non-zero exit code.
-			if err == cobra.ErrSubCommandRequired {
-				os.Exit(0)
-			}
 			os.Exit(-1)
 		}
 	} else {
