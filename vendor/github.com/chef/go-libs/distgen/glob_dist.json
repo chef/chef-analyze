@@ -10,9 +10,11 @@
   "SoloExec":           "chef-solo",
   "ShellExec":          "chef-shell",
   "ApplyExec":          "chef-apply",
+  "AnalyzeExec":        "chef-analyze",
   "DirSuffix":          "chef",
   "UserConfDir":        ".chef",
   "WorkstationDir":     ".chef-workstation",
   "DocsWebsite":        "https://docs.chef.io",
+  "WSWebsite":          "https://chef.sh",
   "MainWebsite":        "https://chef.io"
 }

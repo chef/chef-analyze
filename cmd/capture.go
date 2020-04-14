@@ -21,6 +21,8 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"strings"
 
 	"github.com/chef/chef-analyze/pkg/reporting"
 	"github.com/chef/go-libs/credentials"
@@ -114,7 +116,7 @@ can then be used to converge locally.`,
 			for progress := range nc.Progress {
 				switch progress {
 				case reporting.FetchingNode:
-					fmt.Printf(" - Capturing node '%s'\n", nodeName)
+					fmt.Printf(" - Capturing node object '%s'\n", nodeName)
 				case reporting.FetchingCookbooks:
 					fmt.Println(" - Capturing cookbooks...")
 				case reporting.FetchingRoles:
@@ -130,8 +132,85 @@ can then be used to converge locally.`,
 				return nc.Error
 			}
 
-			fmt.Printf("Repository has been created in '%s'\n", dirName)
+			cookbooks := nc.Cookbooks
+			path := requestCookbookPathFullMessage(dirName, cookbooks)
+
+			// Try to gather sources for all cookbooks; stop when we've found
+			// them all or the operator provides a blank input when asked for a new
+			// path.
+			for ok := true; ok; ok = (path != "" && len(cookbooks) > 0) {
+				cookbooks, err = resolveCookbooks(cookbooks, dirName, path)
+				if err != nil {
+					return err
+				}
+				path = requestCookbookPath(cookbooks)
+			}
+
+			if len(cookbooks) > 0 {
+				fmt.Printf(CookbooksNotSourcedTxt, fmt.Sprintf("%s/%s", dirName, "cookbooks"),
+					formatCookbooks(cookbooks),
+				)
+			}
+
+			fmt.Print(CookbookCaptureCompleteTxt)
 			return nil
 		},
 	}
 )
+
+func requestCookbookPathFullMessage(repoPath string, cookbooks []reporting.NodeCookbook) string {
+	fmt.Printf(CookbookCaptureGatherSourcesTxt, repoPath, formatCookbooks(cookbooks))
+	var path string
+	fmt.Scanf("%s\n", &path)
+	return path
+}
+
+func requestCookbookPath(cookbooks []reporting.NodeCookbook) string {
+	fmt.Printf(CookbookCaptureRequestCookbookPathTxt, formatCookbooks(cookbooks))
+	var path string
+	fmt.Scanf("%s\n", &path)
+	return path
+}
+
+func formatCookbooks(cookbooks []reporting.NodeCookbook) string {
+	var cbNames []string
+	for _, cb := range cookbooks {
+		cbNames = append(cbNames, fmt.Sprintf("  - %s (v%s)", cb.Name, cb.Version))
+	}
+
+	return strings.Join(cbNames, "\n")
+}
+
+// For a given `sourcePath`, replace copy of cookbook in repoDir/cookbooks/CB
+// with a symlink to cookbooks found in the provided source.
+// TODO: In the unlikley event that user directories are using FAT
+//       symlinking will not work.
+// TODO (future) - split terminal IO, and move this into an appropriate package.
+func resolveCookbooks(cookbooks []reporting.NodeCookbook, repoDir string, sourcePath string) ([]reporting.NodeCookbook, error) {
+	if repoDir == "" {
+		return cookbooks, nil
+	}
+
+	var unresolved []reporting.NodeCookbook
+	for _, cb := range cookbooks {
+		targetPath, _ := filepath.Abs(fmt.Sprintf("%s/cookbooks/%s", repoDir, cb.Name))
+		sourcePath, _ := filepath.Abs(fmt.Sprintf("%s/%s", sourcePath, cb.Name))
+		if _, err := os.Stat(sourcePath); err == nil {
+			fmt.Printf("  Replacing cookbook: %s\n", cb.Name)
+			savedTargetPath := fmt.Sprintf("%s.server", targetPath)
+			err := os.Rename(targetPath, savedTargetPath)
+			if err != nil {
+				return nil, errors.Wrapf(err, "could not rename unsourced cookbook %s", targetPath)
+			}
+			os.Symlink(sourcePath, targetPath)
+			if err != nil {
+				return nil, errors.Wrapf(err, "Could not link %s to %s", sourcePath, targetPath)
+			}
+
+		} else {
+			unresolved = append(unresolved, cb)
+		}
+	}
+
+	return unresolved, nil
+}

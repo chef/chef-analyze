@@ -41,6 +41,13 @@ and/or deprecations, and generating Effortless packages.
 
 // Execute runs the root command
 func Execute() error {
+	rootCmd.RunE = func(_ *cobra.Command, args []string) error {
+		// The top level command print usage and exit-non-zero.
+		// By default it will exit non-zero, so we override the behavior here
+		// by not returning an error.
+		rootCmd.Help()
+		return nil
+	}
 	return rootCmd.Execute()
 }
 
