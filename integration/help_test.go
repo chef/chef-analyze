@@ -74,8 +74,30 @@ func TestHelpNoArgs(t *testing.T) {
 	assert.Equal(t, 0, exitcode,
 		"EXITCODE is not the expected one")
 }
+func TestHelpCommandDisplayHelpForCapture(t *testing.T) {
+	out, err, exitcode := ChefAnalyze("help", "capture")
 
-func TestHelpCommandDisplayHelpFromCommand(t *testing.T) {
+	var expected = `Captures a node's state as a local chef-repo, which
+can then be used to converge locally.
+
+Usage:
+  chef-analyze capture NODE-NAME [flags]
+
+Flags:
+  -s, --chef-server-url string   Chef Infra Server URL
+  -k, --client-key string        Chef Infra Server API client key
+  -n, --client-name string       Chef Infra Server API client name
+  -c, --credentials string       credentials file (default $HOME/.chef/credentials)
+  -h, --help                     help for capture
+  -p, --profile string           profile to use from credentials file (default "default")
+  -o, --ssl-no-verify            Do not verify SSL when connecting to Chef Infra Server (default: verify)
+`
+	assert.Equal(t, expected, out.String())
+	assert.Empty(t, err.String(), "STDERR should be empty")
+	assert.Equal(t, 0, exitcode, "EXITCODE is not the expected one")
+}
+
+func TestHelpCommandDisplayHelpForReport(t *testing.T) {
 	out, err, exitcode := ChefAnalyze("help", "report")
 	assert.Contains(t, out.String(),
 		"--chef-server-url",
@@ -95,6 +117,9 @@ func TestHelpCommandDisplayHelpFromCommand(t *testing.T) {
 	assert.Contains(t, out.String(),
 		"--profile",
 		"STDOUT profile flag doesn't exist")
+	assert.Contains(t, out.String(),
+		"--format string",
+		"STDOUT format string flag doesn't exist")
 	assert.Contains(t,
 		out.String(),
 		"chef-analyze report [command]",
@@ -104,6 +129,72 @@ func TestHelpCommandDisplayHelpFromCommand(t *testing.T) {
 		"STDERR should be empty")
 	assert.Equal(t, 0, exitcode,
 		"EXITCODE is not the expected one")
+}
+
+func TestHelpCommandDisplayHelpForReportCookbooks(t *testing.T) {
+	out, err, exitcode := ChefAnalyze("help", "report", "cookbooks")
+	var expected = `Generates cookbook oriented reports containing details about the number of
+violations each cookbook has, which violations can be are auto-corrected and
+the number of nodes using each cookbook.
+
+These reports could take a long time to run depending on the number of cookbooks
+to analyze and therefore reports will be written to disk. The location will be
+provided when the report is generated.
+
+Usage:
+  chef-analyze report cookbooks [flags]
+
+Flags:
+  -h, --help             help for cookbooks
+  -u, --only-unused      generate a report with only cookbooks that are not included in any node's runlist
+  -V, --verify-upgrade   verify the upgrade compatibility of every cookbook
+  -w, --workers int      maximum number of parallel workers at once (default 50)
+
+Global Flags:
+  -s, --chef-server-url string   Chef Infra Server URL
+  -k, --client-key string        Chef Infra Server API client key
+  -n, --client-name string       Chef Infra Server API client name
+  -c, --credentials string       credentials file (default $HOME/.chef/credentials)
+  -f, --format string            output format: txt is human readable, csv is machine readable (default "txt")
+  -F, --node-filter string       Search filter to apply to nodes
+  -p, --profile string           profile to use from credentials file (default "default")
+  -o, --ssl-no-verify            Do not verify SSL when connecting to Chef Infra Server (default: verify)
+`
+	assert.Equal(t, out.String(), expected)
+	assert.Empty(t,
+		err.String(),
+		"STDERR should be empty")
+	assert.Equal(t, 0, exitcode,
+		"EXITCODE is not the expected one")
+}
+
+func TestHelpCommandDisplayHelpForReportNodes(t *testing.T) {
+	out, err, exitcode := ChefAnalyze("help", "report", "nodes")
+	var expected = `Generates a nodes oriented report
+
+Usage:
+  chef-analyze report nodes [flags]
+
+Flags:
+  -h, --help   help for nodes
+
+Global Flags:
+  -s, --chef-server-url string   Chef Infra Server URL
+  -k, --client-key string        Chef Infra Server API client key
+  -n, --client-name string       Chef Infra Server API client name
+  -c, --credentials string       credentials file (default $HOME/.chef/credentials)
+  -f, --format string            output format: txt is human readable, csv is machine readable (default "txt")
+  -F, --node-filter string       Search filter to apply to nodes
+  -p, --profile string           profile to use from credentials file (default "default")
+  -o, --ssl-no-verify            Do not verify SSL when connecting to Chef Infra Server (default: verify)
+`
+	assert.Equal(t, out.String(), expected)
+	assert.Empty(t,
+		err.String(),
+		"STDERR should be empty")
+	assert.Equal(t, 0, exitcode,
+		"EXITCODE is not the expected one")
+
 }
 
 func TestHelpCommandDisplayHelpFromUnknownCommand(t *testing.T) {
