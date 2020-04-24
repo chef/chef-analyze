@@ -31,10 +31,7 @@ func main() {
 			os.Exit(-1)
 		}
 	} else {
-		fmt.Printf("`%s` is experimental and in development.\n\n", featflag.ChefFeatAnalyze.Key())
-		fmt.Printf("Temporarily enable `%s` with the environment variable:\n", featflag.ChefFeatAnalyze.Key())
-		fmt.Printf("\t%s=true\n\n", featflag.ChefFeatAnalyze.Env())
-		fmt.Printf("Or, permanently by modifying $HOME/.chef-workstation/config.toml with:\n")
-		fmt.Printf("\t[features]\n\t%s = true\n", featflag.ChefFeatAnalyze.Key())
+		key := featflag.ChefFeatAnalyze.Key()
+		fmt.Printf(cmd.AnalyzeNotEnabledE003, key, featflag.ChefFeatAnalyze.Env(), key)
 	}
 }

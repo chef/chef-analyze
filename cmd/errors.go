@@ -45,4 +45,20 @@ const (
   To re-run capture for node %s, delete this directory.
 
 `
+	// Arg: 1 - feature flag name
+	//      2 - env var name
+	//      3 - feature flag name
+	AnalyzeNotEnabledE003 = `
+  E003
+
+	'%s' is experimental and in development. You can temporarily
+	enable it by setting the following environment variable:
+
+	  %s=true
+
+	Or permanently enable it by modifying $HOME/.chef-workstation/config.toml:
+
+	  [features]
+		%s = true
+`
 )
