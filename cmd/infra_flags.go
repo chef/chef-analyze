@@ -44,15 +44,15 @@ func addInfraFlagsToCommand(cmd *cobra.Command) {
 			dist.UserConfDir),
 	)
 	cmd.PersistentFlags().StringVarP(
-		&infraFlags.clientName, "client_name", "n", "",
+		&infraFlags.clientName, "client-name", "n", "",
 		fmt.Sprintf("%s API client name", dist.ServerProduct),
 	)
 	cmd.PersistentFlags().StringVarP(
-		&infraFlags.clientKey, "client_key", "k", "",
+		&infraFlags.clientKey, "client-key", "k", "",
 		fmt.Sprintf("%s API client key", dist.ServerProduct),
 	)
 	cmd.PersistentFlags().StringVarP(
-		&infraFlags.chefServerURL, "chef_server_url", "s", "",
+		&infraFlags.chefServerURL, "chef-server-url", "s", "",
 		fmt.Sprintf("%s URL", dist.ServerProduct),
 	)
 	cmd.PersistentFlags().StringVarP(

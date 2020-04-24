@@ -78,14 +78,14 @@ func TestHelpNoArgs(t *testing.T) {
 func TestHelpCommandDisplayHelpFromCommand(t *testing.T) {
 	out, err, exitcode := ChefAnalyze("help", "report")
 	assert.Contains(t, out.String(),
-		"--chef_server_url",
-		"STDOUT chef_server_url flag doesn't exist")
+		"--chef-server-url",
+		"STDOUT chef-server-url flag doesn't exist")
 	assert.Contains(t, out.String(),
-		"--client_key",
-		"STDOUT client_key flag doesn't exist")
+		"--client-key",
+		"STDOUT client-key flag doesn't exist")
 	assert.Contains(t, out.String(),
-		"--client_name",
-		"STDOUT client_name flag doesn't exist")
+		"--client-name",
+		"STDOUT client-name flag doesn't exist")
 	assert.Contains(t, out.String(),
 		"--credentials",
 		"STDOUT credentials flag doesn't exist")
