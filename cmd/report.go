@@ -65,7 +65,7 @@ provided when the report is generated.
 `,
 		RunE: func(_ *cobra.Command, _ []string) error {
 			creds, err := credentials.FromViper(
-				reportsFlags.profile,
+				infraFlags.profile,
 				overrideCredentials(),
 			)
 
@@ -79,7 +79,7 @@ provided when the report is generated.
 			}
 
 			cfg := &reporting.Reporting{Credentials: creds}
-			if reportsFlags.noSSLverify {
+			if infraFlags.noSSLverify {
 				cfg.NoSSLVerify = true
 			}
 
@@ -151,7 +151,7 @@ provided when the report is generated.
 		Args:  cobra.NoArgs,
 		RunE: func(_ *cobra.Command, _ []string) error {
 			creds, err := credentials.FromViper(
-				reportsFlags.profile,
+				infraFlags.profile,
 				overrideCredentials(),
 			)
 
@@ -165,7 +165,7 @@ provided when the report is generated.
 			}
 
 			cfg := &reporting.Reporting{Credentials: creds}
-			if reportsFlags.noSSLverify {
+			if infraFlags.noSSLverify {
 				cfg.NoSSLVerify = true
 			}
 
@@ -215,54 +215,20 @@ provided when the report is generated.
 		workers      int
 	}
 	reportsFlags struct {
-		credsFile     string
-		clientName    string
-		clientKey     string
-		chefServerURL string
-		profile       string
-		noSSLverify   bool
-		format        string
-		nodeFilter    string
+		format     string
+		nodeFilter string
 	}
 )
 
 func init() {
-	// global report commands flags
-	reportCmd.PersistentFlags().StringVarP(
-		&reportsFlags.credsFile,
-		"credentials", "c", "",
-		fmt.Sprintf("credentials file (default $HOME/%s/credentials)", dist.UserConfDir),
-	)
+	// Add shared infra/chef-server related flags
+	addInfraFlagsToCommand(reportCmd)
 
+	// common report flags
 	reportCmd.PersistentFlags().StringVarP(
 		&reportsFlags.format,
 		"format", "f", "txt",
 		"output format: txt is human readable, csv is machine readable",
-	)
-	reportCmd.PersistentFlags().StringVarP(
-		&reportsFlags.clientName,
-		"client_name", "n", "",
-		fmt.Sprintf("%s API client username", dist.ServerProduct),
-	)
-	reportCmd.PersistentFlags().StringVarP(
-		&reportsFlags.clientKey,
-		"client_key", "k", "",
-		fmt.Sprintf("%s API client key", dist.ServerProduct),
-	)
-	reportCmd.PersistentFlags().StringVarP(
-		&reportsFlags.chefServerURL,
-		"chef_server_url", "s", "",
-		fmt.Sprintf("%s URL", dist.ServerProduct),
-	)
-	reportCmd.PersistentFlags().StringVarP(
-		&reportsFlags.profile,
-		"profile", "p", "default",
-		fmt.Sprintf("%s URL", dist.ServerProduct),
-	)
-	reportCmd.PersistentFlags().BoolVarP(
-		&reportsFlags.noSSLverify,
-		"ssl-no-verify", "o", false,
-		"Disable SSL certificate verification",
 	)
 	reportCmd.PersistentFlags().StringVarP(
 		&reportsFlags.nodeFilter,

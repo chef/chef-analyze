@@ -76,9 +76,9 @@ func init() {
 }
 
 func initConfig() {
-	if reportsFlags.credsFile != "" {
+	if infraFlags.credsFile != "" {
 		// Use credentials file from the flag
-		viper.SetConfigFile(reportsFlags.credsFile)
+		viper.SetConfigFile(infraFlags.credsFile)
 	} else {
 		// Find the credentials and pass it to viper
 		credsFile, err := credentials.FindCredentialsFile()
@@ -108,9 +108,9 @@ func initConfig() {
 // this tool to work, with or without credentials config
 // TODO @afiune revisit
 func hasMinimumParams() bool {
-	if reportsFlags.chefServerURL != "" &&
-		reportsFlags.clientName != "" &&
-		reportsFlags.clientKey != "" {
+	if infraFlags.chefServerURL != "" &&
+		infraFlags.clientName != "" &&
+		infraFlags.clientKey != "" {
 		return true
 	}
 
@@ -138,14 +138,14 @@ func isHelpCommand() bool {
 // overrides the credentials from the viper bound flags
 func overrideCredentials() credentials.OverrideFunc {
 	return func(c *credentials.Credentials) {
-		if reportsFlags.clientName != "" {
-			c.ClientName = reportsFlags.clientName
+		if infraFlags.clientName != "" {
+			c.ClientName = infraFlags.clientName
 		}
-		if reportsFlags.clientKey != "" {
-			c.ClientKey = reportsFlags.clientKey
+		if infraFlags.clientKey != "" {
+			c.ClientKey = infraFlags.clientKey
 		}
-		if reportsFlags.chefServerURL != "" {
-			c.ChefServerUrl = reportsFlags.chefServerURL
+		if infraFlags.chefServerURL != "" {
+			c.ChefServerUrl = infraFlags.chefServerURL
 		}
 	}
 }
