@@ -30,15 +30,16 @@ func TestFeatureFlag(t *testing.T) {
 		"STDERR should be empty")
 	assert.Equal(t, 0, exitcode,
 		"EXITCODE is not the expected one")
-
-	// assert the feature flag message to the end user
+	assert.Contains(t, out.String(),
+		"E003",
+		"STDOUT does not contain expected error code")
 	assert.Contains(t,
 		out.String(),
-		"`analyze` is experimental and in development.",
+		"'analyze' is experimental and in development.",
 		"STDOUT message doesn't match")
 	assert.Contains(t,
 		out.String(),
-		"Temporarily enable `analyze` with the environment variable:",
+		"enable it by setting the following environment variable:",
 		"STDOUT message doesn't match")
 	assert.Contains(t,
 		out.String(),
@@ -46,7 +47,7 @@ func TestFeatureFlag(t *testing.T) {
 		"STDOUT message doesn't match")
 	assert.Contains(t,
 		out.String(),
-		"Or, permanently by modifying $HOME/.chef-workstation/config.toml with:",
+		"permanently enable it by modifying $HOME/.chef-workstation/config.toml",
 		"STDOUT message doesn't match")
 	assert.Contains(t,
 		out.String(),

@@ -50,7 +50,7 @@ var (
 can then be used to converge locally.`,
 		RunE: func(_ *cobra.Command, args []string) error {
 			creds, err := credentials.FromViper(
-				reportsFlags.profile,
+				infraFlags.profile,
 				overrideCredentials(),
 			)
 			if err != nil {
@@ -64,7 +64,7 @@ can then be used to converge locally.`,
 			}
 
 			cfg := &reporting.Reporting{Credentials: creds}
-			if reportsFlags.noSSLverify {
+			if infraFlags.noSSLverify {
 				cfg.NoSSLVerify = true
 			}
 
@@ -158,6 +158,9 @@ can then be used to converge locally.`,
 	}
 )
 
+func init() {
+	addInfraFlagsToCommand(captureCmd)
+}
 func requestCookbookPathFullMessage(repoPath string, cookbooks []reporting.NodeCookbook) string {
 	fmt.Printf(CookbookCaptureGatherSourcesTxt, repoPath, formatCookbooks(cookbooks))
 	var path string
