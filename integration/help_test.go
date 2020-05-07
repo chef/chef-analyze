@@ -27,7 +27,7 @@ func TestHelpCommand(t *testing.T) {
 	out, err, exitcode := ChefAnalyze("help")
 	assert.Contains(t,
 		out.String(),
-		"Use \"chef-analyze [command] --help\" for more information about a command.",
+		"Use \"chef [command] --help\" for more information about a command.",
 		"STDOUT bottom message doesn't match")
 	assert.Empty(t,
 		err.String(),
@@ -40,7 +40,7 @@ func TestHelpFlags_h(t *testing.T) {
 	out, err, exitcode := ChefAnalyze("-h")
 	assert.Contains(t,
 		out.String(),
-		"Use \"chef-analyze [command] --help\" for more information about a command.",
+		"Use \"chef [command] --help\" for more information about a command.",
 		"STDOUT bottom message doesn't match")
 	assert.Empty(t,
 		err.String(),
@@ -53,7 +53,7 @@ func TestHelpFlags__help(t *testing.T) {
 	out, err, exitcode := ChefAnalyze("--help")
 	assert.Contains(t,
 		out.String(),
-		"Use \"chef-analyze [command] --help\" for more information about a command.",
+		"Use \"chef [command] --help\" for more information about a command.",
 		"STDOUT bottom message doesn't match")
 	assert.Empty(t,
 		err.String(),
@@ -66,7 +66,7 @@ func TestHelpNoArgs(t *testing.T) {
 	out, err, exitcode := ChefAnalyze()
 	assert.Contains(t,
 		out.String(),
-		"Use \"chef-analyze [command] --help\" for more information about a command.",
+		"Use \"chef [command] --help\" for more information about a command.",
 		"STDOUT bottom message doesn't match")
 	assert.Empty(t,
 		err.String(),
@@ -81,7 +81,7 @@ func TestHelpCommandDisplayHelpForCapture(t *testing.T) {
 can then be used to converge locally.
 
 Usage:
-  chef-analyze capture NODE-NAME [flags]
+  chef capture NODE-NAME [flags]
 
 Flags:
   -s, --chef-server-url string   Chef Infra Server URL
@@ -122,7 +122,7 @@ func TestHelpCommandDisplayHelpForReport(t *testing.T) {
 		"STDOUT format string flag doesn't exist")
 	assert.Contains(t,
 		out.String(),
-		"chef-analyze report [command]",
+		"chef report [command]",
 		"STDOUT missing help about the report sub-command")
 	assert.Empty(t,
 		err.String(),
@@ -133,16 +133,13 @@ func TestHelpCommandDisplayHelpForReport(t *testing.T) {
 
 func TestHelpCommandDisplayHelpForReportCookbooks(t *testing.T) {
 	out, err, exitcode := ChefAnalyze("help", "report", "cookbooks")
-	var expected = `Generates cookbook oriented reports containing details about the number of
-violations each cookbook has, which violations can be are auto-corrected and
-the number of nodes using each cookbook.
+	var expected = `Generates a cookbook-oriented report containing details about the
+upgrade compatibility errors and node cookbook usage.
 
-These reports could take a long time to run depending on the number of cookbooks
-to analyze and therefore reports will be written to disk. The location will be
-provided when the report is generated.
+The result is written to file.
 
 Usage:
-  chef-analyze report cookbooks [flags]
+  chef report cookbooks [flags]
 
 Flags:
   -h, --help             help for cookbooks
@@ -170,10 +167,11 @@ Global Flags:
 
 func TestHelpCommandDisplayHelpForReportNodes(t *testing.T) {
 	out, err, exitcode := ChefAnalyze("help", "report", "nodes")
-	var expected = `Generates a nodes oriented report
+	var expected = `Generates a nodes-oriented report containing basic information about the node,
+any applied policies, and the cookbooks used during the most recent chef-client run
 
 Usage:
-  chef-analyze report nodes [flags]
+  chef report nodes [flags]
 
 Flags:
   -h, --help   help for nodes
@@ -188,6 +186,7 @@ Global Flags:
   -p, --profile string           profile to use from credentials file (default "default")
   -o, --ssl-no-verify            Do not verify SSL when connecting to Chef Infra Server (default: verify)
 `
+
 	assert.Equal(t, out.String(), expected)
 	assert.Empty(t,
 		err.String(),
@@ -203,7 +202,7 @@ func TestHelpCommandDisplayHelpFromUnknownCommand(t *testing.T) {
 	// message via STDERR and not STDOUT
 	assert.Contains(t,
 		err.String(),
-		"Use \"chef-analyze [command] --help\" for more information about a command.",
+		"Use \"chef [command] --help\" for more information about a command.",
 		"STDERR bottom message doesn't match")
 	assert.Empty(t,
 		out.String(),

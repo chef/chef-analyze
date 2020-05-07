@@ -30,12 +30,13 @@ import (
 
 var (
 	rootCmd = &cobra.Command{
-		Use:   dist.AnalyzeExec,
-		Short: fmt.Sprintf("A CLI to analyze artifacts from a %s", dist.ServerProduct),
-		Long: fmt.Sprintf(`Analyze your %s artifacts to understand the effort to upgrade
-your infrastructure by generating reports, automatically fixing violations
-and/or deprecations, and generating Effortless packages.
-`, dist.ServerProduct),
+		// This is intended to be used as part of Workstation, via the `chef` command
+		// but will also support other wrappers via dist.CLIWrapperExec.
+		Use:   fmt.Sprintf("%s report", dist.CLIWrapperExec),
+		Short: fmt.Sprintf("Generate reports from a %s", dist.ServerProduct),
+		Long: fmt.Sprintf(`Reports to assist you in understanding the effort to
+upgrade your infrastructure to latest patterns and practices.
+Can aggregate information by nodes or cookbooks.`),
 	}
 )
 
