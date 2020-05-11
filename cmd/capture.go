@@ -165,8 +165,15 @@ func init() {
 	addInfraFlagsToCommand(captureCmd)
 }
 func requestCookbookPathFullMessage(repoPath string, cookbooks []reporting.NodeCookbook) string {
-	fmt.Printf(CookbookCaptureGatherSourcesTxt, repoPath, formatCookbooks(cookbooks))
-	var path string
+	var input, path string
+
+	// We issue a long instruction and ask to press Enter to continue.
+	// This is out of fear that a long cookbook list would scroll the
+	// instructions off the screen.
+	fmt.Printf(CookbookCaptureGatherSourcesTxt, repoPath)
+	fmt.Scanf("%s\n", &input) // discarded
+
+	fmt.Printf(CookbookCaptureRequestCookbookPathTxt, formatCookbooks(cookbooks))
 	fmt.Scanf("%s\n", &path)
 	return path
 }
