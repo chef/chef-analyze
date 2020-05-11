@@ -143,6 +143,9 @@ can then be used to converge locally.`,
 				if err != nil {
 					return err
 				}
+				if len(cookbooks) == 0 {
+					break
+				}
 				path = requestCookbookPath(cookbooks)
 			}
 
