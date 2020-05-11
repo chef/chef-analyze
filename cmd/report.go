@@ -252,13 +252,16 @@ func init() {
 		"verify the upgrade compatibility of every cookbook",
 	)
 	// adds the cookbooks command as a sub-command of the report command
-	// => chef-analyze report cookbooks
 	reportCmd.AddCommand(reportCookbooksCmd)
 
 	// adds the nodes command as a sub-command of the report command
-	// => chef-analyze report nodes
 	reportCmd.AddCommand(reportNodesCmd)
 
+	// adds the upload command as a hidden sub-command of the report command
+	reportCmd.AddCommand(uploadCmd)
+
+	// adds the session command as a hidden sub-command of the report command
+	reportCmd.AddCommand(sessionCmd)
 }
 
 func createOutputDirectories() error {

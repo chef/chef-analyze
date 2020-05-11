@@ -68,10 +68,6 @@ func init() {
 	rootCmd.AddCommand(reportCmd)
 	// adds the config command from 'cmd/config.go'
 	rootCmd.AddCommand(configCmd)
-	// adds the upload command from 'cmd/upload.go'
-	rootCmd.AddCommand(uploadCmd)
-	// adds the session command from 'cmd/session.go'
-	rootCmd.AddCommand(sessionCmd)
 	// adds the capture command from 'cmd/capture.go'
 	rootCmd.AddCommand(captureCmd)
 }
