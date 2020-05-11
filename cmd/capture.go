@@ -186,7 +186,7 @@ func formatCookbooks(cookbooks []reporting.NodeCookbook) string {
 
 // For a given `sourcePath`, replace copy of cookbook in repoDir/cookbooks/CB
 // with a symlink to cookbooks found in the provided source.
-// TODO: In the unlikley event that user directories are using FAT
+// TODO: In the unlikely event that user directories are using FAT
 //       symlinking will not work.
 // TODO (future) - split terminal IO, and move this into an appropriate package.
 func resolveCookbooks(cookbooks []reporting.NodeCookbook, repoDir string, sourcePath string) ([]reporting.NodeCookbook, error) {
@@ -199,7 +199,7 @@ func resolveCookbooks(cookbooks []reporting.NodeCookbook, repoDir string, source
 		targetPath, _ := filepath.Abs(fmt.Sprintf("%s/cookbooks/%s", repoDir, cb.Name))
 		sourcePath, _ := filepath.Abs(fmt.Sprintf("%s/%s", sourcePath, cb.Name))
 		if _, err := os.Stat(sourcePath); err == nil {
-			fmt.Printf("  Replacing cookbook: %s\n", cb.Name)
+			fmt.Printf("  Using your checked-out cookbook: %s\n", cb.Name)
 			savedTargetPath := fmt.Sprintf("%s.server", targetPath)
 			err := os.Rename(targetPath, savedTargetPath)
 			if err != nil {
