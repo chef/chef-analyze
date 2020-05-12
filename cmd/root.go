@@ -33,20 +33,19 @@ var (
 		// This is intended to be used as part of Workstation, via the `chef` command
 		// but will also support other wrappers via dist.CLIWrapperExec.
 		Use:   fmt.Sprintf("%s report", dist.CLIWrapperExec),
-		Short: fmt.Sprintf("Generate reports from a %s", dist.ServerProduct),
-		Long: fmt.Sprintf(`Reports to assist you in understanding the effort to
-upgrade your infrastructure to latest patterns and practices.
-Can aggregate information by nodes or cookbooks.`),
+		Short: fmt.Sprintf("Please use the '%s' executable to access Upgrade Lab features", dist.CLIWrapperExec),
 	}
 )
 
 // Execute runs the root command
 func Execute() error {
+	msg := fmt.Sprintf("Please use the '%s' executable to access Upgrade Lab features.\n", dist.CLIWrapperExec)
 	rootCmd.RunE = func(_ *cobra.Command, args []string) error {
-		// The top level command print usage and exit-non-zero.
-		// By default it will exit non-zero, so we override the behavior here
-		// by not returning an error.
-		rootCmd.Help()
+		fmt.Printf(msg)
+		return nil
+	}
+	if isHelpCommand() {
+		fmt.Printf(msg)
 		return nil
 	}
 	return rootCmd.Execute()
@@ -117,19 +116,17 @@ func isReportCommand() bool {
 	if len(os.Args) <= 1 {
 		return false
 	}
-	if os.Args[1] == "report" {
-		return true
-	}
-	return false
+	return os.Args[1] == "report"
 }
+
+// returns true if this is a top-level request for help.
+// Will return false if not help-related, or is a subcommand help option
+// eg chef-analyze reports help
 func isHelpCommand() bool {
-	if len(os.Args) <= 1 {
+	if len(os.Args) != 2 {
 		return false
 	}
-	if os.Args[1] == "help" {
-		return true
-	}
-	return false
+	return os.Args[1] == "help" || os.Args[1] == "-h" || os.Args[1] == "--help"
 }
 
 // overrides the credentials from the viper bound flags

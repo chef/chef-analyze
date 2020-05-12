@@ -27,11 +27,10 @@ import (
 
 var (
 	uploadCmd = &cobra.Command{
-		Use:     "report upload LOCATION FILE",
-		Aliases: []string{"upload"},
-		Short:   fmt.Sprintf("Upload a file to %s", dist.CompanyName),
-		Args:    cobra.ExactArgs(2),
-		Hidden:  true,
+		Use:    "report upload LOCATION FILE",
+		Short:  fmt.Sprintf("Upload FILE to named LOCATION for %s to review", dist.CompanyName),
+		Args:   cobra.ExactArgs(2),
+		Hidden: true,
 		RunE: func(_ *cobra.Command, args []string) error {
 			// cobra will make sure we always have exactly 2 arguments
 			return UploadToS3(args[0], args[1])
