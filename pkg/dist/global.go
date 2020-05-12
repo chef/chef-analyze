@@ -13,6 +13,7 @@ const (
 	AutomateProduct    = "Chef Automate"
 	ClientExec         = "chef-client"
 	ClientProduct      = "Chef Infra Client"
+	CLIWrapperExec     = "chef"
 	CompanyName        = "Chef Software"
 	DirSuffix          = "chef"
 	DocsWebsite        = "https://docs.chef.io"

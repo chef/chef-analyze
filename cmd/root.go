@@ -30,22 +30,22 @@ import (
 
 var (
 	rootCmd = &cobra.Command{
-		Use:   dist.AnalyzeExec,
-		Short: fmt.Sprintf("A CLI to analyze artifacts from a %s", dist.ServerProduct),
-		Long: fmt.Sprintf(`Analyze your %s artifacts to understand the effort to upgrade
-your infrastructure by generating reports, automatically fixing violations
-and/or deprecations, and generating Effortless packages.
-`, dist.ServerProduct),
+		// This is intended to be used as part of Workstation, via the `chef` command
+		// but will also support other wrappers via dist.CLIWrapperExec.
+		Use:   fmt.Sprintf("%s report", dist.CLIWrapperExec),
+		Short: fmt.Sprintf("Please use the '%s' executable to access Upgrade Lab features", dist.CLIWrapperExec),
 	}
 )
 
 // Execute runs the root command
 func Execute() error {
+	msg := fmt.Sprintf("Please use the '%s' executable to access Upgrade Lab features.\n", dist.CLIWrapperExec)
 	rootCmd.RunE = func(_ *cobra.Command, args []string) error {
-		// The top level command print usage and exit-non-zero.
-		// By default it will exit non-zero, so we override the behavior here
-		// by not returning an error.
-		rootCmd.Help()
+		fmt.Printf(msg)
+		return nil
+	}
+	if isHelpCommand() {
+		fmt.Printf(msg)
 		return nil
 	}
 	return rootCmd.Execute()
@@ -67,10 +67,6 @@ func init() {
 	rootCmd.AddCommand(reportCmd)
 	// adds the config command from 'cmd/config.go'
 	rootCmd.AddCommand(configCmd)
-	// adds the upload command from 'cmd/upload.go'
-	rootCmd.AddCommand(uploadCmd)
-	// adds the session command from 'cmd/session.go'
-	rootCmd.AddCommand(sessionCmd)
 	// adds the capture command from 'cmd/capture.go'
 	rootCmd.AddCommand(captureCmd)
 }
@@ -120,19 +116,17 @@ func isReportCommand() bool {
 	if len(os.Args) <= 1 {
 		return false
 	}
-	if os.Args[1] == "report" {
-		return true
-	}
-	return false
+	return os.Args[1] == "report"
 }
+
+// returns true if this is a top-level request for help.
+// Will return false if not help-related, or is a subcommand help option
+// eg chef-analyze reports help
 func isHelpCommand() bool {
-	if len(os.Args) <= 1 {
+	if len(os.Args) != 2 {
 		return false
 	}
-	if os.Args[1] == "help" {
-		return true
-	}
-	return false
+	return os.Args[1] == "help" || os.Args[1] == "-h" || os.Args[1] == "--help"
 }
 
 // overrides the credentials from the viper bound flags

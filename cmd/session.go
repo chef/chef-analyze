@@ -29,9 +29,9 @@ import (
 
 var (
 	sessionCmd = &cobra.Command{
-		Use:    "session [MINUTES]",
+		Use:    "session MINUTES",
 		Hidden: true,
-		Short:  fmt.Sprintf("Creates new access credentials to upload files to %s", dist.CompanyName),
+		Short:  fmt.Sprintf("Creates new access credentials to upload files to %s. Expires in MINUTES.", dist.CompanyName),
 		Args:   cobra.ExactArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
 			min, err := strconv.ParseInt(args[0], 10, 64)

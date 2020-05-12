@@ -53,15 +53,12 @@ var (
 	}
 	reportCookbooksCmd = &cobra.Command{
 		Use:   "cookbooks",
-		Short: "Generates a cookbook oriented report",
+		Short: "Generates a cookbook-oriented report",
 		Args:  cobra.NoArgs,
-		Long: `Generates cookbook oriented reports containing details about the number of
-violations each cookbook has, which violations can be are auto-corrected and
-the number of nodes using each cookbook.
+		Long: `Generates a cookbook-oriented report containing details about the
+upgrade compatibility errors and node cookbook usage.
 
-These reports could take a long time to run depending on the number of cookbooks
-to analyze and therefore reports will be written to disk. The location will be
-provided when the report is generated.
+The result is written to file.
 `,
 		RunE: func(_ *cobra.Command, _ []string) error {
 			creds, err := credentials.FromViper(
@@ -147,8 +144,10 @@ provided when the report is generated.
 	}
 	reportNodesCmd = &cobra.Command{
 		Use:   "nodes",
-		Short: "Generates a nodes oriented report",
-		Args:  cobra.NoArgs,
+		Short: "Generates a nodes-oriented report",
+		Long: `Generates a nodes-oriented report containing basic information about the node,
+any applied policies, and the cookbooks used during the most recent chef-client run`,
+		Args: cobra.NoArgs,
 		RunE: func(_ *cobra.Command, _ []string) error {
 			creds, err := credentials.FromViper(
 				infraFlags.profile,
@@ -253,13 +252,16 @@ func init() {
 		"verify the upgrade compatibility of every cookbook",
 	)
 	// adds the cookbooks command as a sub-command of the report command
-	// => chef-analyze report cookbooks
 	reportCmd.AddCommand(reportCookbooksCmd)
 
 	// adds the nodes command as a sub-command of the report command
-	// => chef-analyze report nodes
 	reportCmd.AddCommand(reportNodesCmd)
 
+	// adds the upload command as a hidden sub-command of the report command
+	reportCmd.AddCommand(uploadCmd)
+
+	// adds the session command as a hidden sub-command of the report command
+	reportCmd.AddCommand(sessionCmd)
 }
 
 func createOutputDirectories() error {

@@ -25,54 +25,30 @@ import (
 
 func TestHelpCommand(t *testing.T) {
 	out, err, exitcode := ChefAnalyze("help")
-	assert.Contains(t,
-		out.String(),
-		"Use \"chef-analyze [command] --help\" for more information about a command.",
-		"STDOUT bottom message doesn't match")
-	assert.Empty(t,
-		err.String(),
-		"STDERR should be empty")
-	assert.Equal(t, 0, exitcode,
-		"EXITCODE is not the expected one")
+	assert.Equal(t, "Please use the 'chef' executable to access Upgrade Lab features.\n", out.String())
+	assert.Empty(t, err.String(), "STDERR should be empty")
+	assert.Equal(t, 0, exitcode, "EXITCODE is not the expected one")
 }
 
 func TestHelpFlags_h(t *testing.T) {
 	out, err, exitcode := ChefAnalyze("-h")
-	assert.Contains(t,
-		out.String(),
-		"Use \"chef-analyze [command] --help\" for more information about a command.",
-		"STDOUT bottom message doesn't match")
-	assert.Empty(t,
-		err.String(),
-		"STDERR should be empty")
-	assert.Equal(t, 0, exitcode,
-		"EXITCODE is not the expected one")
+	assert.Equal(t, "Please use the 'chef' executable to access Upgrade Lab features.\n", out.String())
+	assert.Empty(t, err.String(), "STDERR should be empty")
+	assert.Equal(t, 0, exitcode, "EXITCODE is not the expected one")
 }
 
 func TestHelpFlags__help(t *testing.T) {
 	out, err, exitcode := ChefAnalyze("--help")
-	assert.Contains(t,
-		out.String(),
-		"Use \"chef-analyze [command] --help\" for more information about a command.",
-		"STDOUT bottom message doesn't match")
-	assert.Empty(t,
-		err.String(),
-		"STDERR should be empty")
-	assert.Equal(t, 0, exitcode,
-		"EXITCODE is not the expected one")
+	assert.Equal(t, "Please use the 'chef' executable to access Upgrade Lab features.\n", out.String())
+	assert.Empty(t, err.String(), "STDERR should be empty")
+	assert.Equal(t, 0, exitcode, "EXITCODE is not the expected one")
 }
 
 func TestHelpNoArgs(t *testing.T) {
 	out, err, exitcode := ChefAnalyze()
-	assert.Contains(t,
-		out.String(),
-		"Use \"chef-analyze [command] --help\" for more information about a command.",
-		"STDOUT bottom message doesn't match")
-	assert.Empty(t,
-		err.String(),
-		"STDERR should be empty")
-	assert.Equal(t, 0, exitcode,
-		"EXITCODE is not the expected one")
+	assert.Equal(t, "Please use the 'chef' executable to access Upgrade Lab features.\n", out.String())
+	assert.Empty(t, err.String(), "STDERR should be empty")
+	assert.Equal(t, 0, exitcode, "EXITCODE is not the expected one")
 }
 func TestHelpCommandDisplayHelpForCapture(t *testing.T) {
 	out, err, exitcode := ChefAnalyze("help", "capture")
@@ -81,7 +57,7 @@ func TestHelpCommandDisplayHelpForCapture(t *testing.T) {
 can then be used to converge locally.
 
 Usage:
-  chef-analyze capture NODE-NAME [flags]
+  chef capture NODE-NAME [flags]
 
 Flags:
   -s, --chef-server-url string   Chef Infra Server URL
@@ -99,50 +75,42 @@ Flags:
 
 func TestHelpCommandDisplayHelpForReport(t *testing.T) {
 	out, err, exitcode := ChefAnalyze("help", "report")
-	assert.Contains(t, out.String(),
-		"--chef-server-url",
-		"STDOUT chef-server-url flag doesn't exist")
-	assert.Contains(t, out.String(),
-		"--client-key",
-		"STDOUT client-key flag doesn't exist")
-	assert.Contains(t, out.String(),
-		"--client-name",
-		"STDOUT client-name flag doesn't exist")
-	assert.Contains(t, out.String(),
-		"--credentials",
-		"STDOUT credentials flag doesn't exist")
-	assert.Contains(t, out.String(),
-		"--help",
-		"STDOUT help flag doesn't exist")
-	assert.Contains(t, out.String(),
-		"--profile",
-		"STDOUT profile flag doesn't exist")
-	assert.Contains(t, out.String(),
-		"--format string",
-		"STDOUT format string flag doesn't exist")
-	assert.Contains(t,
-		out.String(),
-		"chef-analyze report [command]",
-		"STDOUT missing help about the report sub-command")
-	assert.Empty(t,
-		err.String(),
-		"STDERR should be empty")
-	assert.Equal(t, 0, exitcode,
-		"EXITCODE is not the expected one")
+	expected := `Generate reports from a Chef Infra Server
+
+Usage:
+  chef report [command]
+
+Available Commands:
+  cookbooks   Generates a cookbook-oriented report
+  nodes       Generates a nodes-oriented report
+
+Flags:
+  -s, --chef-server-url string   Chef Infra Server URL
+  -k, --client-key string        Chef Infra Server API client key
+  -n, --client-name string       Chef Infra Server API client name
+  -c, --credentials string       credentials file (default $HOME/.chef/credentials)
+  -f, --format string            output format: txt is human readable, csv is machine readable (default "txt")
+  -h, --help                     help for report
+  -F, --node-filter string       Search filter to apply to nodes
+  -p, --profile string           profile to use from credentials file (default "default")
+  -o, --ssl-no-verify            Do not verify SSL when connecting to Chef Infra Server (default: verify)
+
+Use "chef report [command] --help" for more information about a command.
+`
+	assert.Equal(t, expected, out.String())
+	assert.Empty(t, err.String(), "STDERR should be empty")
+	assert.Equal(t, 0, exitcode, "EXITCODE is not the expected one")
 }
 
 func TestHelpCommandDisplayHelpForReportCookbooks(t *testing.T) {
 	out, err, exitcode := ChefAnalyze("help", "report", "cookbooks")
-	var expected = `Generates cookbook oriented reports containing details about the number of
-violations each cookbook has, which violations can be are auto-corrected and
-the number of nodes using each cookbook.
+	expected := `Generates a cookbook-oriented report containing details about the
+upgrade compatibility errors and node cookbook usage.
 
-These reports could take a long time to run depending on the number of cookbooks
-to analyze and therefore reports will be written to disk. The location will be
-provided when the report is generated.
+The result is written to file.
 
 Usage:
-  chef-analyze report cookbooks [flags]
+  chef report cookbooks [flags]
 
 Flags:
   -h, --help             help for cookbooks
@@ -160,20 +128,18 @@ Global Flags:
   -p, --profile string           profile to use from credentials file (default "default")
   -o, --ssl-no-verify            Do not verify SSL when connecting to Chef Infra Server (default: verify)
 `
-	assert.Equal(t, out.String(), expected)
-	assert.Empty(t,
-		err.String(),
-		"STDERR should be empty")
-	assert.Equal(t, 0, exitcode,
-		"EXITCODE is not the expected one")
+	assert.Equal(t, expected, out.String())
+	assert.Empty(t, err.String(), "STDERR should be empty")
+	assert.Equal(t, 0, exitcode, "EXITCODE is not the expected one")
 }
 
 func TestHelpCommandDisplayHelpForReportNodes(t *testing.T) {
 	out, err, exitcode := ChefAnalyze("help", "report", "nodes")
-	var expected = `Generates a nodes oriented report
+	var expected = `Generates a nodes-oriented report containing basic information about the node,
+any applied policies, and the cookbooks used during the most recent chef-client run
 
 Usage:
-  chef-analyze report nodes [flags]
+  chef report nodes [flags]
 
 Flags:
   -h, --help   help for nodes
@@ -188,12 +154,10 @@ Global Flags:
   -p, --profile string           profile to use from credentials file (default "default")
   -o, --ssl-no-verify            Do not verify SSL when connecting to Chef Infra Server (default: verify)
 `
-	assert.Equal(t, out.String(), expected)
-	assert.Empty(t,
-		err.String(),
-		"STDERR should be empty")
-	assert.Equal(t, 0, exitcode,
-		"EXITCODE is not the expected one")
+
+	assert.Equal(t, expected, out.String())
+	assert.Empty(t, err.String(), "STDERR should be empty")
+	assert.Equal(t, 0, exitcode, "EXITCODE is not the expected one")
 
 }
 
@@ -201,13 +165,9 @@ func TestHelpCommandDisplayHelpFromUnknownCommand(t *testing.T) {
 	out, err, exitcode := ChefAnalyze("help", "foo")
 	// NOTE since this is an unknown command, we should display the help
 	// message via STDERR and not STDOUT
-	assert.Contains(t,
-		err.String(),
-		"Use \"chef-analyze [command] --help\" for more information about a command.",
+	assert.Contains(t, err.String(),
+		"Use \"chef [command] --help\" for more information about a command.",
 		"STDERR bottom message doesn't match")
-	assert.Empty(t,
-		out.String(),
-		"STDOUT should be empty")
-	assert.Equal(t, 0, exitcode,
-		"EXITCODE is not the expected one")
+	assert.Empty(t, out.String(), "STDOUT should be empty")
+	assert.Equal(t, 0, exitcode, "EXITCODE is not the expected one")
 }
