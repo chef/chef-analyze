@@ -91,6 +91,9 @@ provided when the report is generated.
 			fmt.Printf("Finding available cookbooks...")
 			cookbooksState, err := reporting.NewCookbooksReport(
 				chefClient.Cookbooks,
+				chefClient.CookbookArtifacts,
+				chefClient.PolicyGroups,
+				chefClient.Policies,
 				chefClient.Search,
 				cookbooksFlags.runCookstyle,
 				cookbooksFlags.onlyUnused,
