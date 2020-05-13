@@ -2,8 +2,6 @@ module github.com/chef/chef-analyze
 
 go 1.13
 
-replace github.com/chef/go-chef v0.4.0 => /Users/mudash/go/src/github.com/chef/go-chef
-
 require (
 	github.com/aws/aws-sdk-go v1.30.20
 	github.com/chef/go-chef v0.4.0
