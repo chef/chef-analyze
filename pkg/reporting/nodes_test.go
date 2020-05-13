@@ -279,6 +279,17 @@ func mockedNodesSearchRows() string {
       "os_version": "16.04",
       "cookbooks" : null
     }
+  },
+  {
+    "data" : {
+      "name" : "node4",
+      "chef_version": "15.00",
+      "os" : "ubuntu",
+      "os_version": "16.04",
+	  "cookbooks" : null,
+	  "policy" : "my-policy",
+	  "policy_rev" : "123xyz"
+    }
   }
 ]`
 }

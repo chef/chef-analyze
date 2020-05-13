@@ -45,7 +45,14 @@ func MakeCookbooksReportTXT(state *reporting.CookbooksReport) *FormattedResult {
 	sortCookbookRecords(state.Records)
 
 	for _, record := range state.Records {
-		strBuilder.WriteString(fmt.Sprintf("> Cookbook: %v (%v)\n", record.Name, record.Version))
+
+		if record.PolicyGroup != "" {
+			strBuilder.WriteString(fmt.Sprintf("> Cookbook: %v (policy %s, revision %s)\n", record.Name, record.Policy, record.PolicyVer))
+			strBuilder.WriteString(fmt.Sprintf("  Policy Group: %s\n", record.PolicyGroup))
+		} else {
+			strBuilder.WriteString(fmt.Sprintf("> Cookbook: %v (%v)\n", record.Name, record.Version))
+			strBuilder.WriteString(fmt.Sprintf("  Policy Group: none\n"))
+		}
 
 		if record.NumNodesAffected() == 0 {
 			strBuilder.WriteString("  Nodes affected: none\n")
@@ -78,7 +85,11 @@ func MakeCookbooksReportTXT(state *reporting.CookbooksReport) *FormattedResult {
 		}
 
 		for _, e := range record.Errors() {
-			errorBuilder.WriteString(fmt.Sprintf(" - %s (%s): %v\n", record.Name, record.Version, e))
+			if record.PolicyGroup != "" {
+				errorBuilder.WriteString(fmt.Sprintf(" - %s (PolicyGroup %s, Policy %s, PolicyRevision %s): %v\n", record.Name, record.PolicyGroup, record.Policy, record.PolicyVer, e))
+			} else {
+				errorBuilder.WriteString(fmt.Sprintf(" - %s (%s): %v\n", record.Name, record.Version, e))
+			}
 		}
 
 	}

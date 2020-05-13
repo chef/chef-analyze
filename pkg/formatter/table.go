@@ -67,6 +67,8 @@ func CookbooksReportSummary(state *reporting.CookbooksReport) FormattedResult {
 		CookbooksReportHeader = append(CookbooksReportHeader, "Violations", "Auto-correctable")
 	}
 
+	CookbooksReportHeader = append(CookbooksReportHeader, "Policy Group")
+	CookbooksReportHeader = append(CookbooksReportHeader, "Policy")
 	CookbooksReportHeader = append(CookbooksReportHeader, "Nodes Affected")
 
 	table.SetAutoWrapText(true)
@@ -94,11 +96,18 @@ func CookbooksReportSummary(state *reporting.CookbooksReport) FormattedResult {
 			)
 		}
 
+		row = append(row, record.PolicyGroup)
+		row = append(row, record.Policy)
+		policyVer := record.PolicyVer
+		if len(record.PolicyVer) > 0 {
+			policyVer = policyVer[0:5] + "..."
+		}
 		row = append(row, strconv.Itoa(record.NumNodesAffected()))
 
 		table.Append(row)
 	}
 
+	table.SetAlignment(tablewriter.ALIGN_LEFT)
 	table.Render()
 
 	var (

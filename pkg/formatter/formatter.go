@@ -50,7 +50,7 @@ func stringOrPlaceholder(s, placeholder string) string {
 }
 
 func sortCookbookRecords(records []*reporting.CookbookRecord) {
-	sort.Sort(reporting.CookbookRecordsByNameVersion(records))
+	sort.Sort(reporting.CookbookRecordsBySortOrder(records))
 
 	// Also sort the node names.
 	for _, record := range records {

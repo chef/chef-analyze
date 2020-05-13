@@ -65,6 +65,9 @@ func TestCookbooksRecordNumNodesAffected(t *testing.T) {
 func TestCookbooksEmpty(t *testing.T) {
 	cbr, err := subject.NewCookbooksReport(
 		newMockCookbook(chef.CookbookListResult{}, nil, nil),
+		newMockCookbookArtifact(chef.CBAGetResponse{}, nil, nil),
+		newMockPolicyGroup(chef.PolicyGroupGetResponse{}, nil),
+		newMockPolicy(chef.RevisionDetailsResponse{}, nil),
 		makeMockSearch("[]", nil),
 		false,
 		false,
@@ -96,8 +99,33 @@ func TestCookbooksInUseDisplayOnlyUnused(t *testing.T) {
 			},
 		},
 	}
+
+	CBAList := chef.CBAGetResponse{
+		"alpha": chef.CBA{
+			CBAVersions: []chef.CBAVersion{
+				chef.CBAVersion{Identifier: "123456789012345678901234567890xyz"},
+			},
+		},
+		"gama": chef.CBA{
+			CBAVersions: []chef.CBAVersion{
+				chef.CBAVersion{Identifier: "abc456789012345678901234567890xyz"},
+			},
+		},
+	}
+
+	type PolicyGroupMock struct {
+		desiredPolicyGroupList      chef.PolicyGroupGetResponse
+		desiredPolicyGroupListError error
+	}
+
+	policyGroupList := chef.PolicyGroupGetResponse{}
+	policyDetail := chef.RevisionDetailsResponse{}
+
 	c, err := subject.NewCookbooksReport(
 		newMockCookbook(cookbookList, nil, nil),
+		newMockCookbookArtifact(CBAList, nil, nil),
+		newMockPolicyGroup(policyGroupList, nil),
+		newMockPolicy(policyDetail, nil),
 		makeMockSearch(mockedNodesSearchRows(), nil), // nodes are found
 		false, // do not download or cookstyle
 		true,  // display only unused cookbooks
@@ -116,6 +144,9 @@ func TestCookbooksInUseDisplayOnlyUnused(t *testing.T) {
 	// Verify that used cookbooks list is complete and correct
 	c, err = subject.NewCookbooksReport(
 		newMockCookbook(cookbookList, nil, nil),
+		newMockCookbookArtifact(CBAList, nil, nil),
+		newMockPolicyGroup(policyGroupList, nil),
+		newMockPolicy(policyDetail, nil),
 		makeMockSearch(mockedNodesSearchRows(), nil), // nodes are found
 		false, // do not download or cookstyle
 		false, // display only used cookbooks, as determined by search results
@@ -171,8 +202,27 @@ func TestCookbooksNotUsedDisplayOnlyUnused(t *testing.T) {
 			},
 		},
 	}
+
+	CBAList := chef.CBAGetResponse{
+		"alpha": chef.CBA{
+			CBAVersions: []chef.CBAVersion{
+				chef.CBAVersion{Identifier: "123456789012345678901234567890xyz"},
+			},
+		},
+		"gama": chef.CBA{
+			CBAVersions: []chef.CBAVersion{
+				chef.CBAVersion{Identifier: "abc456789012345678901234567890xyz"},
+			},
+		},
+	}
+	policyGroupList := chef.PolicyGroupGetResponse{}
+	policyDetail := chef.RevisionDetailsResponse{}
+
 	c, err := subject.NewCookbooksReport(
 		newMockCookbook(cookbookList, nil, nil),
+		newMockCookbookArtifact(CBAList, nil, nil),
+		newMockPolicyGroup(policyGroupList, nil),
+		newMockPolicy(policyDetail, nil),
 		makeMockSearch("[]", nil), // no nodes are returned
 		false,
 		true, // display only unused cookbooks
@@ -212,6 +262,9 @@ func TestCookbooksNotUsedDisplayOnlyUnused(t *testing.T) {
 
 	c, err = subject.NewCookbooksReport(
 		newMockCookbook(cookbookList, nil, nil),
+		newMockCookbookArtifact(CBAList, nil, nil),
+		newMockPolicyGroup(policyGroupList, nil),
+		newMockPolicy(policyDetail, nil),
 		makeMockSearch("[]", nil), // no nodes are returned
 		false,
 		false, // display only used cookbooks
@@ -249,8 +302,26 @@ func TestCookbooks(t *testing.T) {
 			},
 		},
 	}
+	CBAList := chef.CBAGetResponse{
+		"alpha": chef.CBA{
+			CBAVersions: []chef.CBAVersion{
+				chef.CBAVersion{Identifier: "123456789012345678901234567890xyz"},
+			},
+		},
+		"gama": chef.CBA{
+			CBAVersions: []chef.CBAVersion{
+				chef.CBAVersion{Identifier: "abc456789012345678901234567890xyz"},
+			},
+		},
+	}
+	policyGroupList := chef.PolicyGroupGetResponse{}
+	policyDetail := chef.RevisionDetailsResponse{}
+
 	c, err := subject.NewCookbooksReport(
 		newMockCookbook(cookbookList, nil, nil),
+		newMockCookbookArtifact(CBAList, nil, nil),
+		newMockPolicyGroup(policyGroupList, nil),
+		newMockPolicy(policyDetail, nil),
 		makeMockSearch(mockedNodesSearchRows(), nil),
 		true,
 		false,
@@ -309,8 +380,27 @@ func TestCookbooksWithNodeFilter(t *testing.T) {
 			},
 		},
 	}
+
+	CBAList := chef.CBAGetResponse{
+		"alpha": chef.CBA{
+			CBAVersions: []chef.CBAVersion{
+				chef.CBAVersion{Identifier: "123456789012345678901234567890xyz"},
+			},
+		},
+		"gama": chef.CBA{
+			CBAVersions: []chef.CBAVersion{
+				chef.CBAVersion{Identifier: "abc456789012345678901234567890xyz"},
+			},
+		},
+	}
+	policyGroupList := chef.PolicyGroupGetResponse{}
+	policyDetail := chef.RevisionDetailsResponse{}
+
 	c, err := subject.NewCookbooksReport(
 		newMockCookbook(cookbookList, nil, nil),
+		newMockCookbookArtifact(CBAList, nil, nil),
+		newMockPolicyGroup(policyGroupList, nil),
+		newMockPolicy(policyDetail, nil),
 		makeMockSearch(mockedNodesSearchRows(), nil),
 		true,
 		false,
@@ -351,8 +441,27 @@ func TestCookbooksWithNodeFilter(t *testing.T) {
 // Given a failure trying to get the list of cookbooks,
 // verify the result set is as expected
 func TestCookbooks_ListCookbooksErrors(t *testing.T) {
+
+	CBAList := chef.CBAGetResponse{
+		"alpha": chef.CBA{
+			CBAVersions: []chef.CBAVersion{
+				chef.CBAVersion{Identifier: "123456789012345678901234567890xyz"},
+			},
+		},
+		"gama": chef.CBA{
+			CBAVersions: []chef.CBAVersion{
+				chef.CBAVersion{Identifier: "abc456789012345678901234567890xyz"},
+			},
+		},
+	}
+	policyGroupList := chef.PolicyGroupGetResponse{}
+	policyDetail := chef.RevisionDetailsResponse{}
+
 	c, err := subject.NewCookbooksReport(
 		newMockCookbook(chef.CookbookListResult{}, errors.New("i/o timeout"), nil),
+		newMockCookbookArtifact(CBAList, nil, nil),
+		newMockPolicyGroup(policyGroupList, nil),
+		newMockPolicy(policyDetail, nil),
 		makeMockSearch("[]", nil),
 		false,
 		false,
@@ -367,8 +476,26 @@ func TestCookbooks_ListCookbooksErrors(t *testing.T) {
 
 func TestCookbooks_ListAvailableVersionsError(t *testing.T) {
 	cookbookList := chef.CookbookListResult{}
+	CBAList := chef.CBAGetResponse{
+		"alpha": chef.CBA{
+			CBAVersions: []chef.CBAVersion{
+				chef.CBAVersion{Identifier: "123456789012345678901234567890xyz"},
+			},
+		},
+		"gama": chef.CBA{
+			CBAVersions: []chef.CBAVersion{
+				chef.CBAVersion{Identifier: "abc456789012345678901234567890xyz"},
+			},
+		},
+	}
+	policyGroupList := chef.PolicyGroupGetResponse{}
+	policyDetail := chef.RevisionDetailsResponse{}
+
 	c, err := subject.NewCookbooksReport(
 		newMockCookbook(cookbookList, errors.New("list error"), nil),
+		newMockCookbookArtifact(CBAList, nil, nil),
+		newMockPolicyGroup(policyGroupList, nil),
+		newMockPolicy(policyDetail, nil),
 		nil,
 		false,
 		false,
@@ -381,8 +508,26 @@ func TestCookbooks_ListAvailableVersionsError(t *testing.T) {
 
 func TestCookbooks_NoneAvailable(t *testing.T) {
 
+	CBAList := chef.CBAGetResponse{
+		"alpha": chef.CBA{
+			CBAVersions: []chef.CBAVersion{
+				chef.CBAVersion{Identifier: "123456789012345678901234567890xyz"},
+			},
+		},
+		"gama": chef.CBA{
+			CBAVersions: []chef.CBAVersion{
+				chef.CBAVersion{Identifier: "abc456789012345678901234567890xyz"},
+			},
+		},
+	}
+	policyGroupList := chef.PolicyGroupGetResponse{}
+	policyDetail := chef.RevisionDetailsResponse{}
+
 	c, err := subject.NewCookbooksReport(
 		newMockCookbook(chef.CookbookListResult{}, nil, nil),
+		newMockCookbookArtifact(CBAList, nil, nil),
+		newMockPolicyGroup(policyGroupList, nil),
+		newMockPolicy(policyDetail, nil),
 		makeMockSearch(mockedEmptyNodesSearchRows(), nil),
 		false,
 		false,
@@ -409,8 +554,27 @@ func TestCookbooks_DownloadErrors(t *testing.T) {
 			},
 		},
 	}
+
+	CBAList := chef.CBAGetResponse{
+		"alpha": chef.CBA{
+			CBAVersions: []chef.CBAVersion{
+				chef.CBAVersion{Identifier: "123456789012345678901234567890xyz"},
+			},
+		},
+		"gama": chef.CBA{
+			CBAVersions: []chef.CBAVersion{
+				chef.CBAVersion{Identifier: "abc456789012345678901234567890xyz"},
+			},
+		},
+	}
+	policyGroupList := chef.PolicyGroupGetResponse{}
+	policyDetail := chef.RevisionDetailsResponse{}
+
 	c, err := subject.NewCookbooksReport(
 		newMockCookbook(cookbookList, nil, errors.New("download error")),
+		newMockCookbookArtifact(CBAList, nil, nil),
+		newMockPolicyGroup(policyGroupList, nil),
+		newMockPolicy(policyDetail, nil),
 		makeMockSearch(mockedNodesSearchRows(), nil),
 		true, // run cookstyle, which means that we will download the cookbooks
 		false,
@@ -445,8 +609,27 @@ func TestCookbooks_UsageStatErrors(t *testing.T) {
 			},
 		},
 	}
+
+	CBAList := chef.CBAGetResponse{
+		"alpha": chef.CBA{
+			CBAVersions: []chef.CBAVersion{
+				chef.CBAVersion{Identifier: "123456789012345678901234567890xyz"},
+			},
+		},
+		"gama": chef.CBA{
+			CBAVersions: []chef.CBAVersion{
+				chef.CBAVersion{Identifier: "abc456789012345678901234567890xyz"},
+			},
+		},
+	}
+	policyGroupList := chef.PolicyGroupGetResponse{}
+	policyDetail := chef.RevisionDetailsResponse{}
+
 	c, err := subject.NewCookbooksReport(
 		newMockCookbook(cookbookList, nil, nil),
+		newMockCookbookArtifact(CBAList, nil, nil),
+		newMockPolicyGroup(policyGroupList, nil),
+		newMockPolicy(policyDetail, nil),
 		makeMockSearch(mockedNodesSearchRows(), errors.New("lookup error")),
 		false, // do not download or cookstyle
 		// Because the usage error makes it look like no nodes are attached to this cookbook
@@ -504,8 +687,26 @@ func TestCookbooks_withCookstyleError(t *testing.T) {
 			},
 		},
 	}
+	CBAList := chef.CBAGetResponse{
+		"alpha": chef.CBA{
+			CBAVersions: []chef.CBAVersion{
+				chef.CBAVersion{Identifier: "123456789012345678901234567890xyz"},
+			},
+		},
+		"gama": chef.CBA{
+			CBAVersions: []chef.CBAVersion{
+				chef.CBAVersion{Identifier: "abc456789012345678901234567890xyz"},
+			},
+		},
+	}
+	policyGroupList := chef.PolicyGroupGetResponse{}
+	policyDetail := chef.RevisionDetailsResponse{}
+
 	c, err := subject.NewCookbooksReport(
 		newMockCookbook(cookbookList, nil, nil),
+		newMockCookbookArtifact(CBAList, nil, nil),
+		newMockPolicyGroup(policyGroupList, nil),
+		newMockPolicy(policyDetail, nil),
 		makeMockSearch(mockedNodesSearchRows(), nil),
 		true,
 		false,
@@ -547,8 +748,26 @@ func TestCookbooks_withHeavyLoad(t *testing.T) {
 
 	assert.Equal(t, TotalCookbooks, len(cookbookList))
 
+	CBAList := chef.CBAGetResponse{
+		"alpha": chef.CBA{
+			CBAVersions: []chef.CBAVersion{
+				chef.CBAVersion{Identifier: "123456789012345678901234567890xyz"},
+			},
+		},
+		"gama": chef.CBA{
+			CBAVersions: []chef.CBAVersion{
+				chef.CBAVersion{Identifier: "abc456789012345678901234567890xyz"},
+			},
+		},
+	}
+	policyGroupList := chef.PolicyGroupGetResponse{}
+	policyDetail := chef.RevisionDetailsResponse{}
+
 	c, err := subject.NewCookbooksReport(
 		newMockCookbook(cookbookList, nil, nil),
+		newMockCookbookArtifact(CBAList, nil, nil),
+		newMockPolicyGroup(policyGroupList, nil),
+		newMockPolicy(policyDetail, nil),
 		makeMockSearch(mockedNodesSearchRows(), nil),
 		true,
 		false,
@@ -576,7 +795,7 @@ func TestCookbookRecordsByNameVersion_Len(t *testing.T) {
 	crs := []*subject.CookbookRecord{
 		&subject.CookbookRecord{Name: "cookbook_name"},
 	}
-	assert.Equal(t, 1, subject.CookbookRecordsByNameVersion.Len(crs))
+	assert.Equal(t, 1, subject.CookbookRecordsBySortOrder.Len(crs))
 }
 
 func TestCookbookRecordsByNameVersion_Swap(t *testing.T) {
@@ -588,7 +807,7 @@ func TestCookbookRecordsByNameVersion_Swap(t *testing.T) {
 		&subject.CookbookRecord{Name: "cb2"},
 		&subject.CookbookRecord{Name: "cb1"},
 	}
-	subject.CookbookRecordsByNameVersion.Swap(crs, 0, 1)
+	subject.CookbookRecordsBySortOrder.Swap(crs, 0, 1)
 	assert.Equal(t, expected, crs)
 }
 
@@ -601,18 +820,18 @@ func TestCookbookRecordsByNameVersion_Less(t *testing.T) {
 		&subject.CookbookRecord{Name: "CB1", Version: "1.0.0"},
 		&subject.CookbookRecord{Name: "CB2", Version: "1.0.0"},
 	}
-	assert.True(t, subject.CookbookRecordsByNameVersion.Less(crs, 0, 1))
-	assert.True(t, subject.CookbookRecordsByNameVersion.Less(crs, 0, 2))
-	assert.False(t, subject.CookbookRecordsByNameVersion.Less(crs, 0, 3))
-	assert.False(t, subject.CookbookRecordsByNameVersion.Less(crs, 1, 0))
-	assert.False(t, subject.CookbookRecordsByNameVersion.Less(crs, 1, 2))
-	assert.False(t, subject.CookbookRecordsByNameVersion.Less(crs, 1, 3))
-	assert.False(t, subject.CookbookRecordsByNameVersion.Less(crs, 2, 0))
-	assert.True(t, subject.CookbookRecordsByNameVersion.Less(crs, 2, 1))
-	assert.False(t, subject.CookbookRecordsByNameVersion.Less(crs, 2, 3))
-	assert.True(t, subject.CookbookRecordsByNameVersion.Less(crs, 3, 0))
-	assert.True(t, subject.CookbookRecordsByNameVersion.Less(crs, 3, 1))
-	assert.True(t, subject.CookbookRecordsByNameVersion.Less(crs, 3, 2))
-	assert.False(t, subject.CookbookRecordsByNameVersion.Less(crs, 4, 3))
-	assert.False(t, subject.CookbookRecordsByNameVersion.Less(crs, 5, 2))
+	assert.True(t, subject.CookbookRecordsBySortOrder.Less(crs, 0, 1))
+	assert.True(t, subject.CookbookRecordsBySortOrder.Less(crs, 0, 2))
+	assert.False(t, subject.CookbookRecordsBySortOrder.Less(crs, 0, 3))
+	assert.False(t, subject.CookbookRecordsBySortOrder.Less(crs, 1, 0))
+	assert.False(t, subject.CookbookRecordsBySortOrder.Less(crs, 1, 2))
+	assert.False(t, subject.CookbookRecordsBySortOrder.Less(crs, 1, 3))
+	assert.False(t, subject.CookbookRecordsBySortOrder.Less(crs, 2, 0))
+	assert.True(t, subject.CookbookRecordsBySortOrder.Less(crs, 2, 1))
+	assert.False(t, subject.CookbookRecordsBySortOrder.Less(crs, 2, 3))
+	assert.True(t, subject.CookbookRecordsBySortOrder.Less(crs, 3, 0))
+	assert.True(t, subject.CookbookRecordsBySortOrder.Less(crs, 3, 1))
+	assert.True(t, subject.CookbookRecordsBySortOrder.Less(crs, 3, 2))
+	assert.False(t, subject.CookbookRecordsBySortOrder.Less(crs, 4, 3))
+	assert.False(t, subject.CookbookRecordsBySortOrder.Less(crs, 5, 2))
 }

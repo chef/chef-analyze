@@ -55,10 +55,28 @@ func TestMakeCookbooksReportTXT_WithUnverifiedRecords(t *testing.T) {
 
 	actual := subject.MakeCookbooksReportTXT(&cbStatus)
 	lines := strings.Split(actual.Report, "\n")
-	assert.Equal(t, 3, len(lines))
+	assert.Equal(t, 4, len(lines))
 	assert.Contains(t, actual.Report, "Nodes affected: node-1, node-2")
 	assert.Contains(t, actual.Report, "> Cookbook: my-cookbook (1.0)")
-	assert.Equal(t, "", lines[2])
+	assert.Contains(t, actual.Report, "Policy Group: none")
+	assert.Equal(t, "", lines[3])
+}
+
+func TestMakeCookbooksReportTXT_WithUnverifiedPolicyRecords(t *testing.T) {
+	cbStatus := reporting.CookbooksReport{
+		RunCookstyle: false,
+		Records: []*reporting.CookbookRecord{
+			&reporting.CookbookRecord{Name: "my-cookbook", PolicyGroup: "my-policygroup", Policy: "my-policy", PolicyVer: "123xyzx", Nodes: []string{"node-1", "node-2"}},
+		},
+	}
+
+	actual := subject.MakeCookbooksReportTXT(&cbStatus)
+	lines := strings.Split(actual.Report, "\n")
+	assert.Equal(t, 4, len(lines))
+	assert.Contains(t, actual.Report, "Nodes affected: node-1, node-2")
+	assert.Contains(t, actual.Report, "> Cookbook: my-cookbook (policy my-policy, revision 123xyzx)")
+	assert.Contains(t, actual.Report, "Policy Group: my-policygroup")
+	assert.Equal(t, "", lines[3])
 }
 
 func TestMakeCookbooksReportTXT_WithVerifiedRecords(t *testing.T) {
@@ -78,11 +96,38 @@ func TestMakeCookbooksReportTXT_WithVerifiedRecords(t *testing.T) {
 	assert.Contains(t, actual.Report, "Auto correctable: 1")
 	assert.Contains(t, actual.Report, "Files and offenses:")
 	assert.Contains(t, actual.Report, "path/to/file.rb:")
+	assert.Contains(t, actual.Report, "Policy Group: none")
 	assert.Contains(t, actual.Report, "\tChefDeprecations/Blah (true) some description")
 
 	lines := strings.Split(actual.Report, "\n")
-	assert.Equal(t, 8, len(lines))
-	assert.Equal(t, "", lines[7])
+	assert.Equal(t, 9, len(lines))
+	assert.Equal(t, "", lines[8])
+}
+
+func TestMakeCookbooksReportTXT_WithVerifiedPolicyRecords(t *testing.T) {
+	cbStatus := reporting.CookbooksReport{
+		RunCookstyle: true,
+		Records: []*reporting.CookbookRecord{
+			&reporting.CookbookRecord{Name: "my-cookbook", PolicyGroup: "my-policygroup", Policy: "my-policy", PolicyVer: "123xyzx", Nodes: []string{"node-1", "node-2"},
+				Files: []reporting.CookbookFile{
+					reporting.CookbookFile{Path: "/path/to/file.rb",
+						Offenses: []reporting.CookstyleOffense{
+							reporting.CookstyleOffense{CopName: "ChefDeprecations/Blah", Message: "some description", Correctable: true},
+						}}}}}}
+
+	actual := subject.MakeCookbooksReportTXT(&cbStatus)
+	assert.Contains(t, actual.Report, "Nodes affected: node-1, node-2")
+	assert.Contains(t, actual.Report, "Violations: 1")
+	assert.Contains(t, actual.Report, "Auto correctable: 1")
+	assert.Contains(t, actual.Report, "Files and offenses:")
+	assert.Contains(t, actual.Report, "path/to/file.rb:")
+	assert.Contains(t, actual.Report, "Policy Group: my-policygroup")
+	assert.Contains(t, actual.Report, "my-cookbook (policy my-policy, revision 123xyzx)")
+	assert.Contains(t, actual.Report, "\tChefDeprecations/Blah (true) some description")
+
+	lines := strings.Split(actual.Report, "\n")
+	assert.Equal(t, 9, len(lines))
+	assert.Equal(t, "", lines[8])
 }
 
 func TestMakeCookbooksReportTXT_ErrorReport(t *testing.T) {
@@ -91,16 +136,18 @@ func TestMakeCookbooksReportTXT_ErrorReport(t *testing.T) {
 			&reporting.CookbookRecord{Name: "my-cookbook", Version: "1.0", DownloadError: errors.New("could not download")},
 			&reporting.CookbookRecord{Name: "their-cookbook", Version: "1.1", UsageLookupError: errors.New("could not look up usage")},
 			&reporting.CookbookRecord{Name: "our-cookbook", Version: "1.2", CookstyleError: errors.New("cookstyle error")},
+			&reporting.CookbookRecord{Name: "her-cookbook", PolicyGroup: "my-policygroup", Policy: "my-policy", PolicyVer: "123xyzx", CookstyleError: errors.New("not found 404")},
 		},
 	}
 
 	actual := subject.MakeCookbooksReportTXT(&cbStatus)
 	lines := strings.Split(actual.Errors, "\n")
-	assert.Equal(t, 4, len(lines))
+	assert.Equal(t, 5, len(lines))
 	assert.Equal(t, lines[0], " - my-cookbook (1.0): could not download")
 	assert.Equal(t, lines[1], " - our-cookbook (1.2): cookstyle error")
 	assert.Equal(t, lines[2], " - their-cookbook (1.1): could not look up usage")
-	assert.Equal(t, lines[3], "")
+	assert.Equal(t, lines[3], " - her-cookbook (PolicyGroup my-policygroup, Policy my-policy, PolicyRevision 123xyzx): not found 404")
+	assert.Equal(t, lines[4], "")
 }
 
 func TestMakeNodesReportTXT_Nil(t *testing.T) {
