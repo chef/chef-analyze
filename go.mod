@@ -4,9 +4,8 @@ go 1.13
 
 require (
 	github.com/aws/aws-sdk-go v1.30.20
-	github.com/chef/go-chef v0.4.0
+	github.com/chef/go-chef v0.4.1
 
-	//github.com/chef/go-chef v0.4.0
 	github.com/chef/go-libs v0.3.0
 	github.com/cheggaaa/pb/v3 v3.0.4
 	github.com/fatih/color v1.9.0 // indirect
