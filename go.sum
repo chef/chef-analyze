@@ -33,6 +33,8 @@ github.com/cenkalti/backoff v2.1.1+incompatible/go.mod h1:90ReRw6GdpyfrHakVjL/QH
 github.com/cespare/xxhash v1.1.0/go.mod h1:XrSqR1VqqWfGrhpAt58auRo0WTKS1nRRg3ghfAqPWnc=
 github.com/chef/go-chef v0.4.0 h1:PmcADxl8pwSNTF8I5IAC5ILQaLkT+8CCR2qGVXvGjpY=
 github.com/chef/go-chef v0.4.0/go.mod h1:ft8oU7s0ktse9xzZO4n8wxTz6EKx+V+fuhYxktqXvG8=
+github.com/chef/go-chef v0.4.1 h1:0wNzyec2kremD835eggczi13DvBRxvKtvPOBPCERZHE=
+github.com/chef/go-chef v0.4.1/go.mod h1:KAfG5i7HQ5FdfVCLopElW07qJ/HCPEkLQF86+9RlrJo=
 github.com/chef/go-libs v0.2.0 h1:9/YU0CFKpN8PvlVJGo8E3XfzPc+AU3lpmm/ziR54FrQ=
 github.com/chef/go-libs v0.2.0/go.mod h1:aGHwP5PXYdD0hVq+jodILnSqB/b04EhS/XCoqhE2PrA=
 github.com/chef/go-libs v0.3.0 h1:h75TNIYhQ/16ieC/jIBXPuwdW01ZYuIw3kHFlPVP2JQ=
