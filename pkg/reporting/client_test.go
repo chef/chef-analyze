@@ -59,12 +59,9 @@ func (cm CookbookMock) DownloadTo(name, version, localDir string) error {
 	return cm.desiredDownloadError
 }
 
-//List() (chef.CBAGetResponse, error)
-//DownloadTo(name, id, localDir string) error
+
 type CBAMock struct {
 	desiredCBAList chef.CBAGetResponse
-	//desiredPolicyGroups      chef.PolicyGroupGetResponse
-	//desiredPolicy        chef.RevisionDetailsResponse
 	desiredCBAListError  error
 	desiredDownloadError error
 	createDirOnDownload  bool

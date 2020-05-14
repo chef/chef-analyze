@@ -130,12 +130,13 @@ func (crs CookbookRecordsBySortOrder) Less(i, j int) bool {
 		return l1 < l2
 	}
 
-	// Sort by Polic Name
+	// Sort by Policy Name
 	l3, l4 := strings.ToLower(crs[i].Policy), strings.ToLower(crs[j].Policy)
 	if l3 != l4 {
 		return l3 < l4
 	}
 
+	// Sort by Cookbook Name
 	l5, l6 := strings.ToLower(crs[i].Name), strings.ToLower(crs[j].Name)
 	if l5 != l6 {
 		return l5 < l6
