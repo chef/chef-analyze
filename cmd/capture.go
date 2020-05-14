@@ -155,7 +155,7 @@ can then be used to converge locally.`,
 				)
 			}
 
-			fmt.Print(CookbookCaptureCompleteTxt)
+			fmt.Print(CookbookCaptureCompleteTxt, dirName)
 			return nil
 		},
 	}
