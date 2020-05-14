@@ -28,6 +28,19 @@ type CookbookInterface interface {
 	DownloadTo(name, version, localDir string) error
 }
 
+type CBAInterface interface {
+	List() (chef.CBAGetResponse, error)
+	DownloadTo(name, id, localDir string) error
+}
+
+type PolicyGroupInterface interface {
+	List() (chef.PolicyGroupGetResponse, error)
+}
+
+type PolicyInterface interface {
+	GetRevisionDetails(policyName string, revisionID string) (chef.RevisionDetailsResponse, error)
+}
+
 // SearchInterface for testing
 type SearchInterface interface {
 	PartialExec(idx, statement string, params map[string]interface{}) (res chef.SearchResult, err error)

@@ -88,6 +88,9 @@ The result is written to file.
 			fmt.Printf("Finding available cookbooks...")
 			cookbooksState, err := reporting.NewCookbooksReport(
 				chefClient.Cookbooks,
+				chefClient.CookbookArtifacts,
+				chefClient.PolicyGroups,
+				chefClient.Policies,
 				chefClient.Search,
 				cookbooksFlags.runCookstyle,
 				cookbooksFlags.onlyUnused,

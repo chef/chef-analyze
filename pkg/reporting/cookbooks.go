@@ -43,23 +43,31 @@ type CookbooksReport struct {
 	NodeFilter            string
 	cookbooksDir          string
 	cookbooks             CookbookInterface
+	cookbookArtifacts     CBAInterface
 	searcher              SearchInterface
 	cookstyle             *CookstyleRunner
 	Progress              chan int
 	numWorkers            int
 	cookbookSearchResults chef.CookbookListResult
+	CBASearchResults      []cookbookItem
+	policyGroups          PolicyGroupInterface
+	Policies              PolicyInterface
 }
 
 // CookbookRecord is a single cookbook that we want to download and analyze
 type CookbookRecord struct {
 	Name             string
 	Version          string
+	Identifier       string
 	Files            []CookbookFile
 	Nodes            []string
 	path             string
 	DownloadError    error
 	UsageLookupError error
 	CookstyleError   error
+	Policy           string
+	PolicyVer        string
+	PolicyGroup      string
 }
 
 // Errors collates all known errors
@@ -104,31 +112,51 @@ func (cr *CookbookRecord) NumCorrectable() int {
 	return i
 }
 
-// Sort interface the sorts cookbook records by name.
-type CookbookRecordsByNameVersion []*CookbookRecord
+// Sort interface for cookbook recrods
+// Order by Policy Group, Policy Name, Cookbook Name, Cookbook Version
+type CookbookRecordsBySortOrder []*CookbookRecord
 
-func (crs CookbookRecordsByNameVersion) Len() int {
+func (crs CookbookRecordsBySortOrder) Len() int {
 	return len(crs)
 }
-func (crs CookbookRecordsByNameVersion) Swap(i, j int) {
+func (crs CookbookRecordsBySortOrder) Swap(i, j int) {
 	crs[i], crs[j] = crs[j], crs[i]
 }
-func (crs CookbookRecordsByNameVersion) Less(i, j int) bool {
-	l1, l2 := strings.ToLower(crs[i].Name), strings.ToLower(crs[j].Name)
+
+func (crs CookbookRecordsBySortOrder) Less(i, j int) bool {
+	// Sort by the Policy Group
+	l1, l2 := strings.ToLower(crs[i].PolicyGroup), strings.ToLower(crs[j].PolicyGroup)
 	if l1 != l2 {
 		return l1 < l2
 	}
+
+	// Sort by Policy Name
+	l3, l4 := strings.ToLower(crs[i].Policy), strings.ToLower(crs[j].Policy)
+	if l3 != l4 {
+		return l3 < l4
+	}
+
+	// Sort by Cookbook Name
+	l5, l6 := strings.ToLower(crs[i].Name), strings.ToLower(crs[j].Name)
+	if l5 != l6 {
+		return l5 < l6
+	}
+
 	return strings.ToLower(crs[i].Version) < strings.ToLower(crs[j].Version)
 }
 
 // internally used to submit items to the workers
 type cookbookItem struct {
-	Name    string
-	Version string
+	Name          string
+	Version       string
+	CBAIdentifier string
+	Policy        string
+	PolicyGroup   string
+	PolicyRev     string
 }
 
 func NewCookbooksReport(
-	cbi CookbookInterface, searcher SearchInterface,
+	cbi CookbookInterface, cbai CBAInterface, pgi PolicyGroupInterface, poi PolicyInterface, searcher SearchInterface,
 	runCookstyle bool, onlyUnused bool, workers int,
 	nodeFilter string,
 ) (*CookbooksReport, error) {
@@ -141,11 +169,17 @@ func NewCookbooksReport(
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to retrieve cookbooks")
 	}
+	resultsCBA, err := getCookbookArtifacts(pgi, poi)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to retrieve cookbook artifacts")
+	}
 
 	totalCookbooks := 0
 	for _, versions := range results {
 		totalCookbooks += len(versions.Versions)
 	}
+	totalCookbooks += len(resultsCBA)
+
 	return &CookbooksReport{
 		Records: make([]*CookbookRecord, 0, totalCookbooks),
 		// We buffer this so that we don't block
@@ -156,12 +190,16 @@ func NewCookbooksReport(
 		RunCookstyle:          runCookstyle,
 		NodeFilter:            nodeFilter,
 		cookbooks:             cbi,
+		cookbookArtifacts:     cbai,
 		onlyUnused:            onlyUnused,
 		searcher:              searcher,
 		cookstyle:             NewCookstyleRunner(),
 		cookbooksDir:          cookbooksDir,
 		numWorkers:            workers,
 		cookbookSearchResults: results,
+		CBASearchResults:      resultsCBA,
+		policyGroups:          pgi,
+		Policies:              poi,
 	}, nil
 }
 
@@ -206,8 +244,11 @@ func (cbr *CookbooksReport) addRecord(r *CookbookRecord) {
 func (cbr *CookbooksReport) triggerJobs(inCh chan<- cookbookItem) {
 	for cookbookName, cookbookVersions := range cbr.cookbookSearchResults {
 		for _, ver := range cookbookVersions.Versions {
-			inCh <- cookbookItem{cookbookName, ver.Version}
+			inCh <- cookbookItem{Name: cookbookName, Version: ver.Version}
 		}
+	}
+	for _, cbItem := range cbr.CBASearchResults {
+		inCh <- cbItem
 	}
 	close(inCh)
 }
@@ -218,8 +259,13 @@ func (cbr *CookbooksReport) createDownloadWorkerPool(nWorkers int, downloadCh <-
 		wg.Add(1)
 		go func(inCh <-chan cookbookItem, outCh chan<- *CookbookRecord, wg *sync.WaitGroup) {
 			for item := range inCh {
-				cbState := cbr.downloadCookbook(item.Name, item.Version)
-				analyzeCh <- cbState
+				if item.Policy != "" {
+					cbState := cbr.downloadCookbookArtifact(item)
+					analyzeCh <- cbState
+				} else {
+					cbState := cbr.downloadCookbook(item.Name, item.Version)
+					analyzeCh <- cbState
+				}
 			}
 			wg.Done()
 
@@ -293,6 +339,46 @@ func (cbr *CookbooksReport) downloadCookbook(cookbookName, version string) *Cook
 	return cbState
 }
 
+func (cbr *CookbooksReport) downloadCookbookArtifact(item cookbookItem) *CookbookRecord {
+	var (
+		nodes, err       = cbr.nodesUsingPolicy(item.PolicyGroup, item.Policy, item.PolicyRev)
+		cookbookLongName = fmt.Sprintf("%v-%v", item.Name, item.CBAIdentifier[0:20])
+		cbState          = &CookbookRecord{
+			Name:        item.Name,
+			path:        filepath.Join(cbr.cookbooksDir, cookbookLongName),
+			Identifier:  item.CBAIdentifier,
+			Policy:      item.Policy,
+			PolicyGroup: item.PolicyGroup,
+			PolicyVer:   item.PolicyRev,
+		}
+	)
+	if err != nil {
+		cbState.UsageLookupError = err
+	}
+	cbState.Nodes = nodes
+	// by default we report only cookbooks that are being used by one or more nodes,
+	// but we also provide a way to report the opposite, that is, only unused cookbooks
+	if cbr.onlyUnused {
+		if len(nodes) > 0 {
+			return nil
+		}
+	} else {
+		if len(nodes) == 0 {
+			return nil
+		}
+	}
+
+	// only do the actual download if we need to analyze the cookbooks.
+	if cbr.RunCookstyle {
+		err = cbr.cookbookArtifacts.DownloadTo(item.Name, item.CBAIdentifier, cbr.cookbooksDir)
+		if err != nil {
+			cbState.DownloadError = errors.Wrapf(err, "unable to download cookbook %s", item.Name)
+		}
+	}
+
+	return cbState
+}
+
 func (cbr *CookbooksReport) nodesUsingCookbookVersion(cookbook string, version string) ([]string, error) {
 	query := map[string]interface{}{
 		"name": []string{"name"},
@@ -335,4 +421,61 @@ func (cbr *CookbooksReport) runCookstyleFor(cb *CookbookRecord) {
 	for _, file := range cookstyleResults.Files {
 		cb.Files = append(cb.Files, file)
 	}
+}
+
+func (cbr *CookbooksReport) nodesUsingPolicy(policyGroup string, policyName string, policyRev string) ([]string, error) {
+
+	query := map[string]interface{}{
+		"name": []string{"name"},
+	}
+
+	nodeFilter := fmt.Sprintf("policy_name:%s AND policy_group:%s AND policy_revision:%s", policyName, policyGroup, policyRev)
+	if cbr.NodeFilter != "" {
+		nodeFilter = fmt.Sprintf("%s AND %s", nodeFilter, cbr.NodeFilter)
+	}
+
+	pres, err := cbr.searcher.PartialExec("node", nodeFilter, query)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to get policy usage information for nodes")
+	}
+
+	results := make([]string, 0, len(pres.Rows))
+	for _, element := range pres.Rows {
+		v := element.(map[string]interface{})["data"].(map[string]interface{})
+		if v != nil {
+			results = append(results, safeStringFromMap(v, "name"))
+		}
+	}
+
+	return results, nil
+}
+
+func getCookbookArtifacts(policyGroups PolicyGroupInterface, Policies PolicyInterface) ([]cookbookItem, error) {
+
+	cbaResults := []cookbookItem{}
+
+	policyGroupList, err := policyGroups.List()
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to retrieve policy groups")
+	}
+
+	for pg, v := range policyGroupList {
+		for p, pv := range v.Policies {
+			for _, rv := range pv {
+				rvDetail, err := Policies.GetRevisionDetails(p, rv)
+				if err != nil {
+					return nil, errors.Wrap(err, "unable to retrieve cookbook artifacts for policy revisions")
+				}
+				for ck, cv := range rvDetail.CookbookLocks {
+					cbaResults = append(cbaResults, cookbookItem{Name: ck,
+						CBAIdentifier: cv.Identifier,
+						Policy:        p,
+						PolicyGroup:   pg,
+						PolicyRev:     rv})
+				}
+			}
+		}
+	}
+
+	return cbaResults, nil
 }

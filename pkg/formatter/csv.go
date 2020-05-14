@@ -37,7 +37,7 @@ func MakeCookbooksReportCSV(state *reporting.CookbooksReport) *FormattedResult {
 		return &FormattedResult{"", ""}
 	}
 
-	tableHeaders := []string{"Cookbook Name", "Version"}
+	tableHeaders := []string{"Cookbook Name", "Version", "Policy Group", "Policy", "Policy Revision"}
 	if state.RunCookstyle {
 		tableHeaders = append(tableHeaders,
 			"File",
@@ -71,6 +71,9 @@ func MakeCookbooksReportCSV(state *reporting.CookbooksReport) *FormattedResult {
 					row := []string{
 						record.Name,
 						record.Version,
+						record.PolicyGroup,
+						record.Policy,
+						record.PolicyVer,
 						file.Path,
 						offense.CopName,
 						"N",
@@ -78,18 +81,22 @@ func MakeCookbooksReportCSV(state *reporting.CookbooksReport) *FormattedResult {
 						nodesString,
 					}
 					if offense.Correctable {
-						row[4] = "Y"
+						row[7] = "Y"
 					}
 					csvWriter.Write(row)
 				}
 			}
 		} else {
-			row := []string{record.Name, record.Version, nodesString}
+			row := []string{record.Name, record.Version, record.PolicyGroup, record.Policy, record.PolicyVer, nodesString}
 			csvWriter.Write(row)
 		}
 
 		for _, e := range record.Errors() {
-			errBuilder.WriteString(fmt.Sprintf(" - %s (%s): %v\n", record.Name, record.Version, e))
+			if record.PolicyGroup != "" {
+				errBuilder.WriteString(fmt.Sprintf(" - %s (PolicyGroup %s, Policy %s, PolicyRevision %s): %v\n", record.Name, record.PolicyGroup, record.Policy, record.PolicyVer, e))
+			} else {
+				errBuilder.WriteString(fmt.Sprintf(" - %s (%s): %v\n", record.Name, record.Version, e))
+			}
 		}
 	}
 

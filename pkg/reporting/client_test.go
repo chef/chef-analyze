@@ -58,12 +58,77 @@ func (cm CookbookMock) DownloadTo(name, version, localDir string) error {
 	}
 	return cm.desiredDownloadError
 }
+
+
+type CBAMock struct {
+	desiredCBAList chef.CBAGetResponse
+	desiredCBAListError  error
+	desiredDownloadError error
+	createDirOnDownload  bool
+}
+
+func (cm CBAMock) List() (chef.CBAGetResponse, error) {
+	return cm.desiredCBAList, cm.desiredCBAListError
+}
+
+func (cm CBAMock) DownloadTo(name, id, localDir string) error {
+	if cm.createDirOnDownload {
+		dirToMock := filepath.Join(localDir, fmt.Sprintf("%s-%s", name, id))
+		err := os.MkdirAll(dirToMock, os.ModePerm)
+		if err != nil {
+			panic(err)
+		}
+	}
+	return cm.desiredDownloadError
+}
+
+type PolicyGroupMock struct {
+	desiredPolicyGroupList      chef.PolicyGroupGetResponse
+	desiredPolicyGroupListError error
+}
+
+func (pgm PolicyGroupMock) List() (chef.PolicyGroupGetResponse, error) {
+	return pgm.desiredPolicyGroupList, pgm.desiredPolicyGroupListError
+}
+
+type PolicyMock struct {
+	desiredPolicyDetail      chef.RevisionDetailsResponse
+	desiredPolicyDetailError error
+}
+
+func (pm PolicyMock) GetRevisionDetails(policyName string, revisionID string) (chef.RevisionDetailsResponse, error) {
+	return pm.desiredPolicyDetail, pm.desiredPolicyDetailError
+}
+
 func newMockCookbook(cookbookList chef.CookbookListResult, desiredCbListErr, desiredDownloadErr error) *CookbookMock {
 	return &CookbookMock{
 		desiredCookbookList:      cookbookList,
 		desiredCookbookListError: desiredCbListErr,
 		desiredDownloadError:     desiredDownloadErr,
 		createDirOnDownload:      true,
+	}
+}
+
+func newMockCookbookArtifact(CBAList chef.CBAGetResponse, desiredCbListErr, desiredDownloadErr error) *CBAMock {
+	return &CBAMock{
+		desiredCBAList:       CBAList,
+		desiredCBAListError:  desiredCbListErr,
+		desiredDownloadError: desiredDownloadErr,
+		createDirOnDownload:  true,
+	}
+}
+
+func newMockPolicyGroup(policyGroupList chef.PolicyGroupGetResponse, desiredPolicyGroupListErr error) *PolicyGroupMock {
+	return &PolicyGroupMock{
+		desiredPolicyGroupList:      policyGroupList,
+		desiredPolicyGroupListError: desiredPolicyGroupListErr,
+	}
+}
+
+func newMockPolicy(policyDetail chef.RevisionDetailsResponse, desiredPolicyDetailErr error) *PolicyMock {
+	return &PolicyMock{
+		desiredPolicyDetail:      policyDetail,
+		desiredPolicyDetailError: desiredPolicyDetailErr,
 	}
 }
 

@@ -58,9 +58,41 @@ func TestMakeCookbooksReportCSV_WithUnverifiedRecords(t *testing.T) {
 
 	lines := strings.Split(subject.MakeCookbooksReportCSV(&cbStatus).Report, "\n")
 	assert.Equal(t, 3, len(lines))
-	assert.Equal(t, "Cookbook Name,Version,Nodes", lines[0])
-	assert.Equal(t, "my-cookbook,1.0,node-1 node-2", lines[1])
+	assert.Equal(t, "Cookbook Name,Version,Policy Group,Policy,Policy Revision,Nodes", lines[0])
+	assert.Equal(t, "my-cookbook,1.0,,,,node-1 node-2", lines[1])
 	assert.Equal(t, "", lines[2])
+}
+
+func TestMakeCookbooksReportCSV_WithUnverifiedPolicyRecords(t *testing.T) {
+	cbStatus := reporting.CookbooksReport{
+		RunCookstyle: false,
+		Records: []*reporting.CookbookRecord{
+			&reporting.CookbookRecord{Name: "my-cookbook", PolicyGroup: "my-policygroup", Policy: "my-policy", PolicyVer: "123xyz78900022222", Nodes: []string{"node-1", "node-2"}},
+		},
+	}
+
+	lines := strings.Split(subject.MakeCookbooksReportCSV(&cbStatus).Report, "\n")
+	assert.Equal(t, 3, len(lines))
+	assert.Equal(t, "Cookbook Name,Version,Policy Group,Policy,Policy Revision,Nodes", lines[0])
+	assert.Equal(t, "my-cookbook,,my-policygroup,my-policy,123xyz78900022222,node-1 node-2", lines[1])
+	assert.Equal(t, "", lines[2])
+}
+
+func TestMakeCookbooksReportCSV_WithUnverifiedMixRecords(t *testing.T) {
+	cbStatus := reporting.CookbooksReport{
+		RunCookstyle: false,
+		Records: []*reporting.CookbookRecord{
+			&reporting.CookbookRecord{Name: "my-cookbook", Version: "1.0", Nodes: []string{"node-1", "node-2"}},
+			&reporting.CookbookRecord{Name: "my-cookbook", PolicyGroup: "my-policygroup", Policy: "my-policy", PolicyVer: "123xyz78900022222", Nodes: []string{"node-3", "node-4"}},
+		},
+	}
+
+	lines := strings.Split(subject.MakeCookbooksReportCSV(&cbStatus).Report, "\n")
+	assert.Equal(t, 4, len(lines))
+	assert.Equal(t, "Cookbook Name,Version,Policy Group,Policy,Policy Revision,Nodes", lines[0])
+	assert.Equal(t, "my-cookbook,1.0,,,,node-1 node-2", lines[1])
+	assert.Equal(t, "my-cookbook,,my-policygroup,my-policy,123xyz78900022222,node-3 node-4", lines[2])
+	assert.Equal(t, "", lines[3])
 }
 
 func TestMakeCookbooksReportCSV_WithVerifiedRecords(t *testing.T) {
@@ -77,8 +109,8 @@ func TestMakeCookbooksReportCSV_WithVerifiedRecords(t *testing.T) {
 	actual := subject.MakeCookbooksReportCSV(&cbStatus)
 	lines := strings.Split(actual.Report, "\n")
 	assert.Equal(t, 3, len(lines))
-	assert.Equal(t, "Cookbook Name,Version,File,Offense,Automatically Correctable,Message,Nodes", lines[0])
-	assert.Equal(t, "my-cookbook,1.0,/path/to/file.rb,ChefDeprecations/Blah,Y,some description,node-1 node-2", lines[1])
+	assert.Equal(t, "Cookbook Name,Version,Policy Group,Policy,Policy Revision,File,Offense,Automatically Correctable,Message,Nodes", lines[0])
+	assert.Equal(t, "my-cookbook,1.0,,,,/path/to/file.rb,ChefDeprecations/Blah,Y,some description,node-1 node-2", lines[1])
 	assert.Equal(t, "", lines[2])
 }
 
@@ -97,8 +129,8 @@ func TestMakeCookbooksReportCSV_WithVerifiedRecordsAndFilter(t *testing.T) {
 	actual := subject.MakeCookbooksReportCSV(&cbStatus)
 	lines := strings.Split(actual.Report, "\n")
 	assert.Equal(t, 3, len(lines))
-	assert.Equal(t, "Cookbook Name,Version,File,Offense,Automatically Correctable,Message,Nodes (filtered: name:node-1)", lines[0])
-	assert.Equal(t, "my-cookbook,1.0,/path/to/file.rb,ChefDeprecations/Blah,Y,some description,node-1 node-2", lines[1])
+	assert.Equal(t, "Cookbook Name,Version,Policy Group,Policy,Policy Revision,File,Offense,Automatically Correctable,Message,Nodes (filtered: name:node-1)", lines[0])
+	assert.Equal(t, "my-cookbook,1.0,,,,/path/to/file.rb,ChefDeprecations/Blah,Y,some description,node-1 node-2", lines[1])
 	assert.Equal(t, "", lines[2])
 }
 
@@ -112,7 +144,7 @@ func TestMakeCookbooksReportCSV_NoFiles(t *testing.T) {
 	actual := subject.MakeCookbooksReportCSV(&cbStatus)
 	lines := strings.Split(actual.Report, "\n")
 	assert.Equal(t, 2, len(lines))
-	assert.Equal(t, "Cookbook Name,Version,File,Offense,Automatically Correctable,Message,Nodes", lines[0])
+	assert.Equal(t, "Cookbook Name,Version,Policy Group,Policy,Policy Revision,File,Offense,Automatically Correctable,Message,Nodes", lines[0])
 	assert.Equal(t, "", lines[1])
 }
 
@@ -127,7 +159,7 @@ func TestMakeCookbooksReportCSV_NoFileOffenses(t *testing.T) {
 	actual := subject.MakeCookbooksReportCSV(&cbStatus)
 	lines := strings.Split(actual.Report, "\n")
 	assert.Equal(t, 2, len(lines))
-	assert.Equal(t, "Cookbook Name,Version,File,Offense,Automatically Correctable,Message,Nodes", lines[0])
+	assert.Equal(t, "Cookbook Name,Version,Policy Group,Policy,Policy Revision,File,Offense,Automatically Correctable,Message,Nodes", lines[0])
 	assert.Equal(t, "", lines[1])
 }
 
@@ -151,10 +183,10 @@ func TestMakeCookbooksReportCSV_WithMultipleRecords(t *testing.T) {
 	actual := subject.MakeCookbooksReportCSV(&cbStatus)
 	lines := strings.Split(actual.Report, "\n")
 	assert.Equal(t, 5, len(lines))
-	assert.Equal(t, "Cookbook Name,Version,File,Offense,Automatically Correctable,Message,Nodes", lines[0])
-	assert.Contains(t, lines, "my-cookbook,1.0,/path/to/file.rb,ChefDeprecations/Blah,Y,some description,node-1 node-2")
-	assert.Contains(t, lines, "my-cookbook,1.0,/path/to/other_file.rb,ChefDeprecations/Blah1,Y,some description1,node-1 node-2")
-	assert.Contains(t, lines, "my-cookbook,1.0,/path/to/other_file.rb,ChefDeprecations/Blah2,N,some description2,node-1 node-2")
+	assert.Equal(t, "Cookbook Name,Version,Policy Group,Policy,Policy Revision,File,Offense,Automatically Correctable,Message,Nodes", lines[0])
+	assert.Contains(t, lines, "my-cookbook,1.0,,,,/path/to/file.rb,ChefDeprecations/Blah,Y,some description,node-1 node-2")
+	assert.Contains(t, lines, "my-cookbook,1.0,,,,/path/to/other_file.rb,ChefDeprecations/Blah1,Y,some description1,node-1 node-2")
+	assert.Contains(t, lines, "my-cookbook,1.0,,,,/path/to/other_file.rb,ChefDeprecations/Blah2,N,some description2,node-1 node-2")
 	assert.Equal(t, "", lines[4])
 }
 
