@@ -17,21 +17,13 @@
 package main
 
 import (
-	"fmt"
 	"os"
-
-	"github.com/chef/go-libs/featflag"
 
 	"github.com/chef/chef-analyze/cmd"
 )
 
 func main() {
-	if featflag.ChefFeatAnalyze.Enabled() {
-		if err := cmd.Execute(); err != nil {
-			os.Exit(-1)
-		}
-	} else {
-		key := featflag.ChefFeatAnalyze.Key()
-		fmt.Printf(cmd.AnalyzeNotEnabledE003, key, featflag.ChefFeatAnalyze.Env(), key)
+	if err := cmd.Execute(); err != nil {
+		os.Exit(-1)
 	}
 }
