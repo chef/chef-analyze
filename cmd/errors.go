@@ -18,7 +18,7 @@
 package cmd
 
 //
-// The intend of this file is to have a single place where we can easily
+// The intent of this file is to have a single place where we can easily
 // visualize the list of all error messages that we present to users.
 //
 
@@ -44,21 +44,5 @@ const (
 
   To re-run capture for node %s, delete this directory.
 
-`
-	// Arg: 1 - feature flag name
-	//      2 - env var name
-	//      3 - feature flag name
-	AnalyzeNotEnabledE003 = `
-  E003
-
-	'%s' is experimental and in development. You can temporarily
-	enable it by setting the following environment variable:
-
-	  %s=true
-
-	Or permanently enable it by modifying $HOME/.chef-workstation/config.toml:
-
-	  [features]
-		%s = true
 `
 )

@@ -32,6 +32,11 @@ func cookbooksList(w http.ResponseWriter, req *http.Request) {
 	fmt.Fprintf(w, "{}\n")
 }
 
+// TODO @tball populate this response with some real data
+func policyGroups(w http.ResponseWriter, req *http.Request) {
+	fmt.Fprintf(w, "{}\n")
+}
+
 // start a HTTP server listening on localhost:80 to create a fake Chef Server
 func startFakeChefServer() {
 	// TODO @afiune I think we probably need to have a way to define the responses
@@ -44,6 +49,10 @@ func startFakeChefServer() {
 	http.HandleFunc(
 		fmt.Sprintf("/organizations/%s/cookbooks", DefaultChefServerOrganization),
 		cookbooksList,
+	)
+	http.HandleFunc(
+		fmt.Sprintf("/organizations/%s/policy_groups", DefaultChefServerOrganization),
+		policyGroups,
 	)
 	// @afiune we use port 80 to use "HTTP" instead of "HTTPS" to avoid signing requests
 	http.ListenAndServe(":80", nil)
