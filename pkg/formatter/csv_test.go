@@ -223,11 +223,11 @@ func TestMakeNodesReportCSV_NoRecords(t *testing.T) {
 
 func TestMakeNodesReportCSV_WithRecords(t *testing.T) {
 	nodesReport := []*reporting.NodeReportItem{
-		&reporting.NodeReportItem{Name: "node1", ChefVersion: "12.22", OS: "windows", OSVersion: "10.1",
+		&reporting.NodeReportItem{Name: "node1", ChefVersion: "12.22", OS: "windows", OSVersion: "10.1", PolicyGroup: "preprod", Policy: "grafana", PolicyRev: "xyz1234567890",
 			CookbookVersions: []reporting.CookbookVersion{
 				reporting.CookbookVersion{Name: "mycookbook", Version: "1.0"}},
 		},
-		&reporting.NodeReportItem{Name: "node2", ChefVersion: "13.11", OS: "", OSVersion: "",
+		&reporting.NodeReportItem{Name: "node2", ChefVersion: "13.11", OS: "", OSVersion: "", PolicyGroup: "preprod", Policy: "grafana", PolicyRev: "xyz1234567890",
 			CookbookVersions: []reporting.CookbookVersion{
 				reporting.CookbookVersion{Name: "mycookbook", Version: "1.0"},
 				reporting.CookbookVersion{Name: "test", Version: "9.9"},
@@ -235,27 +235,33 @@ func TestMakeNodesReportCSV_WithRecords(t *testing.T) {
 		},
 		&reporting.NodeReportItem{Name: "node3", ChefVersion: "15.00", OS: "ubuntu", OSVersion: "16.04",
 			CookbookVersions: nil},
+		&reporting.NodeReportItem{Name: "node4", ChefVersion: "16.00", OS: "ubuntu", OSVersion: "18.04",
+			CookbookVersions: []reporting.CookbookVersion{
+				reporting.CookbookVersion{Name: "mycookbook", Version: "1.0"},
+				reporting.CookbookVersion{Name: "test", Version: "9.9"},
+			},
+		},
 	}
-
 	lines := strings.Split(subject.MakeNodesReportCSV(nodesReport, "").Report, "\n")
-	if assert.Equal(t, 5, len(lines)) {
-		assert.Equal(t, "Node Name,Chef Version,Operating System,Cookbooks (alphanumeric order)", lines[0])
-		assert.Contains(t, lines, "node1,12.22,windows v10.1,mycookbook(1.0)")
-		assert.Contains(t, lines, "node2,13.11,,mycookbook(1.0) test(9.9)")
-		assert.Contains(t, lines, "node3,15.00,ubuntu v16.04,None")
-		assert.Equal(t, "", lines[4])
+	if assert.Equal(t, 6, len(lines)) {
+		assert.Equal(t, "Node Name,Chef Version,Operating System,Policy Group,Policy,Cookbooks (alphanumeric order)", lines[0])
+		assert.Contains(t, lines, "node1,12.22,windows v10.1,preprod,grafana(rev xyz1234567890),mycookbook")
+		assert.Contains(t, lines, "node2,13.11,,preprod,grafana(rev xyz1234567890),mycookbook test")
+		assert.Contains(t, lines, "node3,15.00,ubuntu v16.04,no group,no policy,None")
+		assert.Contains(t, lines, "node4,16.00,ubuntu v18.04,no group,no policy,mycookbook(1.0) test(9.9)")
+		assert.Equal(t, "", lines[5])
 	}
 }
 
 func TestMakeNodesReportCSV_WithRecordsSorted(t *testing.T) {
 	nodesReport := []*reporting.NodeReportItem{
-		&reporting.NodeReportItem{Name: "zzz", ChefVersion: "13.11", OS: "", OSVersion: "",
+		&reporting.NodeReportItem{Name: "zzz", ChefVersion: "13.11", OS: "", OSVersion: "", PolicyGroup: "prod", Policy: "grafana", PolicyRev: "xyz1234567890",
 			CookbookVersions: []reporting.CookbookVersion{
 				reporting.CookbookVersion{Name: "yyy", Version: "1.0"},
 				reporting.CookbookVersion{Name: "ccc", Version: "9.9"},
 			},
 		},
-		&reporting.NodeReportItem{Name: "Aaa", ChefVersion: "13.11", OS: "", OSVersion: "",
+		&reporting.NodeReportItem{Name: "Aaa", ChefVersion: "13.11", OS: "", OSVersion: "", PolicyGroup: "", Policy: "", PolicyRev: "",
 			CookbookVersions: []reporting.CookbookVersion{
 				reporting.CookbookVersion{Name: "yyy", Version: "1.0"},
 				reporting.CookbookVersion{Name: "YYY", Version: "9.9"},
@@ -276,11 +282,11 @@ func TestMakeNodesReportCSV_WithRecordsSorted(t *testing.T) {
 
 	lines := strings.Split(subject.MakeNodesReportCSV(nodesReport, "").Report, "\n")
 	if assert.Equal(t, 6, len(lines)) {
-		assert.Equal(t, "Node Name,Chef Version,Operating System,Cookbooks (alphanumeric order)", lines[0])
-		assert.Equal(t, "123,13.11,,None", lines[1])
-		assert.Equal(t, "Aaa,13.11,,yyy(1.0) yyy(10.0) YYY(9.9) YYY(99.9)", lines[2])
-		assert.Equal(t, "aaa,13.11,,ccc(9.9) ddd(1.0)", lines[3])
-		assert.Equal(t, "zzz,13.11,,ccc(9.9) yyy(1.0)", lines[4])
+		assert.Equal(t, "Node Name,Chef Version,Operating System,Policy Group,Policy,Cookbooks (alphanumeric order)", lines[0])
+		assert.Equal(t, "123,13.11,,no group,no policy,None", lines[1])
+		assert.Equal(t, "Aaa,13.11,,no group,no policy,yyy(1.0) yyy(10.0) YYY(9.9) YYY(99.9)", lines[2])
+		assert.Equal(t, "aaa,13.11,,no group,no policy,ccc(9.9) ddd(1.0)", lines[3])
+		assert.Equal(t, "zzz,13.11,,prod,grafana(rev xyz1234567890),ccc yyy", lines[4])
 		assert.Equal(t, "", lines[5])
 	}
 }
@@ -291,7 +297,7 @@ func TestMakeNodesReportCSV_WithRecordsAndFilter(t *testing.T) {
 			CookbookVersions: []reporting.CookbookVersion{
 				reporting.CookbookVersion{Name: "mycookbook", Version: "1.0"}},
 		},
-		&reporting.NodeReportItem{Name: "node2", ChefVersion: "13.11", OS: "", OSVersion: "",
+		&reporting.NodeReportItem{Name: "node2", ChefVersion: "13.11", OS: "", OSVersion: "", PolicyGroup: "prod", Policy: "grafana", PolicyRev: "xyz1234567890",
 			CookbookVersions: []reporting.CookbookVersion{
 				reporting.CookbookVersion{Name: "mycookbook", Version: "1.0"},
 				reporting.CookbookVersion{Name: "test", Version: "9.9"},
@@ -303,10 +309,10 @@ func TestMakeNodesReportCSV_WithRecordsAndFilter(t *testing.T) {
 
 	lines := strings.Split(subject.MakeNodesReportCSV(nodesReport, "name:node*").Report, "\n")
 	if assert.Equal(t, 5, len(lines)) {
-		assert.Equal(t, "Node Name (node filter: name:node*),Chef Version,Operating System,Cookbooks (alphanumeric order)", lines[0])
-		assert.Contains(t, lines, "node1,12.22,windows v10.1,mycookbook(1.0)")
-		assert.Contains(t, lines, "node2,13.11,,mycookbook(1.0) test(9.9)")
-		assert.Contains(t, lines, "node3,15.00,ubuntu v16.04,None")
+		assert.Equal(t, "Node Name (node filter: name:node*),Chef Version,Operating System,Policy Group,Policy,Cookbooks (alphanumeric order)", lines[0])
+		assert.Contains(t, lines, "node1,12.22,windows v10.1,no group,no policy,mycookbook(1.0)")
+		assert.Contains(t, lines, "node2,13.11,,prod,grafana(rev xyz1234567890),mycookbook test")
+		assert.Contains(t, lines, "node3,15.00,ubuntu v16.04,no group,no policy,None")
 		assert.Equal(t, "", lines[4])
 	}
 }
@@ -328,7 +334,7 @@ func TestMakeNodesReportCSV_WithMultipleNodesAndCookbooks(t *testing.T) {
 		&reporting.NodeReportItem{Name: "node1", ChefVersion: "15.2", OS: "windows", OSVersion: "10.1",
 			CookbookVersions: []reporting.CookbookVersion{},
 		},
-		&reporting.NodeReportItem{Name: "node2", ChefVersion: "13.11", OS: "macos", OSVersion: "15",
+		&reporting.NodeReportItem{Name: "node2", ChefVersion: "13.11", OS: "macos", OSVersion: "15", PolicyGroup: "prod", Policy: "grafana", PolicyRev: "xyz1234567890",
 			CookbookVersions: []reporting.CookbookVersion{
 				reporting.CookbookVersion{Name: "mycookbook", Version: "1.0"},
 				reporting.CookbookVersion{Name: "test", Version: "9.9"},
@@ -340,12 +346,12 @@ func TestMakeNodesReportCSV_WithMultipleNodesAndCookbooks(t *testing.T) {
 
 	lines := strings.Split(subject.MakeNodesReportCSV(nodesReport, "").Report, "\n")
 	if assert.Equal(t, 7, len(lines)) {
-		assert.Equal(t, "Node Name,Chef Version,Operating System,Cookbooks (alphanumeric order)", lines[0])
-		assert.Contains(t, lines, "node1,12.22,windows v10.1,mycookbook1(1.0) mycookbook1(2.0)")
-		assert.Contains(t, lines, "node1,13.10,windows v10.1,mycookbook1(1.0) mycookbook1(2.0)")
-		assert.Contains(t, lines, "node1,15.2,windows v10.1,None")
-		assert.Contains(t, lines, "node2,13.11,macos v15,mycookbook(1.0) test(9.9)")
-		assert.Contains(t, lines, "node3,15.00,ubuntu v16.04,None")
+		assert.Equal(t, "Node Name,Chef Version,Operating System,Policy Group,Policy,Cookbooks (alphanumeric order)", lines[0])
+		assert.Contains(t, lines, "node1,12.22,windows v10.1,no group,no policy,mycookbook1(1.0) mycookbook1(2.0)")
+		assert.Contains(t, lines, "node1,13.10,windows v10.1,no group,no policy,mycookbook1(1.0) mycookbook1(2.0)")
+		assert.Contains(t, lines, "node1,15.2,windows v10.1,no group,no policy,None")
+		assert.Contains(t, lines, "node2,13.11,macos v15,prod,grafana(rev xyz1234567890),mycookbook test")
+		assert.Contains(t, lines, "node3,15.00,ubuntu v16.04,no group,no policy,None")
 		assert.Equal(t, "", lines[6])
 	}
 }

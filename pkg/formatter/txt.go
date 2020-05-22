@@ -124,11 +124,25 @@ func MakeNodesReportTXT(records []*reporting.NodeReportItem, nodeFilter string) 
 				stringOrUnknownPlaceholder(record.OSVersionPretty())),
 		)
 
+		strBuilder.WriteString(
+			fmt.Sprintf("  Policy Group: %s\n",
+				stringOrUnknownPlaceholder(record.GetPolicyGroup())),
+		)
+
+		strBuilder.WriteString(
+			fmt.Sprintf("  Policy: %s\n",
+				stringOrUnknownPlaceholder(record.GetPolicyWithRev())),
+		)
+
 		if len(record.CookbooksList()) == 0 {
 			strBuilder.WriteString("  Cookbooks Applied: none\n")
 		} else {
 			strBuilder.WriteString("  Cookbooks Applied (alphanumeric order): ")
-			strBuilder.WriteString(strings.Join(record.CookbooksList(), ", "))
+			cookbooksString := strings.Join(record.CookbooksList(), ", ")
+			if record.GetPolicyGroup() != "no group" {
+				cookbooksString = stringReplace(`\([\d,.]+\)`, cookbooksString, "")
+			}
+			strBuilder.WriteString(cookbooksString)
 			strBuilder.WriteString("\n")
 		}
 	}

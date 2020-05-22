@@ -116,7 +116,7 @@ func MakeNodesReportCSV(records []*reporting.NodeReportItem, nodeFilter string) 
 		return &FormattedResult{"", ""}
 	}
 
-	tableHeaders := []string{"Node Name", "Chef Version", "Operating System", "Cookbooks (alphanumeric order)"}
+	tableHeaders := []string{"Node Name", "Chef Version", "Operating System", "Policy Group", "Policy", "Cookbooks (alphanumeric order)"}
 	if len(nodeFilter) > 0 {
 		tableHeaders[0] = fmt.Sprintf("Node Name (node filter: %s)", nodeFilter)
 	}
@@ -131,12 +131,17 @@ func MakeNodesReportCSV(records []*reporting.NodeReportItem, nodeFilter string) 
 		)
 		if len(cookbooksList) != 0 {
 			cookbooksString = strings.Join(cookbooksList, " ")
+			if record.GetPolicyGroup() != "no group" {
+				cookbooksString = stringReplace(`\([\d,.]+\)`, cookbooksString, "")
+			}
 		}
 
 		csvWriter.Write([]string{
 			record.Name,
 			record.ChefVersion,
 			record.OSVersionPretty(),
+			record.GetPolicyGroup(),
+			record.GetPolicyWithRev(),
 			cookbooksString,
 		})
 	}
