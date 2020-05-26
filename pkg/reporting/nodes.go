@@ -70,6 +70,9 @@ type NodeReportItem struct {
 	OS               string
 	OSVersion        string
 	CookbookVersions []CookbookVersion
+	PolicyGroup      string
+	Policy           string
+	PolicyRev        string
 }
 
 // OSVersionPretty looks nice
@@ -81,6 +84,46 @@ func (nri *NodeReportItem) OSVersionPretty() string {
 	}
 
 	return ""
+}
+
+// GetPolicyGroup returns Policy Group or "no group"
+func (nri *NodeReportItem) GetPolicyGroup() string {
+
+	if nri.PolicyGroup == "" {
+		return "no group"
+	}
+
+	return nri.PolicyGroup
+}
+
+// HasPolicyGroup returns true or false for Policy Group presenece
+func (nri *NodeReportItem) HasPolicyGroup() bool {
+
+	if nri.PolicyGroup == "" {
+		return false
+	}
+
+	return true
+}
+
+// GetPolicy returns Policy Name or "no policy"
+func (nri *NodeReportItem) GetPolicy() string {
+
+	if nri.Policy == "" {
+		return "no policy"
+	}
+
+	return nri.Policy
+}
+
+// GetPolicyWithRev returns formatted Policy name with revision
+func (nri *NodeReportItem) GetPolicyWithRev() string {
+
+	if nri.Policy == "" {
+		return "no policy"
+	}
+
+	return fmt.Sprintf("%s (rev %s)", nri.Policy, nri.PolicyRev)
 }
 
 // CookbooksList transforms to an easily printable []string
@@ -98,11 +141,14 @@ func (nri *NodeReportItem) CookbooksList() []string {
 func GenerateNodesReport(searcher SearchInterface, filter string) ([]*NodeReportItem, error) {
 	var (
 		query = map[string]interface{}{
-			"name":         []string{"name"},
-			"chef_version": []string{"chef_packages", "chef", "version"},
-			"os":           []string{"platform"},
-			"os_version":   []string{"platform_version"},
-			"cookbooks":    []string{"cookbooks"},
+			"name":            []string{"name"},
+			"chef_version":    []string{"chef_packages", "chef", "version"},
+			"os":              []string{"platform"},
+			"os_version":      []string{"platform_version"},
+			"cookbooks":       []string{"cookbooks"},
+			"policy_group":    []string{"policy_group"},
+			"policy_name":     []string{"policy_name"},
+			"policy_revision": []string{"policy_revision"},
 		}
 	)
 	if filter == "" {
@@ -129,6 +175,9 @@ func GenerateNodesReport(searcher SearchInterface, filter string) ([]*NodeReport
 				OS:          safeStringFromMap(v, "os"),
 				OSVersion:   safeStringFromMap(v, "os_version"),
 				ChefVersion: safeStringFromMap(v, "chef_version"),
+				PolicyGroup: safeStringFromMap(v, "policy_group"),
+				Policy:      safeStringFromMap(v, "policy_name"),
+				PolicyRev:   safeStringFromMap(v, "policy_revision"),
 			}
 
 			if v["cookbooks"] != nil {

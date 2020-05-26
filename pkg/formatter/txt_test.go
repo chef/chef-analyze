@@ -173,7 +173,7 @@ func TestMakeNodesReportTXT_WithRecords(t *testing.T) {
 			CookbookVersions: []reporting.CookbookVersion{
 				reporting.CookbookVersion{Name: "mycookbook", Version: "1.0"}},
 		},
-		&reporting.NodeReportItem{Name: "node2", ChefVersion: "13.11", OS: "", OSVersion: "",
+		&reporting.NodeReportItem{Name: "node2", ChefVersion: "13.11", OS: "", OSVersion: "", PolicyGroup: "prod", Policy: "grafana", PolicyRev: "xyz1234567890",
 			CookbookVersions: []reporting.CookbookVersion{
 				reporting.CookbookVersion{Name: "mycookbook", Version: "1.0"},
 				reporting.CookbookVersion{Name: "test", Version: "9.9"},
@@ -189,18 +189,24 @@ func TestMakeNodesReportTXT_WithRecords(t *testing.T) {
 		expectedReport = `> Node: node1
   Chef Version: 12.22
   Operating System: windows v10.1
+  Policy Group: no group
+  Policy: no policy
   Cookbooks Applied (alphanumeric order): mycookbook(1.0)
 > Node: node2
   Chef Version: 13.11
   Operating System: unknown
-  Cookbooks Applied (alphanumeric order): mycookbook(1.0), test(9.9)
+  Policy Group: prod
+  Policy: grafana (rev xyz1234567890)
+  Cookbooks Applied (alphanumeric order): mycookbook, test
 > Node: node3
   Chef Version: 15.00
   Operating System: ubuntu v16.04
+  Policy Group: no group
+  Policy: no policy
   Cookbooks Applied: none
 `
 	)
-	if assert.Equal(t, 13, len(lines)) {
+	if assert.Equal(t, 19, len(lines)) {
 		assert.Equal(t, expectedReport, actual.Report)
 	}
 }
@@ -224,7 +230,7 @@ func TestMakeNodesReportTXT_WithRecordsSorted(t *testing.T) {
 		&reporting.NodeReportItem{Name: "123", ChefVersion: "13.11", OS: "", OSVersion: "",
 			CookbookVersions: []reporting.CookbookVersion{},
 		},
-		&reporting.NodeReportItem{Name: "aaa", ChefVersion: "13.11", OS: "", OSVersion: "",
+		&reporting.NodeReportItem{Name: "aaa", ChefVersion: "13.11", OS: "", OSVersion: "", PolicyGroup: "prod", Policy: "grafana", PolicyRev: "xyz1234567890",
 			CookbookVersions: []reporting.CookbookVersion{
 				reporting.CookbookVersion{Name: "ddd", Version: "1.0"},
 				reporting.CookbookVersion{Name: "ccc", Version: "9.9"},
@@ -238,22 +244,30 @@ func TestMakeNodesReportTXT_WithRecordsSorted(t *testing.T) {
 		expectedReport = `> Node: 123
   Chef Version: 13.11
   Operating System: unknown
+  Policy Group: no group
+  Policy: no policy
   Cookbooks Applied: none
 > Node: Aaa
   Chef Version: 13.11
   Operating System: unknown
+  Policy Group: no group
+  Policy: no policy
   Cookbooks Applied (alphanumeric order): yyy(1.0), yyy(10.0), YYY(9.9), YYY(99.9)
 > Node: aaa
   Chef Version: 13.11
   Operating System: unknown
-  Cookbooks Applied (alphanumeric order): ccc(9.9), ddd(1.0)
+  Policy Group: prod
+  Policy: grafana (rev xyz1234567890)
+  Cookbooks Applied (alphanumeric order): ccc, ddd
 > Node: zzz
   Chef Version: 13.11
   Operating System: unknown
+  Policy Group: no group
+  Policy: no policy
   Cookbooks Applied (alphanumeric order): ccc(9.9), yyy(1.0)
 `
 	)
-	if assert.Equal(t, 17, len(lines)) {
+	if assert.Equal(t, 25, len(lines)) {
 		assert.Equal(t, expectedReport, actual.Report)
 	}
 }
@@ -264,7 +278,7 @@ func TestMakeNodesReportTXT_WithRecordsAndFilter(t *testing.T) {
 			CookbookVersions: []reporting.CookbookVersion{
 				reporting.CookbookVersion{Name: "mycookbook", Version: "1.0"}},
 		},
-		&reporting.NodeReportItem{Name: "node2", ChefVersion: "13.11", OS: "", OSVersion: "",
+		&reporting.NodeReportItem{Name: "node2", ChefVersion: "13.11", OS: "", OSVersion: "", PolicyGroup: "staging", Policy: "seven-zip", PolicyRev: "99999xxxx99999",
 			CookbookVersions: []reporting.CookbookVersion{
 				reporting.CookbookVersion{Name: "mycookbook", Version: "1.0"},
 				reporting.CookbookVersion{Name: "test", Version: "9.9"},
@@ -281,18 +295,24 @@ func TestMakeNodesReportTXT_WithRecordsAndFilter(t *testing.T) {
 > Node: node1
   Chef Version: 12.22
   Operating System: windows v10.1
+  Policy Group: no group
+  Policy: no policy
   Cookbooks Applied (alphanumeric order): mycookbook(1.0)
 > Node: node2
   Chef Version: 13.11
   Operating System: unknown
-  Cookbooks Applied (alphanumeric order): mycookbook(1.0), test(9.9)
+  Policy Group: staging
+  Policy: seven-zip (rev 99999xxxx99999)
+  Cookbooks Applied (alphanumeric order): mycookbook, test
 > Node: node3
   Chef Version: 15.00
   Operating System: ubuntu v16.04
+  Policy Group: no group
+  Policy: no policy
   Cookbooks Applied: none
 `
 	)
-	if assert.Equal(t, 14, len(lines)) {
+	if assert.Equal(t, 20, len(lines)) {
 		assert.Equal(t, expectedReport, actual.Report)
 	}
 }
