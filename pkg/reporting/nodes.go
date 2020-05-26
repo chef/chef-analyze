@@ -96,6 +96,16 @@ func (nri *NodeReportItem) GetPolicyGroup() string {
 	return nri.PolicyGroup
 }
 
+// HasPolicyGroup returns true or false for Policy Group presenece
+func (nri *NodeReportItem) HasPolicyGroup() bool {
+
+	if nri.PolicyGroup == "" {
+		return false
+	}
+
+	return true
+}
+
 // GetPolicy returns Policy Name or "no policy"
 func (nri *NodeReportItem) GetPolicy() string {
 
@@ -113,7 +123,7 @@ func (nri *NodeReportItem) GetPolicyWithRev() string {
 		return "no policy"
 	}
 
-	return fmt.Sprintf("%s(rev %s)", nri.Policy, nri.PolicyRev)
+	return fmt.Sprintf("%s (rev %s)", nri.Policy, nri.PolicyRev)
 }
 
 // CookbooksList transforms to an easily printable []string

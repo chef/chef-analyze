@@ -196,7 +196,7 @@ func TestMakeNodesReportTXT_WithRecords(t *testing.T) {
   Chef Version: 13.11
   Operating System: unknown
   Policy Group: prod
-  Policy: grafana(rev xyz1234567890)
+  Policy: grafana (rev xyz1234567890)
   Cookbooks Applied (alphanumeric order): mycookbook, test
 > Node: node3
   Chef Version: 15.00
@@ -257,7 +257,7 @@ func TestMakeNodesReportTXT_WithRecordsSorted(t *testing.T) {
   Chef Version: 13.11
   Operating System: unknown
   Policy Group: prod
-  Policy: grafana(rev xyz1234567890)
+  Policy: grafana (rev xyz1234567890)
   Cookbooks Applied (alphanumeric order): ccc, ddd
 > Node: zzz
   Chef Version: 13.11
@@ -302,7 +302,7 @@ func TestMakeNodesReportTXT_WithRecordsAndFilter(t *testing.T) {
   Chef Version: 13.11
   Operating System: unknown
   Policy Group: staging
-  Policy: seven-zip(rev 99999xxxx99999)
+  Policy: seven-zip (rev 99999xxxx99999)
   Cookbooks Applied (alphanumeric order): mycookbook, test
 > Node: node3
   Chef Version: 15.00

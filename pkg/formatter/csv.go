@@ -131,7 +131,7 @@ func MakeNodesReportCSV(records []*reporting.NodeReportItem, nodeFilter string) 
 		)
 		if len(cookbooksList) != 0 {
 			cookbooksString = strings.Join(cookbooksList, " ")
-			if record.GetPolicyGroup() != "no group" {
+			if record.HasPolicyGroup() {
 				cookbooksString = stringReplace(`\([\d,.]+\)`, cookbooksString, "")
 			}
 		}

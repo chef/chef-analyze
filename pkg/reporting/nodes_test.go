@@ -383,7 +383,7 @@ func TestNodeReportItem_GetPolicyWithRev(t *testing.T) {
 		// Test cases
 		{"TestGetPolicyWithRevAbsent", fields{Name: "node1", ChefVersion: "16.0", OS: "Windows"}, "no policy"},
 		{"TestGetPolicyWithRev", fields{Name: "node1", ChefVersion: "16.0", OS: "Windows", OSVersion: "10.001", PolicyGroup: "preprod",
-			Policy: "seven-zip", PolicyRev: "12x23343434sx9000ttt00000"}, "seven-zip(rev 12x23343434sx9000ttt00000)"},
+			Policy: "seven-zip", PolicyRev: "12x23343434sx9000ttt00000"}, "seven-zip (rev 12x23343434sx9000ttt00000)"},
 		{"TestGetPolicyWithRevEmpty", fields{Name: "node1", ChefVersion: "16.0", OS: "Windows", OSVersion: "10.001", PolicyGroup: "", Policy: ""}, "no policy"},
 	}
 	for _, tt := range tests {
@@ -399,6 +399,46 @@ func TestNodeReportItem_GetPolicyWithRev(t *testing.T) {
 				PolicyRev:        tt.fields.PolicyRev,
 			}
 			if got := nri.GetPolicyWithRev(); got != tt.want {
+				assert.Equal(t, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestNodeReportItem_HasPolicyGroup(t *testing.T) {
+	type fields struct {
+		Name             string
+		ChefVersion      string
+		OS               string
+		OSVersion        string
+		CookbookVersions []reporting.CookbookVersion
+		PolicyGroup      string
+		Policy           string
+		PolicyRev        string
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   bool
+	}{
+		// Test cases
+		{"TestHasPolicyGroupAbsent", fields{Name: "node1", ChefVersion: "16.0", OS: "Windows"}, false },
+		{"TestHasPolicyGroup", fields{Name: "node2", ChefVersion: "16.0", OS: "Windows", OSVersion: "10.001", PolicyGroup: "preprod"}, true},
+		{"TestHasPolicyGroupEmpty", fields{Name: "node3", ChefVersion: "16.0", OS: "Windows", OSVersion: "10.001", PolicyGroup: ""}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			nri := &reporting.NodeReportItem{
+				Name:             tt.fields.Name,
+				ChefVersion:      tt.fields.ChefVersion,
+				OS:               tt.fields.OS,
+				OSVersion:        tt.fields.OSVersion,
+				CookbookVersions: tt.fields.CookbookVersions,
+				PolicyGroup:      tt.fields.PolicyGroup,
+				Policy:           tt.fields.Policy,
+				PolicyRev:        tt.fields.PolicyRev,
+			}
+			if got := nri.HasPolicyGroup(); got != tt.want {
 				assert.Equal(t, got, tt.want)
 			}
 		})

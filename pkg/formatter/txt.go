@@ -139,7 +139,7 @@ func MakeNodesReportTXT(records []*reporting.NodeReportItem, nodeFilter string) 
 		} else {
 			strBuilder.WriteString("  Cookbooks Applied (alphanumeric order): ")
 			cookbooksString := strings.Join(record.CookbooksList(), ", ")
-			if record.GetPolicyGroup() != "no group" {
+			if record.HasPolicyGroup() {
 				cookbooksString = stringReplace(`\([\d,.]+\)`, cookbooksString, "")
 			}
 			strBuilder.WriteString(cookbooksString)
