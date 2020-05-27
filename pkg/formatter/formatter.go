@@ -18,6 +18,7 @@
 package formatter
 
 import (
+	"regexp"
 	"sort"
 
 	"github.com/chef/chef-analyze/pkg/reporting"
@@ -65,4 +66,9 @@ func sortNodeRecords(records []*reporting.NodeReportItem) {
 	for _, record := range records {
 		sort.Sort(reporting.CookbookByNameVersion(record.CookbookVersions))
 	}
+}
+
+func stringReplace(regex string, input string, replace string) string {
+	re := regexp.MustCompile(regex)
+	return re.ReplaceAllString(input, replace)
 }

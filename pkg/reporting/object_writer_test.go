@@ -7,6 +7,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/chef/chef-analyze/pkg/reporting"
 	subject "github.com/chef/chef-analyze/pkg/reporting"
 	chef "github.com/chef/go-chef"
 	"github.com/stretchr/testify/assert"
@@ -102,4 +103,136 @@ func (ow *ObjectWriterMock) WriteNode(node *chef.Node) error {
 		ow.ReceivedObject = node
 	}
 	return ow.Error
+}
+
+func TestObjectWriter_WriteRole(t *testing.T) {
+	type fields struct {
+		RootDir string
+	}
+	type args struct {
+		role *chef.Role
+	}
+
+	baseDir, err := ioutil.TempDir(os.TempDir(), "chefanalyze-unit*")
+	if err != nil {
+		panic(err)
+	}
+
+	defer os.RemoveAll(baseDir)
+
+	testRole := chef.Role{Name: "test_role", Description: "Test Description"}
+
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{"TestWriteRole", fields{RootDir: baseDir}, args{role: &testRole}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ow := &reporting.ObjectWriter{
+				RootDir: tt.fields.RootDir,
+			}
+			if err := ow.WriteRole(tt.args.role); (err != nil) != tt.wantErr { //Unexpected Error
+				t.Errorf("ObjectWriter.WriteRole() error = %v, wantErr %v", err, tt.wantErr)
+			} else {
+				content, err := ioutil.ReadFile(fmt.Sprintf("%s/roles/%s.json", baseDir, testRole.Name))
+				assert.Nil(t, err)
+				var roleWritten chef.Role
+				err = json.Unmarshal(content, &roleWritten)
+				assert.Nil(t, err)
+				assert.Equal(t, testRole, roleWritten)
+			}
+		})
+	}
+}
+
+func TestObjectWriter_WriteEnvironment(t *testing.T) {
+	type fields struct {
+		RootDir string
+	}
+	type args struct {
+		env *chef.Environment
+	}
+
+	baseDir, err := ioutil.TempDir(os.TempDir(), "chefanalyze-unit*")
+	if err != nil {
+		panic(err)
+	}
+
+	defer os.RemoveAll(baseDir)
+
+	testEvn := chef.Environment{Name: "test_env", Description: "Test Description", ChefType: "chef_type"}
+
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{"TestWriteEnv", fields{RootDir: baseDir}, args{env: &testEvn}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ow := &reporting.ObjectWriter{
+				RootDir: tt.fields.RootDir,
+			}
+			if err := ow.WriteEnvironment(tt.args.env); (err != nil) != tt.wantErr {
+				t.Errorf("ObjectWriter.WriteEnvironment() error = %v, wantErr %v", err, tt.wantErr)
+			} else {
+				content, err := ioutil.ReadFile(fmt.Sprintf("%s/environments/%s.json", baseDir, testEvn.Name))
+				assert.Nil(t, err)
+				var evnWritten chef.Environment
+				err = json.Unmarshal(content, &evnWritten)
+				assert.Nil(t, err)
+				assert.Equal(t, testEvn, evnWritten)
+			}
+		})
+	}
+}
+
+func TestObjectWriter_WriteNode(t *testing.T) {
+	type fields struct {
+		RootDir string
+	}
+	type args struct {
+		node *chef.Node
+	}
+
+	baseDir, err := ioutil.TempDir(os.TempDir(), "chefanalyze-unit*")
+	if err != nil {
+		panic(err)
+	}
+
+	defer os.RemoveAll(baseDir)
+
+	testNode := chef.Node{Name: "test_env", Environment: "Production", ChefType: "chef_type", PolicyGroup: "test_group", PolicyName: "test_policy"}
+
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{"TestWriteNode", fields{RootDir: baseDir}, args{node: &testNode}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ow := &reporting.ObjectWriter{
+				RootDir: tt.fields.RootDir,
+			}
+			if err := ow.WriteNode(tt.args.node); (err != nil) != tt.wantErr {
+				t.Errorf("ObjectWriter.WriteNode() error = %v, wantErr %v", err, tt.wantErr)
+			} else {
+				content, err := ioutil.ReadFile(fmt.Sprintf("%s/nodes/%s.json", baseDir, testNode.Name))
+				assert.Nil(t, err)
+				var nodeWritten chef.Node
+				err = json.Unmarshal(content, &nodeWritten)
+				assert.Nil(t, err)
+				assert.Equal(t, testNode, nodeWritten)
+			}
+		})
+	}
 }
