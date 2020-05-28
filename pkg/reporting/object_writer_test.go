@@ -38,9 +38,7 @@ func TestObjectWriterWriteJSONObject(t *testing.T) {
 		err = json.Unmarshal(content, &objmap)
 		assert.Nil(t, err)
 		assert.Equal(t, object, objmap)
-
 	}
-
 }
 
 func TestObjectWriter_WriteContent(t *testing.T) {
@@ -71,38 +69,89 @@ func TestObjectWriter_WriteContentInvalidPath(t *testing.T) {
 	}
 }
 
-// This mock is defined here for shared use in other tests.
-type ObjectWriterMock struct {
-	Error          error
-	ReceivedObject interface{}
+func TestObjectWriter_WritePolicyRevision(t *testing.T) {
+	type fields struct {
+		RootDir string
+	}
+	type args struct {
+		revision *chef.RevisionDetailsResponse
+	}
+
+	baseDir, err := ioutil.TempDir(os.TempDir(), "chefanalyze-unit*")
+	if err != nil {
+		panic(err)
+	}
+	defer os.RemoveAll(baseDir)
+	testRevision := &chef.RevisionDetailsResponse{RevisionID: "1", Name: "foo"}
+
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{"TestWritePolicyRevision", fields{RootDir: baseDir}, args{revision: testRevision}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ow := &reporting.ObjectWriter{
+				RootDir: tt.fields.RootDir,
+			}
+			if err := ow.WritePolicyRevision(tt.args.revision); (err != nil) != tt.wantErr { //Unexpected Error
+				t.Errorf("ObjectWriter.PolicyRevision() error = %v, wantErr %v", err, tt.wantErr)
+			} else {
+				content, err := ioutil.ReadFile(fmt.Sprintf("%s/policies/%s-%s.json", baseDir, testRevision.Name, testRevision.RevisionID))
+				assert.Nil(t, err)
+				var revWritten chef.RevisionDetailsResponse
+				err = json.Unmarshal(content, &revWritten)
+				assert.Nil(t, err)
+				assert.Equal(t, testRevision, &revWritten)
+			}
+		})
+	}
 }
 
-func (ow *ObjectWriterMock) WriteContent(path string, content []byte) error {
-	if ow.Error == nil {
-		ow.ReceivedObject = content
+func TestObjectWriter_WritePolicyGroup(t *testing.T) {
+	type fields struct {
+		RootDir string
 	}
-	return ow.Error
-}
+	type args struct {
+		pname  string
+		pgroup *chef.PolicyGroup
+	}
 
-func (ow *ObjectWriterMock) WriteRole(role *chef.Role) error {
-	if (ow.Error) == nil {
-		ow.ReceivedObject = role
+	baseDir, err := ioutil.TempDir(os.TempDir(), "chefanalyze-unit*")
+	if err != nil {
+		panic(err)
 	}
-	return ow.Error
-}
+	defer os.RemoveAll(baseDir)
+	testGroup := &chef.PolicyGroup{Uri: "https://nowhere"}
 
-func (ow *ObjectWriterMock) WriteEnvironment(env *chef.Environment) error {
-	if (ow.Error) == nil {
-		ow.ReceivedObject = env
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{"TestWritePolicyRevision", fields{RootDir: baseDir}, args{pname: "test1", pgroup: testGroup}, false},
 	}
-	return ow.Error
-}
-
-func (ow *ObjectWriterMock) WriteNode(node *chef.Node) error {
-	if (ow.Error) == nil {
-		ow.ReceivedObject = node
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ow := &reporting.ObjectWriter{
+				RootDir: tt.fields.RootDir,
+			}
+			if err := ow.WritePolicyGroup(tt.args.pname, tt.args.pgroup); (err != nil) != tt.wantErr { //Unexpected Error
+				t.Errorf("ObjectWriter.WritePolicyGroup() error = %v, wantErr %v", err, tt.wantErr)
+			} else {
+				content, err := ioutil.ReadFile(fmt.Sprintf("%s/policy_groups/%s.json", baseDir, tt.args.pname))
+				assert.Nil(t, err)
+				var revWritten chef.PolicyGroup
+				err = json.Unmarshal(content, &revWritten)
+				assert.Nil(t, err)
+				assert.Equal(t, testGroup, &revWritten)
+			}
+		})
 	}
-	return ow.Error
 }
 
 func TestObjectWriter_WriteRole(t *testing.T) {
@@ -235,4 +284,59 @@ func TestObjectWriter_WriteNode(t *testing.T) {
 			}
 		})
 	}
+}
+
+// This mock is defined here for shared use in other tests.
+type ObjectWriterMock struct {
+	Error          error
+	ReceivedObject interface{}
+}
+
+func (ow *ObjectWriterMock) WriteContent(path string, content []byte) error {
+	if ow.Error == nil {
+		ow.ReceivedObject = content
+	}
+	return ow.Error
+}
+
+func (ow *ObjectWriterMock) WriteRole(role *chef.Role) error {
+	if ow.Error == nil {
+		ow.ReceivedObject = role
+	}
+	return ow.Error
+}
+
+func (ow *ObjectWriterMock) WriteEnvironment(env *chef.Environment) error {
+	if ow.Error == nil {
+		ow.ReceivedObject = env
+	}
+	return ow.Error
+}
+
+func (ow *ObjectWriterMock) WriteNode(node *chef.Node) error {
+	if ow.Error == nil {
+		ow.ReceivedObject = node
+	}
+	return ow.Error
+}
+
+func (ow *ObjectWriterMock) WritePolicy(name string, policy *chef.Policy) error {
+	if ow.Error == nil {
+		ow.ReceivedObject = policy
+	}
+	return ow.Error
+}
+
+func (ow *ObjectWriterMock) WritePolicyGroup(name string, pgroup *chef.PolicyGroup) error {
+	if ow.Error == nil {
+		ow.ReceivedObject = pgroup
+	}
+	return ow.Error
+}
+
+func (ow *ObjectWriterMock) WritePolicyRevision(policy *chef.RevisionDetailsResponse) error {
+	if ow.Error == nil {
+		ow.ReceivedObject = policy
+	}
+	return ow.Error
 }
