@@ -50,11 +50,7 @@ function code_coverage_table() {
 \\n
 \\n :eyes: Read the <a href='$(buildkite_artifacts_url)'>uploaded HTML coverage report</a>
 \\n
-\\nFunction defined at | Function name | Coverage
-\\n------------------- | ------------- | ---------
-\\n
 EOF
-  awk '{ gsub(/github.com\/chef\/chef-analyze\//,""); printf "%s | %s | %s \\n", $1, $2, $3 }' < $COVERAGE_TXT
 }
 
 function coverage_decrease() {
