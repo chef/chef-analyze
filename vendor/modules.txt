@@ -50,7 +50,7 @@ github.com/aws/aws-sdk-go/service/sts
 github.com/aws/aws-sdk-go/service/sts/stsiface
 # github.com/chef/go-chef v0.4.2
 github.com/chef/go-chef
-# github.com/chef/go-libs v0.3.0
+# github.com/chef/go-libs v0.4.0
 github.com/chef/go-libs/config
 github.com/chef/go-libs/credentials
 github.com/chef/go-libs/distgen
