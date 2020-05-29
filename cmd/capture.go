@@ -117,6 +117,7 @@ can then be used to converge locally.`,
 			capturer := reporting.NewNodeCapturer(
 				chefClient.Nodes, chefClient.Roles,
 				chefClient.Environments, chefClient.Cookbooks,
+				chefClient.DataBags,
 				chefClient.PolicyGroups,
 				chefClient.Policies,
 				chefClient.CookbookArtifacts,

@@ -99,6 +99,30 @@ func (pm PolicyMock) GetRevisionDetails(policyName string, revisionID string) (c
 	return pm.desiredPolicyDetail, pm.desiredPolicyDetailError
 }
 
+type DataBagMock struct {
+	desiredDataBagList      chef.DataBagListResult
+	desiredDataBagListError error
+
+	desiredDataBagItem      chef.DataBagItem
+	desiredDataBagItemError error
+
+	desiredDataBagItemList      chef.DataBagListResult
+	desiredDataBagItemListError error
+}
+
+func (dm DataBagMock) GetItem(databagName string, databagItemName string) (chef.DataBagItem, error) {
+	return &dm.desiredDataBagItem, dm.desiredDataBagItemError
+}
+
+func (dm DataBagMock) ListItems(name string) (*chef.DataBagListResult, error) {
+	return &dm.desiredDataBagItemList, dm.desiredDataBagItemListError
+}
+
+// List all data bags.
+func (dm DataBagMock) List() (*chef.DataBagListResult, error) {
+	return &dm.desiredDataBagList, dm.desiredDataBagListError
+}
+
 func newMockCookbook(cookbookList chef.CookbookListResult, desiredCbListErr, desiredDownloadErr error) *CookbookMock {
 	return &CookbookMock{
 		desiredCookbookList:      cookbookList,

@@ -56,14 +56,15 @@ type NodeCapture struct {
 }
 
 type NodeCapturer struct {
-	nodes             NodesInterface
-	roles             RolesInterface
-	env               EnvironmentInterface
+	cookbookArtifacts CBAInterface
 	cookbooks         CookbookInterface
-	writer            ObjectWriterInterface
+	dataBags          DataBagInterface
+	env               EnvironmentInterface
+	nodes             NodesInterface
 	policies          PolicyInterface
 	policyGroups      PolicyGroupInterface
-	cookbookArtifacts CBAInterface
+	roles             RolesInterface
+	writer            ObjectWriterInterface
 }
 
 type NodeCookbook struct {
@@ -185,15 +186,20 @@ func (nc *NodeCapture) Run() {
 
 func NewNodeCapturer(
 	nodes NodesInterface,
-	roles RolesInterface, env EnvironmentInterface,
-	cookbooks CookbookInterface, policyGroups PolicyGroupInterface,
-	policies PolicyInterface, cookbookArtifacts CBAInterface,
+	roles RolesInterface,
+	env EnvironmentInterface,
+	cookbooks CookbookInterface,
+	dataBags DataBagInterface,
+	policyGroups PolicyGroupInterface,
+	policies PolicyInterface,
+	cookbookArtifacts CBAInterface,
 	writer ObjectWriterInterface) *NodeCapturer {
 	return &NodeCapturer{
 		nodes:             nodes,
 		roles:             roles,
 		env:               env,
 		cookbooks:         cookbooks,
+		dataBags:          dataBags,
 		policies:          policies,
 		policyGroups:      policyGroups,
 		cookbookArtifacts: cookbookArtifacts,
