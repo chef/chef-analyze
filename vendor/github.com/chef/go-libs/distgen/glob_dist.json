@@ -14,6 +14,7 @@
   "DirSuffix":          "chef",
   "UserConfDir":        ".chef",
   "WorkstationDir":     ".chef-workstation",
+  "WorkstationExec":    "chef-cli",
   "DocsWebsite":        "https://docs.chef.io",
   "WSWebsite":          "https://chef.sh",
   "MainWebsite":        "https://chef.io"
