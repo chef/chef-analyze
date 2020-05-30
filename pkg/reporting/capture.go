@@ -97,6 +97,7 @@ const (
 	FetchingPolicyData
 	FetchingEnvironment
 	FetchingRoles
+	FetchingDataBags
 	FetchingCookbooks
 	FetchingCookbookArtifacts
 	WritingKitchenConfig
@@ -110,7 +111,7 @@ func NewNodeCapture(name string, repositoryDir string, capturer NodeCaptureInter
 		repositoryDir: repositoryDir,
 		// 6 max possible events in a Run - let's not block our activity in case the caller
 		// doesn't pick them up
-		Progress: make(chan int, 6),
+		Progress: make(chan int, 7),
 	}
 }
 
@@ -122,6 +123,13 @@ func (nc *NodeCapture) Run() {
 	node, err := nc.capturer.CaptureNodeObject(nc.name)
 	if err != nil {
 		nc.Error = errors.Wrapf(err, "unable to capture node '%s'", nc.name)
+		return
+	}
+
+	nc.Progress <- FetchingDataBags
+	err = nc.capturer.CaptureAllDataBagItems()
+	if err != nil {
+		nc.Error = errors.Wrapf(err, "unable to capture data bag items")
 		return
 	}
 
@@ -176,12 +184,12 @@ func (nc *NodeCapture) Run() {
 			return
 		}
 	}
+
 	nc.Progress <- WritingKitchenConfig
 	err = nc.capturer.SaveKitchenYML(node)
 	if err != nil {
 		nc.Error = errors.Wrapf(err, "unable to write Kitchen config")
 	}
-
 	nc.Progress <- FetchingComplete
 }
 

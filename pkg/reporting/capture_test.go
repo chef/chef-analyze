@@ -151,6 +151,8 @@ func TestCapture_Run(t *testing.T) {
 	val := <-nc.Progress
 	assert.Equal(t, subject.FetchingNode, val)
 	val = <-nc.Progress
+	assert.Equal(t, subject.FetchingDataBags, val)
+	val = <-nc.Progress
 	assert.Equal(t, subject.FetchingCookbooks, val)
 	val = <-nc.Progress
 	assert.Equal(t, subject.FetchingEnvironment, val)
@@ -202,6 +204,8 @@ func TestCapture_RunWithPolicyManagedNode(t *testing.T) {
 	go nc.Run()
 	val := <-nc.Progress
 	assert.Equal(t, subject.FetchingNode, val)
+	val = <-nc.Progress
+	assert.Equal(t, subject.FetchingDataBags, val)
 	val = <-nc.Progress
 	assert.Equal(t, subject.FetchingPolicyData, val)
 	val = <-nc.Progress
@@ -318,6 +322,15 @@ func TestCapture_RunWithRoleFailure(t *testing.T) {
 	}
 }
 
+func TestCapture_RunWithCookbookDataBagFailure(t *testing.T) {
+	nc := subject.NewNodeCapture("node1", "", &CapturerMock{NodeReturn: defaultNode(),
+		DataBagErrorReturn: errors.New("spilled all over the carpet")})
+	nc.Run()
+	if assert.NotNil(t, nc.Error) {
+		assert.Contains(t, nc.Error.Error(), "spilled all over the carpet")
+		assert.Contains(t, nc.Error.Error(), "unable to capture data bag")
+	}
+}
 func TestCapture_RunWithKitchenYMLFailure(t *testing.T) {
 	nc := subject.NewNodeCapture("node1", "", &CapturerMock{NodeReturn: defaultNode(),
 		KitchenErrorReturn: errors.New("failure here")})
@@ -596,9 +609,6 @@ func TestCapturer_CaptureCookbookArtifacts_WithDownloadError(t *testing.T) {
 		CookbookLocks: map[string]chef.CookbookLock{
 			"alpha": chef.CookbookLock{
 				Identifier: "123456789012345678901234567890xyz",
-			},
-			"gama": chef.CookbookLock{
-				Identifier: "abc456789012345678901234567890xyz",
 			},
 		},
 	}

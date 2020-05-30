@@ -133,6 +133,8 @@ can then be used to converge locally.`,
 					fmt.Println(" - Capturing cookbooks...")
 				case reporting.FetchingRoles:
 					fmt.Println(" - Capturing roles...")
+				case reporting.FetchingDataBags:
+					fmt.Println(" - Capturing data bag items...")
 				case reporting.FetchingEnvironment:
 					fmt.Println(" - Capturing environment...")
 				case reporting.WritingKitchenConfig:
