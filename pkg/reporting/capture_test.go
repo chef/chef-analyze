@@ -42,6 +42,7 @@ type CapturerMock struct {
 	RoleErrorReturn             error
 	CookbookErrorReturn         error
 	KitchenErrorReturn          error
+	DataBagErrorReturn          error
 }
 
 func (cm *CapturerMock) CaptureCookbooks(string, map[string]interface{}) ([]subject.NodeCookbook, error) {
@@ -74,6 +75,10 @@ func (cm *CapturerMock) CapturePolicyObject(string, string) (*chef.RevisionDetai
 
 func (cm *CapturerMock) CapturePolicyGroupObject(string) (*chef.PolicyGroup, error) {
 	return cm.PolicyGroupReturn, cm.PolicyGroupError
+}
+
+func (cm *CapturerMock) CaptureAllDataBagItems() error {
+	return cm.DataBagErrorReturn
 }
 
 func nodeWithChefInstall() *chef.Node {
@@ -933,6 +938,150 @@ func TestCapturer_CaptureCookbooksWithRenameError(t *testing.T) {
 	_, err := nc.CaptureCookbooks("/mocked/anyway", cbmap)
 	if assert.NotNil(t, err) {
 		assert.Contains(t, err.Error(), "failed to rename cookbook")
+	}
+}
+
+func TestCapturer_CaptureAllDataBags(t *testing.T) {
+	dataBags := map[string]string{
+		"bag1": "https://url/data/bag1",
+	}
+	dataBagItemList := map[string]string{
+		"item1": "https://url/data/bag1/item1",
+	}
+	dataBagItem := map[string]interface{}{
+		"key1": map[string]interface{}{
+			"value1": "value2",
+			"value3": true,
+		},
+	}
+
+	writer := ObjectWriterMock{}
+	nc := subject.NewNodeCapturer(
+		NodeMock{},
+		RoleMock{},
+		EnvMock{},
+		CookbookMock{},
+		DataBagMock{
+			desiredDataBagList:     dataBags,
+			desiredDataBagItem:     dataBagItem,
+			desiredDataBagItemList: dataBagItemList,
+		},
+		PolicyGroupMock{},
+		PolicyMock{},
+		CBAMock{},
+		&writer,
+	)
+	err := nc.CaptureAllDataBagItems()
+	assert.Equal(t, dataBagItem, writer.ReceivedObject.(map[string]interface{}))
+	assert.Nil(t, err)
+}
+
+func TestCapturer_CaptureAllDataBagsWithDBListError(t *testing.T) {
+	nc := subject.NewNodeCapturer(
+		NodeMock{},
+		RoleMock{},
+		EnvMock{},
+		CookbookMock{},
+		DataBagMock{desiredDataBagListError: errors.New("i misplaced them")},
+		PolicyGroupMock{},
+		PolicyMock{},
+		CBAMock{},
+		&ObjectWriterMock{},
+	)
+	err := nc.CaptureAllDataBagItems()
+	if assert.NotNil(t, err) {
+		assert.Contains(t, err.Error(), "unable to retrieve list of data bags")
+		assert.Contains(t, err.Error(), "i misplaced them")
+	}
+}
+
+func TestCapturer_CaptureAllDataBagsWithListItemsError(t *testing.T) {
+	dataBags := map[string]string{
+		"bag1": "https://url/data/bag1",
+	}
+	nc := subject.NewNodeCapturer(
+		NodeMock{},
+		RoleMock{},
+		EnvMock{},
+		CookbookMock{},
+		DataBagMock{
+			desiredDataBagList:          dataBags,
+			desiredDataBagItemListError: errors.New("empty bags"),
+		},
+		PolicyGroupMock{},
+		PolicyMock{},
+		CBAMock{},
+		&ObjectWriterMock{},
+	)
+	err := nc.CaptureAllDataBagItems()
+	if assert.NotNil(t, err) {
+		assert.Contains(t, err.Error(), "unable to retrieve data bag items for bag1")
+		assert.Contains(t, err.Error(), "empty bags")
+	}
+}
+
+func TestCapturer_CaptureAllDataBagsWithGetItemError(t *testing.T) {
+	dataBags := map[string]string{
+		"bag1": "https://url/data/bag1",
+	}
+	dataBagItemList := map[string]string{
+		"item1": "https://url/data/bag1/item1",
+	}
+	nc := subject.NewNodeCapturer(
+		NodeMock{},
+		RoleMock{},
+		EnvMock{},
+		CookbookMock{},
+		DataBagMock{
+			desiredDataBagList:      dataBags,
+			desiredDataBagItemList:  dataBagItemList,
+			desiredDataBagItemError: errors.New("i swear they were right here"),
+		},
+		PolicyGroupMock{},
+		PolicyMock{},
+		CBAMock{},
+		&ObjectWriterMock{},
+	)
+	err := nc.CaptureAllDataBagItems()
+	if assert.NotNil(t, err) {
+		assert.Contains(t, err.Error(), "unable to retrieve data bag item bag1/item1")
+		assert.Contains(t, err.Error(), "i swear they were right here")
+	}
+}
+
+func TestCapturer_CaptureAllDataBagsWithWriteError(t *testing.T) {
+	dataBags := map[string]string{
+		"bag1": "https://url/data/bag1",
+	}
+	dataBagItemList := map[string]string{
+		"item1": "https://url/data/bag1/item1",
+	}
+	dataBagItem := map[string]interface{}{
+		"key1": map[string]interface{}{
+			"value1": "value2",
+			"value3": true,
+		},
+	}
+
+	nc := subject.NewNodeCapturer(
+		NodeMock{},
+		RoleMock{},
+		EnvMock{},
+		CookbookMock{},
+		DataBagMock{
+			desiredDataBagList:     dataBags,
+			desiredDataBagItem:     dataBagItem,
+			desiredDataBagItemList: dataBagItemList,
+		},
+		PolicyGroupMock{},
+		PolicyMock{},
+		CBAMock{},
+		&ObjectWriterMock{Error: errors.New("dropped the bag")},
+	)
+	err := nc.CaptureAllDataBagItems()
+	if assert.NotNil(t, err) {
+		assert.Contains(t, err.Error(), "unable to save data bag item bag1/item1")
+		assert.Contains(t, err.Error(), "dropped the bag")
 	}
 }
 

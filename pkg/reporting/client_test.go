@@ -111,16 +111,27 @@ type DataBagMock struct {
 }
 
 func (dm DataBagMock) GetItem(databagName string, databagItemName string) (chef.DataBagItem, error) {
-	return &dm.desiredDataBagItem, dm.desiredDataBagItemError
+	return dm.desiredDataBagItem, dm.desiredDataBagItemError
 }
 
 func (dm DataBagMock) ListItems(name string) (*chef.DataBagListResult, error) {
 	return &dm.desiredDataBagItemList, dm.desiredDataBagItemListError
 }
 
-// List all data bags.
 func (dm DataBagMock) List() (*chef.DataBagListResult, error) {
 	return &dm.desiredDataBagList, dm.desiredDataBagListError
+}
+
+func newMockDataBagLister(res chef.DataBagListResult, err error) *DataBagMock {
+	return &DataBagMock{desiredDataBagList: res, desiredDataBagListError: err}
+}
+
+func newMockDataBagItemGetter(res chef.DataBagItem, err error) *DataBagMock {
+	return &DataBagMock{desiredDataBagItem: res, desiredDataBagItemError: err}
+}
+
+func newMockDataBagItemLister(res chef.DataBagListResult, err error) *DataBagMock {
+	return &DataBagMock{desiredDataBagItemList: res, desiredDataBagItemListError: err}
 }
 
 func newMockCookbook(cookbookList chef.CookbookListResult, desiredCbListErr, desiredDownloadErr error) *CookbookMock {

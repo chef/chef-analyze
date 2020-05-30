@@ -41,6 +41,7 @@ type NodeCaptureInterface interface {
 	CaptureRoleObjects([]string) error
 	CapturePolicyObject(string, string) (*chef.RevisionDetailsResponse, error)
 	CapturePolicyGroupObject(string) (*chef.PolicyGroup, error)
+	CaptureAllDataBagItems() error
 	SaveKitchenYML(node *chef.Node) error
 }
 
@@ -328,6 +329,33 @@ func (nc *NodeCapturer) CaptureRoleObjects(runList []string) error {
 		err = nc.writer.WriteRole(role)
 		if err != nil {
 			return errors.Wrapf(err, "failed to save role %s. This is a bug, please report it:", roleName)
+		}
+	}
+	return nil
+}
+
+func (nc *NodeCapturer) CaptureAllDataBagItems() error {
+	bags, err := nc.dataBags.List()
+	if err != nil {
+		return errors.Wrap(err, "unable to retrieve list of data bags")
+	}
+	for name, _ := range *bags {
+		items, err := nc.dataBags.ListItems(name)
+		if err != nil {
+			return errors.Wrapf(err, "unable to retrieve data bag items for %s", name)
+		}
+
+		for itemName, _ := range *items {
+			item, err := nc.dataBags.GetItem(name, itemName)
+			if err != nil {
+				return errors.Wrapf(err, "unable to retrieve data bag item %s/%s", name, itemName)
+			}
+
+			err = nc.writer.WriteDataBagItem(name, itemName, item)
+			if err != nil {
+				return errors.Wrapf(err, "unable to save data bag item %s/%s", name, itemName)
+			}
+
 		}
 	}
 	return nil
