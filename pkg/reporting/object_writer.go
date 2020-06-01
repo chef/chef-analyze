@@ -33,6 +33,8 @@ type ObjectWriter struct {
 type ObjectWriterInterface interface {
 	WriteRole(*chef.Role) error
 	WriteEnvironment(*chef.Environment) error
+	WritePolicyRevision(*chef.RevisionDetailsResponse) error
+	WritePolicyGroup(string, *chef.PolicyGroup) error
 	WriteNode(*chef.Node) error
 	WriteContent(string, []byte) error
 }
@@ -50,6 +52,14 @@ func (ow *ObjectWriter) WriteEnvironment(env *chef.Environment) error {
 // Takes a chef.Role and saves it as json in RootDir/nodes
 func (ow *ObjectWriter) WriteNode(node *chef.Node) error {
 	return ow.WriteJSON("nodes", node.Name, node)
+}
+
+func (ow *ObjectWriter) WritePolicyRevision(policy *chef.RevisionDetailsResponse) error {
+	return ow.WriteJSON("policies", fmt.Sprintf("%s-%s", policy.Name, policy.RevisionID), policy)
+}
+
+func (ow *ObjectWriter) WritePolicyGroup(name string, pgroup *chef.PolicyGroup) error {
+	return ow.WriteJSON("policy_groups", name, pgroup)
 }
 
 // Writes "content" to RootDir/"fileName"

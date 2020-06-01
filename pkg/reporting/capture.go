@@ -35,14 +35,18 @@ import (
 
 type NodeCaptureInterface interface {
 	CaptureCookbooks(string, map[string]interface{}) ([]NodeCookbook, error)
+	CaptureCookbookArtifacts(string, *chef.RevisionDetailsResponse) error
 	CaptureNodeObject(node string) (*chef.Node, error)
 	CaptureEnvObject(string) error
 	CaptureRoleObjects([]string) error
+	CapturePolicyObject(string, string) (*chef.RevisionDetailsResponse, error)
+	CapturePolicyGroupObject(string) (*chef.PolicyGroup, error)
 	SaveKitchenYML(node *chef.Node) error
 }
 
 type NodeCapture struct {
 	Cookbooks     []NodeCookbook
+	Policy        *chef.RevisionDetailsResponse
 	name          string
 	capturer      NodeCaptureInterface
 	node          *chef.Node
@@ -52,11 +56,14 @@ type NodeCapture struct {
 }
 
 type NodeCapturer struct {
-	nodes     NodesInterface
-	roles     RolesInterface
-	env       EnvironmentInterface
-	cookbooks CookbookInterface
-	writer    ObjectWriterInterface
+	nodes             NodesInterface
+	roles             RolesInterface
+	env               EnvironmentInterface
+	cookbooks         CookbookInterface
+	writer            ObjectWriterInterface
+	policies          PolicyInterface
+	policyGroups      PolicyGroupInterface
+	cookbookArtifacts CBAInterface
 }
 
 type NodeCookbook struct {
@@ -85,9 +92,11 @@ type kitchenYMLArgs struct {
 // performing a node capture
 const (
 	FetchingNode = iota
+	FetchingPolicyData
 	FetchingEnvironment
 	FetchingRoles
 	FetchingCookbooks
+	FetchingCookbookArtifacts
 	WritingKitchenConfig
 	FetchingComplete
 )
@@ -97,7 +106,7 @@ func NewNodeCapture(name string, repositoryDir string, capturer NodeCaptureInter
 		name:          name,
 		capturer:      capturer,
 		repositoryDir: repositoryDir,
-		// 6 possible events in a Run - let's not block our activity in case the caller
+		// 6 max possible events in a Run - let's not block our activity in case the caller
 		// doesn't pick them up
 		Progress: make(chan int, 6),
 	}
@@ -114,31 +123,57 @@ func (nc *NodeCapture) Run() {
 		return
 	}
 
-	nc.Progress <- FetchingCookbooks
-	// If a node has never converged, it will not have this attribute:
-	cookbooks := node.AutomaticAttributes["cookbooks"]
-	if cookbooks != nil {
-		nc.Cookbooks, err = nc.capturer.CaptureCookbooks(nc.repositoryDir, cookbooks.(map[string]interface{}))
+	if len(node.PolicyName) > 0 {
+		nc.Progress <- FetchingPolicyData
+		group, err := nc.capturer.CapturePolicyGroupObject(node.PolicyGroup)
 		if err != nil {
-			nc.Error = errors.Wrapf(err, "unable to capture node cookbooks for '%s'", nc.name)
+			nc.Error = errors.Wrapf(err, "unable to capture policy group '%s'", node.PolicyGroup)
+			return
+		}
+
+		policyRevision := group.Policies[node.PolicyName]["revision_id"]
+		policy, err := nc.capturer.CapturePolicyObject(node.PolicyName, policyRevision)
+		if err != nil {
+			nc.Error = errors.Wrapf(err, "unable to capture policy name '%s' revision '%s'", node.PolicyName, policyRevision)
+			return
+		}
+		nc.Policy = policy
+
+		nc.Progress <- FetchingCookbookArtifacts
+		err = nc.capturer.CaptureCookbookArtifacts(nc.repositoryDir, policy)
+		if err != nil {
+			nc.Error = errors.Wrapf(err, "unable to capture cookbook artifacts for policy '%s' revision '%s'", node.PolicyName, policyRevision)
+			return
+		}
+
+	} else {
+		// Cookbooks/Env/Roles only apply to traditionally managed
+		// nodes, and not policy-managed.
+		nc.Progress <- FetchingCookbooks
+		// If a node has never converged, it will not have this attribute:
+		cookbooks := node.AutomaticAttributes["cookbooks"]
+		if cookbooks != nil {
+			nc.Cookbooks, err = nc.capturer.CaptureCookbooks(nc.repositoryDir, cookbooks.(map[string]interface{}))
+			if err != nil {
+				nc.Error = errors.Wrapf(err, "unable to capture node cookbooks for '%s'", nc.name)
+				return
+			}
+		}
+
+		nc.Progress <- FetchingEnvironment
+		err = nc.capturer.CaptureEnvObject(node.Environment)
+		if err != nil {
+			nc.Error = errors.Wrapf(err, "unable to capture environment")
+			return
+		}
+
+		nc.Progress <- FetchingRoles
+		err = nc.capturer.CaptureRoleObjects(node.RunList)
+		if err != nil {
+			nc.Error = errors.Wrapf(err, "unable to capture role(s)")
 			return
 		}
 	}
-
-	nc.Progress <- FetchingEnvironment
-	err = nc.capturer.CaptureEnvObject(node.Environment)
-	if err != nil {
-		nc.Error = errors.Wrapf(err, "unable to capture environment")
-		return
-	}
-
-	nc.Progress <- FetchingRoles
-	err = nc.capturer.CaptureRoleObjects(node.RunList)
-	if err != nil {
-		nc.Error = errors.Wrapf(err, "unable to capture role(s)")
-		return
-	}
-
 	nc.Progress <- WritingKitchenConfig
 	err = nc.capturer.SaveKitchenYML(node)
 	if err != nil {
@@ -151,13 +186,18 @@ func (nc *NodeCapture) Run() {
 func NewNodeCapturer(
 	nodes NodesInterface,
 	roles RolesInterface, env EnvironmentInterface,
-	cookbooks CookbookInterface, writer ObjectWriterInterface) *NodeCapturer {
+	cookbooks CookbookInterface, policyGroups PolicyGroupInterface,
+	policies PolicyInterface, cookbookArtifacts CBAInterface,
+	writer ObjectWriterInterface) *NodeCapturer {
 	return &NodeCapturer{
-		nodes:     nodes,
-		roles:     roles,
-		env:       env,
-		cookbooks: cookbooks,
-		writer:    writer}
+		nodes:             nodes,
+		roles:             roles,
+		env:               env,
+		cookbooks:         cookbooks,
+		policies:          policies,
+		policyGroups:      policyGroups,
+		cookbookArtifacts: cookbookArtifacts,
+		writer:            writer}
 
 }
 
@@ -170,18 +210,35 @@ func (nc *NodeCapturer) CaptureNodeObject(name string) (*chef.Node, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to retrieve node '%s'", name)
 	}
-	// In this pass we are not supporting policyfiles. For now, that
-	// means we'll raise an error when the node has policyfile enabled,
-	// to avoid the risk of reporting back inaccurate results based on non-PF assumptions.
-	if node.PolicyName != "" || node.PolicyGroup != "" {
-		return nil, errors.New(fmt.Sprintf("Node %s is managed by Policyfile. Unsupported at this time.", name))
-	}
 	err = nc.writer.WriteNode(&node)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to save node. This is a bug, please report it.")
 	}
 
 	return &node, nil
+}
+
+// Given a map of cookbook [ name ] : { "version" : version }, download the cookbooks
+// from Chef Server into repositoryDir/cookbooks
+func (nc *NodeCapturer) CaptureCookbookArtifacts(repositoryDir string, policyRevisionDetails *chef.RevisionDetailsResponse) error {
+	artifactDir := fmt.Sprintf("%s/cookbook_artifacts", repositoryDir)
+
+	for ck, cv := range policyRevisionDetails.CookbookLocks {
+		err := nc.cookbookArtifacts.DownloadTo(ck, cv.Identifier, artifactDir)
+		if err != nil {
+			return errors.Wrapf(err, "Failed to download cookbook artifacts %ss v%s", ck, cv.Identifier)
+		}
+
+		// The cookbook directory wil have been created as Name-TruncatedCookbookIdent.  chef-zero requires
+		// it in the form Name-CookbookIdent, so we'll move it here.
+		oldName := fmt.Sprintf("%s/%s-%s", artifactDir, ck, cv.Identifier[0:20])
+		newName := fmt.Sprintf("%s/%s-%s", artifactDir, ck, cv.Identifier)
+		err = os.Rename(oldName, newName)
+		if err != nil {
+			return errors.Wrapf(err, "failed to rename cookbook artifact '%s' to '%s'", oldName, newName)
+		}
+	}
+	return nil
 }
 
 // Given a map of cookbook [ name ] : { "version" : version }, download the cookbooks
@@ -218,6 +275,41 @@ func (nc *NodeCapturer) CaptureEnvObject(environment string) error {
 		return errors.Wrap(err, "failed to save environment. This is a bug, please report it.")
 	}
 	return nil
+}
+
+func (nc *NodeCapturer) CapturePolicyObject(policyName string, revision string) (*chef.RevisionDetailsResponse, error) {
+
+	policy, err := nc.policies.GetRevisionDetails(policyName, revision)
+	if err != nil {
+		return nil, errors.Wrapf(err, "unable to retrieve policy object: %s", policyName)
+	}
+	err = nc.writer.WritePolicyRevision(&policy)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to save policy object to disk: %s", policyName)
+	}
+
+	return &policy, nil
+}
+
+func (nc *NodeCapturer) CapturePolicyGroupObject(groupName string) (*chef.PolicyGroup, error) {
+	groups, err := nc.policyGroups.List()
+	// TODO - policy group API support does not allow us to get a specific
+	// named group. We need to get them all, look up the one we care about in
+	// the response
+	if err != nil {
+		return nil, errors.Wrapf(err, "unable to retrieve policy groups")
+	}
+
+	group, ok := groups[groupName]
+	if !ok {
+		return nil, fmt.Errorf("Could not find policy group: %s", groupName)
+	}
+
+	err = nc.writer.WritePolicyGroup(groupName, &group)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to save policy group %s to disk", groupName)
+	}
+	return &group, nil
 }
 
 func (nc *NodeCapturer) CaptureRoleObjects(runList []string) error {
@@ -259,7 +351,7 @@ driver:
   name: vagrant
 
 provisioner:
-  name: chef_zero
+  name: chef_zero_capture
   product_name: chef
   product_version: {{.ChefVersion}}
   json_attributes: false

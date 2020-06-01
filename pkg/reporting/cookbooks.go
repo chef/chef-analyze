@@ -164,6 +164,12 @@ func NewCookbooksReport(
 	if err != nil {
 		return nil, err
 	}
+	// TODO - can we rethink order of operations here? I committed the original sin
+	// by saying "well, we need the number of cookbooks to process first", and
+	// gathering the cookbook list up front.
+	// But now we have two network operations here instead of one and it's rather
+	// an extension of a bad pattern...
+	//
 	cookbooksDir := filepath.Join(wsDir, analyzeCacheDir, analyzeCookbooksDir)
 	results, err := cbi.ListAvailableVersions("0")
 	if err != nil {

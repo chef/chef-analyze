@@ -59,9 +59,8 @@ func (cm CookbookMock) DownloadTo(name, version, localDir string) error {
 	return cm.desiredDownloadError
 }
 
-
 type CBAMock struct {
-	desiredCBAList chef.CBAGetResponse
+	desiredCBAList       chef.CBAGetResponse
 	desiredCBAListError  error
 	desiredDownloadError error
 	createDirOnDownload  bool
@@ -73,7 +72,7 @@ func (cm CBAMock) List() (chef.CBAGetResponse, error) {
 
 func (cm CBAMock) DownloadTo(name, id, localDir string) error {
 	if cm.createDirOnDownload {
-		dirToMock := filepath.Join(localDir, fmt.Sprintf("%s-%s", name, id))
+		dirToMock := filepath.Join(localDir, fmt.Sprintf("%v-%v", name, id[0:20]))
 		err := os.MkdirAll(dirToMock, os.ModePerm)
 		if err != nil {
 			panic(err)

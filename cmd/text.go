@@ -55,8 +55,10 @@ separate terminal and clone or check out the cookbooks.
 
 If all cookbooks are not available in the same base location,
 you will have a chance to provide additional locations.
+`
 
-Press Enter to Continue:`
+	PressEnterToContinueTxt = `
+Press Enter to Continue: `
 
 	// Param 1: newline-separated space-indented list of cookbooks
 	CookbookCaptureRequestCookbookPathTxt = `

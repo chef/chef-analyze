@@ -29,13 +29,19 @@ import (
 )
 
 type CapturerMock struct {
-	NodeReturn          *chef.Node
-	CookbookReturn      []subject.NodeCookbook
-	NodeErrorReturn     error
-	EnvErrorReturn      error
-	RoleErrorReturn     error
-	CookbookErrorReturn error
-	KitchenErrorReturn  error
+	NodeReturn                  *chef.Node
+	CookbookReturn              []subject.NodeCookbook
+	CBAErrorReturn              error
+	CookbookArtifactErrorReturn error
+	PolicyGroupReturn           *chef.PolicyGroup
+	PolicyGroupError            error
+	PolicyObjectReturn          *chef.RevisionDetailsResponse
+	PolicyObjectErrorReturn     error
+	NodeErrorReturn             error
+	EnvErrorReturn              error
+	RoleErrorReturn             error
+	CookbookErrorReturn         error
+	KitchenErrorReturn          error
 }
 
 func (cm *CapturerMock) CaptureCookbooks(string, map[string]interface{}) ([]subject.NodeCookbook, error) {
@@ -45,15 +51,31 @@ func (cm *CapturerMock) CaptureCookbooks(string, map[string]interface{}) ([]subj
 func (cm *CapturerMock) CaptureNodeObject(node string) (*chef.Node, error) {
 	return cm.NodeReturn, cm.NodeErrorReturn
 }
+
 func (cm *CapturerMock) CaptureEnvObject(string) error {
 	return cm.EnvErrorReturn
 }
+
 func (cm *CapturerMock) CaptureRoleObjects([]string) error {
 	return cm.RoleErrorReturn
 }
+
 func (cm *CapturerMock) SaveKitchenYML(node *chef.Node) error {
 	return cm.KitchenErrorReturn
 }
+
+func (cm *CapturerMock) CaptureCookbookArtifacts(string, *chef.RevisionDetailsResponse) error {
+	return cm.CBAErrorReturn
+}
+
+func (cm *CapturerMock) CapturePolicyObject(string, string) (*chef.RevisionDetailsResponse, error) {
+	return cm.PolicyObjectReturn, cm.PolicyObjectErrorReturn
+}
+
+func (cm *CapturerMock) CapturePolicyGroupObject(string) (*chef.PolicyGroup, error) {
+	return cm.PolicyGroupReturn, cm.PolicyGroupError
+}
+
 func nodeWithChefInstall() *chef.Node {
 	return &chef.Node{
 		Name:        "node1",
@@ -79,6 +101,24 @@ func nodeWithChefInstall() *chef.Node {
 		},
 	}
 }
+
+func policyManagedNode() *chef.Node {
+	return &chef.Node{
+		Name:        "node1",
+		Environment: "_default",
+		RunList:     []string{"cookbook1::recipe1", "role:mockrole"},
+		PolicyName:  "pgroup",
+		PolicyGroup: "policy",
+		AutomaticAttributes: map[string]interface{}{
+			"cookbooks": map[string]interface{}{
+				"foo": map[string]interface{}{
+					"version": "0.1.0",
+				},
+			},
+		},
+	}
+}
+
 func defaultNode() *chef.Node {
 	return &chef.Node{
 		Name:        "node1",
@@ -95,7 +135,6 @@ func defaultNode() *chef.Node {
 		},
 	}
 }
-
 func TestCapture_Run(t *testing.T) {
 	baseDir, err := ioutil.TempDir(os.TempDir(), "chefanalyze-unit*")
 	if err != nil {
@@ -119,6 +158,114 @@ func TestCapture_Run(t *testing.T) {
 
 	assert.Nil(t, nc.Error)
 
+}
+
+func TestCapture_RunWithPolicyManagedNode(t *testing.T) {
+	policyGroup := chef.PolicyGroup{
+		Policies: map[string]chef.Revision{
+			"my-policy": chef.Revision{
+				"revision_id": "123xyz",
+			},
+		},
+	}
+
+	policyDetail := chef.RevisionDetailsResponse{
+		Name:       "my-policy",
+		RevisionID: "123xyz",
+		CookbookLocks: map[string]chef.CookbookLock{
+			"alpha": chef.CookbookLock{
+				Identifier: "123456789012345678901234567890xyz",
+			},
+			"gama": chef.CookbookLock{
+				Identifier: "abc456789012345678901234567890xyz",
+			},
+		},
+	}
+	baseDir, err := ioutil.TempDir(os.TempDir(), "chefanalyze-unit*")
+	if err != nil {
+		panic(err)
+	}
+	defer os.RemoveAll(baseDir)
+	// PolicyGroupReturn           *chef.PolicyGroup
+	// PolicyObjectReturn          *chef.RevisionDetailsResponse
+	nc := subject.NewNodeCapture("node1", baseDir,
+		&CapturerMock{
+			NodeReturn:         policyManagedNode(),
+			PolicyGroupReturn:  &policyGroup,
+			PolicyObjectReturn: &policyDetail,
+		})
+	go nc.Run()
+	val := <-nc.Progress
+	assert.Equal(t, subject.FetchingNode, val)
+	val = <-nc.Progress
+	assert.Equal(t, subject.FetchingPolicyData, val)
+	val = <-nc.Progress
+	assert.Equal(t, subject.FetchingCookbookArtifacts, val)
+	val = <-nc.Progress
+	assert.Equal(t, subject.WritingKitchenConfig, val)
+	val = <-nc.Progress
+	assert.Equal(t, subject.FetchingComplete, val)
+
+	assert.Nil(t, nc.Error)
+}
+
+func TestCapture_RunWithPolicyManagedNode_FailPolicyGroupCapture(t *testing.T) {
+	baseDir, err := ioutil.TempDir(os.TempDir(), "chefanalyze-unit*")
+	if err != nil {
+		panic(err)
+	}
+	defer os.RemoveAll(baseDir)
+	nc := subject.NewNodeCapture("node1", baseDir,
+		&CapturerMock{
+			NodeReturn:       policyManagedNode(),
+			PolicyGroupError: errors.New("403 on group fetch"),
+		})
+	nc.Run()
+
+	if assert.NotNil(t, nc.Error) {
+		assert.Contains(t, nc.Error.Error(), "unable to capture policy group 'policy': 403 on group fetch")
+	}
+
+}
+func TestCapture_RunWithPolicyManagedNode_FailPolicyObjectCapture(t *testing.T) {
+	baseDir, err := ioutil.TempDir(os.TempDir(), "chefanalyze-unit*")
+	if err != nil {
+		panic(err)
+	}
+	defer os.RemoveAll(baseDir)
+	nc := subject.NewNodeCapture("node1", baseDir,
+		&CapturerMock{
+			NodeReturn:              policyManagedNode(),
+			PolicyGroupReturn:       &chef.PolicyGroup{},
+			PolicyObjectErrorReturn: errors.New("sorry fresh out of policy objects"),
+		})
+	nc.Run()
+
+	if assert.NotNil(t, nc.Error) {
+		assert.Contains(t, nc.Error.Error(), "unable to capture policy name 'pgroup' revision ''")
+		assert.Contains(t, nc.Error.Error(), "sorry fresh out of policy objects")
+	}
+}
+
+func TestCapture_RunWithPolicyManagedNode_FailCookbookArtifacts(t *testing.T) {
+	baseDir, err := ioutil.TempDir(os.TempDir(), "chefanalyze-unit*")
+	if err != nil {
+		panic(err)
+	}
+	defer os.RemoveAll(baseDir)
+	// PolicyGroupReturn           *chef.PolicyGroup
+	// PolicyObjectReturn          *chef.RevisionDetailsResponse
+	nc := subject.NewNodeCapture("node1", baseDir,
+		&CapturerMock{
+			PolicyGroupReturn: &chef.PolicyGroup{},
+			NodeReturn:        policyManagedNode(), CBAErrorReturn: errors.New("sorry all out of artifacts"),
+		})
+	nc.Run()
+
+	if assert.NotNil(t, nc.Error) {
+		assert.Contains(t, nc.Error.Error(), "unable to capture cookbook artifacts for policy 'pgroup' revision ''")
+		assert.Contains(t, nc.Error.Error(), "sorry all out of artifacts")
+	}
 }
 
 func TestCapture_RunWithNodeFailure(t *testing.T) {
@@ -190,34 +337,14 @@ func TestCapturer_CaptureNodeObject(t *testing.T) {
 		RoleMock{},
 		EnvMock{},
 		CookbookMock{},
+		PolicyGroupMock{},
+		PolicyMock{},
+		CBAMock{},
 		&writer,
 	)
 	actualNode, err := nc.CaptureNodeObject("node1")
 	assert.Equal(t, &expectedNode, actualNode)
 	assert.Equal(t, nil, err)
-}
-
-func TestCapturer_CaptureNodeObjectWithPolicyError(t *testing.T) {
-	expectedNode := chef.Node{
-		Name:        "node1",
-		Environment: "_default",
-		RunList:     []string{"cookbook1::recipe1", "role:mockrole"},
-		PolicyName:  "",
-		PolicyGroup: "mypolicygroup",
-	}
-	writer := ObjectWriterMock{}
-	nc := subject.NewNodeCapturer(
-		NodeMock{Error: nil, Node: expectedNode},
-		RoleMock{},
-		EnvMock{},
-		CookbookMock{},
-		&writer,
-	)
-	actualNode, err := nc.CaptureNodeObject("node1")
-	assert.Nil(t, actualNode)
-	if assert.NotNil(t, err) {
-		assert.Contains(t, err.Error(), "managed by Policyfile")
-	}
 }
 
 func TestCapturer_CaptureNodeObjectWithErrorOnFetch(t *testing.T) {
@@ -228,6 +355,9 @@ func TestCapturer_CaptureNodeObjectWithErrorOnFetch(t *testing.T) {
 		RoleMock{},
 		EnvMock{},
 		CookbookMock{},
+		PolicyGroupMock{},
+		PolicyMock{},
+		CBAMock{},
 		&writer,
 	)
 	_, err := nc.CaptureNodeObject("node1")
@@ -243,6 +373,9 @@ func TestCapturer_CaptureNodeObjectWithErrorOnSave(t *testing.T) {
 		RoleMock{},
 		EnvMock{},
 		CookbookMock{},
+		PolicyGroupMock{},
+		PolicyMock{},
+		CBAMock{},
 		&writer,
 	)
 	_, err := nc.CaptureNodeObject("node1")
@@ -261,6 +394,9 @@ func TestCapturer_CaptureRoleObjects(t *testing.T) {
 		RoleMock{Role: &expectedRole},
 		EnvMock{},
 		CookbookMock{},
+		PolicyGroupMock{},
+		PolicyMock{},
+		CBAMock{},
 		&writer,
 	)
 	err := nc.CaptureRoleObjects([]string{"role[role1]"})
@@ -275,6 +411,9 @@ func TestCapturer_CaptureRoleObjectsWithErrorOnFetch(t *testing.T) {
 		RoleMock{Error: errors.New("failed to fetch")},
 		EnvMock{},
 		CookbookMock{},
+		PolicyGroupMock{},
+		PolicyMock{},
+		CBAMock{},
 		&writer,
 	)
 	err := nc.CaptureRoleObjects([]string{"role[role1]"})
@@ -291,6 +430,9 @@ func TestCapturer_CaptureRoleObjectsWithErrorOnSave(t *testing.T) {
 		RoleMock{},
 		EnvMock{},
 		CookbookMock{},
+		PolicyGroupMock{},
+		PolicyMock{},
+		CBAMock{},
 		&writer,
 	)
 	err := nc.CaptureRoleObjects([]string{"role[role1]"})
@@ -310,6 +452,9 @@ func TestCapturer_CaptureEnvObject(t *testing.T) {
 		RoleMock{},
 		EnvMock{Env: &expectedEnv},
 		CookbookMock{},
+		PolicyGroupMock{},
+		PolicyMock{},
+		CBAMock{},
 		&writer,
 	)
 	err := nc.CaptureEnvObject("env1")
@@ -324,6 +469,9 @@ func TestCapturer_CaptureEnvObjectWithErrorOnFetch(t *testing.T) {
 		RoleMock{},
 		EnvMock{Error: errors.New("failed to fetch")},
 		CookbookMock{},
+		PolicyGroupMock{},
+		PolicyMock{},
+		CBAMock{},
 		&writer,
 	)
 	err := nc.CaptureEnvObject("env1")
@@ -338,12 +486,309 @@ func TestCapturer_CaptureEnvObjectWithErrorOnSave(t *testing.T) {
 		RoleMock{},
 		EnvMock{},
 		CookbookMock{},
+		PolicyGroupMock{},
+		PolicyMock{},
+		CBAMock{},
 		&writer,
 	)
 	err := nc.CaptureEnvObject("env1")
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "failed to write")
 
+}
+
+func TestCapturer_CaptureCookbookArtifacts(t *testing.T) {
+	baseDir, err := ioutil.TempDir(os.TempDir(), "chefanalyze-unit*")
+	if err != nil {
+		panic(err)
+	}
+	defer os.RemoveAll(baseDir)
+
+	CBAList := chef.CBAGetResponse{
+		"alpha": chef.CBA{
+			CBAVersions: []chef.CBAVersion{
+				chef.CBAVersion{Identifier: "123456789012345678901234567890xyz"},
+			},
+		},
+		"gama": chef.CBA{
+			CBAVersions: []chef.CBAVersion{
+				chef.CBAVersion{Identifier: "abc456789012345678901234567890xyz"},
+			},
+		},
+	}
+	//
+	// policyGroupList := chef.PolicyGroupGetResponse{
+	//   "my-policygroup": chef.PolicyGroup{
+	//     Policies: map[string]chef.Revision{
+	//       "my-policy": chef.Revision{
+	//         "revision_id": "123xyz",
+	//       },
+	//     },
+	//   },
+	// }
+
+	policyDetail := chef.RevisionDetailsResponse{
+		Name:       "my-policy",
+		RevisionID: "123xyz",
+		CookbookLocks: map[string]chef.CookbookLock{
+			"alpha": chef.CookbookLock{
+				Identifier: "123456789012345678901234567890xyz",
+			},
+			"gama": chef.CookbookLock{
+				Identifier: "abc456789012345678901234567890xyz",
+			},
+		},
+	}
+
+	writer := ObjectWriterMock{}
+	nc := subject.NewNodeCapturer(
+		NodeMock{},
+		RoleMock{},
+		EnvMock{},
+		CookbookMock{},
+		PolicyGroupMock{},
+		PolicyMock{},
+		newMockCookbookArtifact(CBAList, nil, nil),
+		&writer,
+	)
+
+	err = nc.CaptureCookbookArtifacts(baseDir, &policyDetail)
+	assert.Nil(t, err)
+}
+
+func TestCapturer_CaptureCookbookArtifacts_WithDownloadError(t *testing.T) {
+	baseDir, err := ioutil.TempDir(os.TempDir(), "chefanalyze-unit*")
+	if err != nil {
+		panic(err)
+	}
+	defer os.RemoveAll(baseDir)
+
+	CBAList := chef.CBAGetResponse{
+		"alpha": chef.CBA{
+			CBAVersions: []chef.CBAVersion{
+				chef.CBAVersion{Identifier: "123456789012345678901234567890xyz"},
+			},
+		},
+		"gama": chef.CBA{
+			CBAVersions: []chef.CBAVersion{
+				chef.CBAVersion{Identifier: "abc456789012345678901234567890xyz"},
+			},
+		},
+	}
+	policyDetail := chef.RevisionDetailsResponse{
+		Name:       "my-policy",
+		RevisionID: "123xyz",
+		CookbookLocks: map[string]chef.CookbookLock{
+			"alpha": chef.CookbookLock{
+				Identifier: "123456789012345678901234567890xyz",
+			},
+			"gama": chef.CookbookLock{
+				Identifier: "abc456789012345678901234567890xyz",
+			},
+		},
+	}
+
+	writer := ObjectWriterMock{}
+	nc := subject.NewNodeCapturer(
+		NodeMock{},
+		RoleMock{},
+		EnvMock{},
+		CookbookMock{},
+		PolicyGroupMock{},
+		PolicyMock{},
+		newMockCookbookArtifact(CBAList, nil, errors.New("Download Error")),
+		&writer,
+	)
+
+	err = nc.CaptureCookbookArtifacts(baseDir, &policyDetail)
+	if assert.NotNil(t, err) {
+		assert.Contains(t, err.Error(), "alpha")
+		assert.Contains(t, err.Error(), "Download Error")
+	}
+}
+
+func TestCapturer_CapturePolicyGroupObject(t *testing.T) {
+	policyGroup := chef.PolicyGroup{
+		Policies: map[string]chef.Revision{
+			"my-policy": chef.Revision{
+				"revision_id": "123xyz",
+			},
+		},
+	}
+	policyGroupList := chef.PolicyGroupGetResponse{
+		"my-policygroup": policyGroup,
+	}
+
+	writer := ObjectWriterMock{}
+	nc := subject.NewNodeCapturer(
+		NodeMock{},
+		RoleMock{},
+		EnvMock{},
+		CookbookMock{},
+		newMockPolicyGroup(policyGroupList, nil),
+		PolicyMock{},
+		CBAMock{},
+		&writer,
+	)
+
+	response, err := nc.CapturePolicyGroupObject("my-policygroup")
+	if assert.Nil(t, err) {
+		assert.Equal(t, policyGroup, *response)
+		// Make sure that the writer was asked to save.
+		assert.Equal(t, writer.ReceivedObject, &policyGroup)
+	}
+}
+
+func TestCapturer_CapturePolicyGroupObjectWithErrNotFound(t *testing.T) {
+	policyGroup := chef.PolicyGroup{
+		Policies: map[string]chef.Revision{
+			"my-policy": chef.Revision{
+				"revision_id": "123xyz",
+			},
+		},
+	}
+	policyGroupList := chef.PolicyGroupGetResponse{
+		"my-policygroup": policyGroup,
+	}
+
+	writer := ObjectWriterMock{}
+	nc := subject.NewNodeCapturer(
+		NodeMock{},
+		RoleMock{},
+		EnvMock{},
+		CookbookMock{},
+		newMockPolicyGroup(policyGroupList, nil),
+		PolicyMock{},
+		CBAMock{},
+		&writer,
+	)
+
+	response, err := nc.CapturePolicyGroupObject("herbie")
+	assert.Nil(t, response)
+	if assert.NotNil(t, err) {
+		assert.Contains(t, err.Error(), "Could not find policy group: herbie")
+	}
+}
+
+func TestCapturer_CapturePolicyGroupObject_WithErrorOnFetch(t *testing.T) {
+	policyGroupList := chef.PolicyGroupGetResponse{}
+
+	nc := subject.NewNodeCapturer(
+		NodeMock{},
+		RoleMock{},
+		EnvMock{},
+		CookbookMock{},
+		newMockPolicyGroup(policyGroupList, errors.New("failed to fetch")),
+		PolicyMock{},
+		CBAMock{},
+		&ObjectWriterMock{},
+	)
+
+	_, err := nc.CapturePolicyGroupObject("my-policygroup")
+	if assert.NotNil(t, err) {
+		assert.Contains(t, err.Error(), "unable to retrieve policy groups: failed to fetch")
+	}
+}
+
+func TestCapturer_CapturePolicyGroupObject_WithErrorOnWrite(t *testing.T) {
+
+	policyGroup := chef.PolicyGroup{
+		Policies: map[string]chef.Revision{
+			"my-policy": chef.Revision{
+				"revision_id": "123xyz",
+			},
+		},
+	}
+	policyGroupList := chef.PolicyGroupGetResponse{
+		"my-policygroup": policyGroup,
+	}
+	nc := subject.NewNodeCapturer(
+		NodeMock{},
+		RoleMock{},
+		EnvMock{},
+		CookbookMock{},
+		newMockPolicyGroup(policyGroupList, nil),
+		PolicyMock{},
+		CBAMock{},
+		&ObjectWriterMock{Error: errors.New("could not write")},
+	)
+
+	_, err := nc.CapturePolicyGroupObject("my-policygroup")
+
+	if assert.NotNil(t, err) {
+		assert.Contains(t, err.Error(), "failed to save policy group my-policygroup to disk")
+		assert.Contains(t, err.Error(), "could not write")
+	}
+}
+
+func TestCapturer_CapturePolicyObject(t *testing.T) {
+	policyDetail := chef.RevisionDetailsResponse{
+		Name:       "my-policy",
+		RevisionID: "123xyz",
+		CookbookLocks: map[string]chef.CookbookLock{
+			"alpha": chef.CookbookLock{
+				Identifier: "123456789012345678901234567890xyz",
+			},
+			"gama": chef.CookbookLock{
+				Identifier: "abc456789012345678901234567890xyz",
+			},
+		},
+	}
+
+	nc := subject.NewNodeCapturer(
+		NodeMock{},
+		RoleMock{},
+		EnvMock{},
+		CookbookMock{},
+		PolicyGroupMock{},
+		newMockPolicy(policyDetail, nil),
+		CBAMock{},
+		&ObjectWriterMock{},
+	)
+
+	response, err := nc.CapturePolicyObject("my-policy", "123xyz")
+	assert.Nil(t, err)
+	if assert.NotNil(t, response) {
+		assert.Equal(t, response, &policyDetail)
+	}
+
+}
+
+func TestCapturer_CapturePolicyObject_WithErrorOnFetch(t *testing.T) {
+	policyDetail := chef.RevisionDetailsResponse{}
+	nc := subject.NewNodeCapturer(
+		NodeMock{},
+		RoleMock{},
+		EnvMock{},
+		CookbookMock{},
+		PolicyGroupMock{},
+		newMockPolicy(policyDetail, errors.New("Failed to fetch")),
+		CBAMock{},
+		&ObjectWriterMock{},
+	)
+	_, err := nc.CapturePolicyObject("my-policy", "123xyz")
+	if assert.NotNil(t, err) {
+		assert.Contains(t, err.Error(), "unable to retrieve policy object: my-policy: Failed to fetch")
+	}
+}
+
+func TestCapturer_CapturePolicyObject_WithErrorOnWrite(t *testing.T) {
+	policyDetail := chef.RevisionDetailsResponse{}
+	nc := subject.NewNodeCapturer(
+		NodeMock{},
+		RoleMock{},
+		EnvMock{},
+		CookbookMock{},
+		PolicyGroupMock{},
+		newMockPolicy(policyDetail, nil),
+		CBAMock{},
+		&ObjectWriterMock{Error: errors.New("no write for you")},
+	)
+
+	_, err := nc.CapturePolicyObject("my-policy", "123xyz")
+	if assert.NotNil(t, err) {
+		assert.Contains(t, err.Error(), "failed to save policy object to disk: my-policy: no write for you")
+	}
 }
 
 func TestCapturer_CaptureCookbooks(t *testing.T) {
@@ -361,13 +806,15 @@ func TestCapturer_CaptureCookbooks(t *testing.T) {
 		},
 	}
 
-	writer := ObjectWriterMock{}
 	nc := subject.NewNodeCapturer(
 		NodeMock{},
 		RoleMock{},
 		EnvMock{},
 		newMockCookbook(cookbookList, nil, nil),
-		&writer,
+		PolicyGroupMock{},
+		PolicyMock{},
+		CBAMock{},
+		&ObjectWriterMock{},
 	)
 
 	cbmap := map[string]interface{}{
@@ -404,6 +851,9 @@ func TestCapturer_CaptureCookbooksWithDownloadError(t *testing.T) {
 		RoleMock{},
 		EnvMock{},
 		newMockCookbook(cookbookList, nil, errors.New("download error in test1")),
+		PolicyGroupMock{},
+		PolicyMock{},
+		CBAMock{},
 		&writer,
 	)
 
@@ -444,6 +894,9 @@ func TestCapturer_CaptureCookbooksWithRenameError(t *testing.T) {
 		RoleMock{},
 		EnvMock{},
 		cbMock,
+		PolicyGroupMock{},
+		PolicyMock{},
+		CBAMock{},
 		&writerMock,
 	)
 
@@ -470,6 +923,9 @@ func TestCapturer_SaveKitchenYML(t *testing.T) {
 		RoleMock{},
 		EnvMock{},
 		CookbookMock{},
+		PolicyGroupMock{},
+		PolicyMock{},
+		CBAMock{},
 		&writerMock,
 	)
 	err := nc.SaveKitchenYML(node)
@@ -480,7 +936,7 @@ driver:
   name: vagrant
 
 provisioner:
-  name: chef_zero
+  name: chef_zero_capture
   product_name: chef
   product_version: 99.0
   json_attributes: false
@@ -507,6 +963,9 @@ func TestCapturer_SaveKitchenYMLWithMissingAttrs(t *testing.T) {
 		RoleMock{},
 		EnvMock{},
 		CookbookMock{},
+		PolicyGroupMock{},
+		PolicyMock{},
+		CBAMock{},
 		&writerMock,
 	)
 
