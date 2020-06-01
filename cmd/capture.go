@@ -168,7 +168,7 @@ can then be used to converge locally.`,
 					formatCookbooks(remainingCBs))
 			}
 
-			fmt.Print(CookbookCaptureCompleteTxt, repoDirName)
+			fmt.Printf(CookbookCaptureCompleteTxt, repoDirName)
 			return nil
 
 		},
