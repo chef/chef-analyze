@@ -67,6 +67,7 @@ Flags:
   -h, --help                     help for capture
   -p, --profile string           profile to use from credentials file (default "default")
   -o, --ssl-no-verify            Do not verify SSL when connecting to Chef Infra Server (default: verify)
+  -d, --with-data-bags           download all data bags as part of node capture
 `
 	assert.Equal(t, expected, out.String())
 	assert.Empty(t, err.String(), "STDERR should be empty")

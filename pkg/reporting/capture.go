@@ -52,6 +52,7 @@ type NodeCapture struct {
 	capturer      NodeCaptureInterface
 	node          *chef.Node
 	repositoryDir string
+	opts          CaptureOpts
 	Progress      chan int
 	Error         error
 }
@@ -101,14 +102,19 @@ const (
 	FetchingCookbooks
 	FetchingCookbookArtifacts
 	WritingKitchenConfig
-	FetchingComplete
+	CaptureComplete
 )
 
-func NewNodeCapture(name string, repositoryDir string, capturer NodeCaptureInterface) *NodeCapture {
+type CaptureOpts struct {
+	DownloadDataBags bool
+}
+
+func NewNodeCapture(name string, repositoryDir string, opts CaptureOpts, capturer NodeCaptureInterface) *NodeCapture {
 	return &NodeCapture{
 		name:          name,
 		capturer:      capturer,
 		repositoryDir: repositoryDir,
+		opts:          opts,
 		// 6 max possible events in a Run - let's not block our activity in case the caller
 		// doesn't pick them up
 		Progress: make(chan int, 7),
@@ -126,11 +132,13 @@ func (nc *NodeCapture) Run() {
 		return
 	}
 
-	nc.Progress <- FetchingDataBags
-	err = nc.capturer.CaptureAllDataBagItems()
-	if err != nil {
-		nc.Error = errors.Wrapf(err, "unable to capture data bag items")
-		return
+	if nc.opts.DownloadDataBags {
+		nc.Progress <- FetchingDataBags
+		err = nc.capturer.CaptureAllDataBagItems()
+		if err != nil {
+			nc.Error = errors.Wrapf(err, "unable to capture data bag items")
+			return
+		}
 	}
 
 	if len(node.PolicyName) > 0 {
@@ -190,7 +198,7 @@ func (nc *NodeCapture) Run() {
 	if err != nil {
 		nc.Error = errors.Wrapf(err, "unable to write Kitchen config")
 	}
-	nc.Progress <- FetchingComplete
+	nc.Progress <- CaptureComplete
 }
 
 func NewNodeCapturer(

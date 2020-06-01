@@ -140,13 +140,40 @@ func defaultNode() *chef.Node {
 		},
 	}
 }
+
 func TestCapture_Run(t *testing.T) {
 	baseDir, err := ioutil.TempDir(os.TempDir(), "chefanalyze-unit*")
 	if err != nil {
 		panic(err)
 	}
 	defer os.RemoveAll(baseDir)
-	nc := subject.NewNodeCapture("node1", baseDir, &CapturerMock{NodeReturn: defaultNode()})
+	nc := subject.NewNodeCapture("node1", baseDir, subject.CaptureOpts{}, &CapturerMock{NodeReturn: defaultNode()})
+	go nc.Run()
+	val := <-nc.Progress
+	assert.Equal(t, subject.FetchingNode, val)
+	val = <-nc.Progress
+	assert.Equal(t, subject.FetchingCookbooks, val)
+	val = <-nc.Progress
+	assert.Equal(t, subject.FetchingEnvironment, val)
+	val = <-nc.Progress
+	assert.Equal(t, subject.FetchingRoles, val)
+	val = <-nc.Progress
+	assert.Equal(t, subject.WritingKitchenConfig, val)
+	val = <-nc.Progress
+	assert.Equal(t, subject.CaptureComplete, val)
+
+	assert.Nil(t, nc.Error)
+
+}
+
+func TestCapture_RunWithDataBags(t *testing.T) {
+	baseDir, err := ioutil.TempDir(os.TempDir(), "chefanalyze-unit*")
+	if err != nil {
+		panic(err)
+	}
+	defer os.RemoveAll(baseDir)
+	nc := subject.NewNodeCapture("node1", baseDir,
+		subject.CaptureOpts{DownloadDataBags: true}, &CapturerMock{NodeReturn: defaultNode()})
 	go nc.Run()
 	val := <-nc.Progress
 	assert.Equal(t, subject.FetchingNode, val)
@@ -161,7 +188,7 @@ func TestCapture_Run(t *testing.T) {
 	val = <-nc.Progress
 	assert.Equal(t, subject.WritingKitchenConfig, val)
 	val = <-nc.Progress
-	assert.Equal(t, subject.FetchingComplete, val)
+	assert.Equal(t, subject.CaptureComplete, val)
 
 	assert.Nil(t, nc.Error)
 
@@ -196,6 +223,7 @@ func TestCapture_RunWithPolicyManagedNode(t *testing.T) {
 	// PolicyGroupReturn           *chef.PolicyGroup
 	// PolicyObjectReturn          *chef.RevisionDetailsResponse
 	nc := subject.NewNodeCapture("node1", baseDir,
+		subject.CaptureOpts{},
 		&CapturerMock{
 			NodeReturn:         policyManagedNode(),
 			PolicyGroupReturn:  &policyGroup,
@@ -205,15 +233,13 @@ func TestCapture_RunWithPolicyManagedNode(t *testing.T) {
 	val := <-nc.Progress
 	assert.Equal(t, subject.FetchingNode, val)
 	val = <-nc.Progress
-	assert.Equal(t, subject.FetchingDataBags, val)
-	val = <-nc.Progress
 	assert.Equal(t, subject.FetchingPolicyData, val)
 	val = <-nc.Progress
 	assert.Equal(t, subject.FetchingCookbookArtifacts, val)
 	val = <-nc.Progress
 	assert.Equal(t, subject.WritingKitchenConfig, val)
 	val = <-nc.Progress
-	assert.Equal(t, subject.FetchingComplete, val)
+	assert.Equal(t, subject.CaptureComplete, val)
 
 	assert.Nil(t, nc.Error)
 }
@@ -225,6 +251,7 @@ func TestCapture_RunWithPolicyManagedNode_FailPolicyGroupCapture(t *testing.T) {
 	}
 	defer os.RemoveAll(baseDir)
 	nc := subject.NewNodeCapture("node1", baseDir,
+		subject.CaptureOpts{},
 		&CapturerMock{
 			NodeReturn:       policyManagedNode(),
 			PolicyGroupError: errors.New("403 on group fetch"),
@@ -243,6 +270,7 @@ func TestCapture_RunWithPolicyManagedNode_FailPolicyObjectCapture(t *testing.T) 
 	}
 	defer os.RemoveAll(baseDir)
 	nc := subject.NewNodeCapture("node1", baseDir,
+		subject.CaptureOpts{},
 		&CapturerMock{
 			NodeReturn:              policyManagedNode(),
 			PolicyGroupReturn:       &chef.PolicyGroup{},
@@ -262,9 +290,8 @@ func TestCapture_RunWithPolicyManagedNode_FailCookbookArtifacts(t *testing.T) {
 		panic(err)
 	}
 	defer os.RemoveAll(baseDir)
-	// PolicyGroupReturn           *chef.PolicyGroup
-	// PolicyObjectReturn          *chef.RevisionDetailsResponse
 	nc := subject.NewNodeCapture("node1", baseDir,
+		subject.CaptureOpts{},
 		&CapturerMock{
 			PolicyGroupReturn: &chef.PolicyGroup{},
 			NodeReturn:        policyManagedNode(), CBAErrorReturn: errors.New("sorry all out of artifacts"),
@@ -278,7 +305,8 @@ func TestCapture_RunWithPolicyManagedNode_FailCookbookArtifacts(t *testing.T) {
 }
 
 func TestCapture_RunWithNodeFailure(t *testing.T) {
-	nc := subject.NewNodeCapture("node1", "", &CapturerMock{NodeErrorReturn: errors.New("no node")})
+	nc := subject.NewNodeCapture("node1", "", subject.CaptureOpts{},
+		&CapturerMock{NodeErrorReturn: errors.New("no node")})
 	nc.Run()
 	if assert.NotNil(t, nc.Error) {
 		assert.Contains(t, nc.Error.Error(), "no node")
@@ -287,14 +315,16 @@ func TestCapture_RunWithNodeFailure(t *testing.T) {
 }
 
 func TestCapture_RunWithNoCookbooksAvailable(t *testing.T) {
-	nc := subject.NewNodeCapture("node1", "", &CapturerMock{NodeReturn: &chef.Node{}})
+	nc := subject.NewNodeCapture("node1", "", subject.CaptureOpts{},
+		&CapturerMock{NodeReturn: &chef.Node{}})
 	nc.Run()
 	assert.Nil(t, nc.Error)
 }
 
 func TestCapture_RunWithCookbookFailure(t *testing.T) {
-	nc := subject.NewNodeCapture("node1", "", &CapturerMock{NodeReturn: defaultNode(),
-		CookbookErrorReturn: errors.New("no cookbook")})
+	nc := subject.NewNodeCapture("node1", "", subject.CaptureOpts{},
+		&CapturerMock{NodeReturn: defaultNode(),
+			CookbookErrorReturn: errors.New("no cookbook")})
 	nc.Run()
 	if assert.NotNil(t, nc.Error) {
 		assert.Contains(t, nc.Error.Error(), "no cookbook")
@@ -303,8 +333,9 @@ func TestCapture_RunWithCookbookFailure(t *testing.T) {
 }
 
 func TestCapture_RunWithEnvironmentFailure(t *testing.T) {
-	nc := subject.NewNodeCapture("node1", "", &CapturerMock{NodeReturn: defaultNode(),
-		EnvErrorReturn: errors.New("no env")})
+	nc := subject.NewNodeCapture("node1", "", subject.CaptureOpts{},
+		&CapturerMock{NodeReturn: defaultNode(),
+			EnvErrorReturn: errors.New("no env")})
 	nc.Run()
 	if assert.NotNil(t, nc.Error) {
 		assert.Contains(t, nc.Error.Error(), "no env")
@@ -313,8 +344,10 @@ func TestCapture_RunWithEnvironmentFailure(t *testing.T) {
 }
 
 func TestCapture_RunWithRoleFailure(t *testing.T) {
-	nc := subject.NewNodeCapture("node1", "", &CapturerMock{NodeReturn: defaultNode(),
-		RoleErrorReturn: errors.New("no role")})
+
+	nc := subject.NewNodeCapture("node1", "", subject.CaptureOpts{},
+		&CapturerMock{NodeReturn: defaultNode(),
+			RoleErrorReturn: errors.New("no role")})
 	nc.Run()
 	if assert.NotNil(t, nc.Error) {
 		assert.Contains(t, nc.Error.Error(), "no role")
@@ -323,8 +356,9 @@ func TestCapture_RunWithRoleFailure(t *testing.T) {
 }
 
 func TestCapture_RunWithCookbookDataBagFailure(t *testing.T) {
-	nc := subject.NewNodeCapture("node1", "", &CapturerMock{NodeReturn: defaultNode(),
-		DataBagErrorReturn: errors.New("spilled all over the carpet")})
+	nc := subject.NewNodeCapture("node1", "", subject.CaptureOpts{DownloadDataBags: true},
+		&CapturerMock{NodeReturn: defaultNode(),
+			DataBagErrorReturn: errors.New("spilled all over the carpet")})
 	nc.Run()
 	if assert.NotNil(t, nc.Error) {
 		assert.Contains(t, nc.Error.Error(), "spilled all over the carpet")
@@ -332,8 +366,9 @@ func TestCapture_RunWithCookbookDataBagFailure(t *testing.T) {
 	}
 }
 func TestCapture_RunWithKitchenYMLFailure(t *testing.T) {
-	nc := subject.NewNodeCapture("node1", "", &CapturerMock{NodeReturn: defaultNode(),
-		KitchenErrorReturn: errors.New("failure here")})
+	nc := subject.NewNodeCapture("node1", "", subject.CaptureOpts{},
+		&CapturerMock{NodeReturn: defaultNode(),
+			KitchenErrorReturn: errors.New("failure here")})
 	nc.Run()
 	if assert.NotNil(t, nc.Error) {
 		assert.Contains(t, nc.Error.Error(), "failure here")
