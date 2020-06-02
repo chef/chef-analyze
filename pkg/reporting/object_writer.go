@@ -36,6 +36,10 @@ type ObjectWriterInterface interface {
 	WritePolicyRevision(*chef.RevisionDetailsResponse) error
 	WritePolicyGroup(string, *chef.PolicyGroup) error
 	WriteNode(*chef.Node) error
+
+	WriteDataBag(bag *chef.DataBag) error
+	WriteDataBagItem(bagName string, itemName string, item interface{}) error
+
 	WriteContent(string, []byte) error
 }
 
@@ -60,6 +64,16 @@ func (ow *ObjectWriter) WritePolicyRevision(policy *chef.RevisionDetailsResponse
 
 func (ow *ObjectWriter) WritePolicyGroup(name string, pgroup *chef.PolicyGroup) error {
 	return ow.WriteJSON("policy_groups", name, pgroup)
+}
+
+// Takes a chef.DataBag and saves it as json in RootDir/data_bags
+func (ow *ObjectWriter) WriteDataBag(bag *chef.DataBag) error {
+	return ow.WriteJSON("data_bags", bag.Name, bag)
+}
+
+// Takes a chef.DataBagItem and saves it as json in RootDir/data_bags/bagName/itemName.json
+func (ow *ObjectWriter) WriteDataBagItem(bagName string, itemName string, item interface{}) error {
+	return ow.WriteJSON(fmt.Sprintf("data_bags/%s", bagName), itemName, item)
 }
 
 // Writes "content" to RootDir/"fileName"

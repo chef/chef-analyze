@@ -32,22 +32,10 @@ import (
 )
 
 var (
-	// behavior:
-	//  - repo dir: if it does not exist, we will create it by invoking chef generate repo node-NAME-repo.
-	//  - capture json object definitions for node,  and (env, roles) or (policy_group, active-policy-revision) .
-	//    Save them to the chef-repo.
-	//  - for policy-managed nodes, capture cookbook-artifacts from server based on policy
-	//    and policy_group assigned to node. Save each artifact to the chef-repo.
-	//  - for non-policy, capture cookbooks and versions from automatic attributes. Save each
-	//    cookbook @ version to the chef-repo.
-	//  - Offer user chance to symlink in cookbooks/cookbook artifacts from one or more locations
-	//    on the Workstation system.
+	captureOpts reporting.CaptureOpts
 
 	// Possible options (future)
-	// --repo-dir -> root dir of repo to use.  Will update existing if one exists.
-	// Thoughts: this may make it harder to coordinate, now user will have to track telling kitchen about
-	//           repo location? Or is that something we'd capture in the kitchen.yml we generate eventually?
-	//           to t
+	// --node-repo-dir -> dir to create for the the special node repository.
 	//     Default: ./node-NAME-repo
 
 	captureCmd = &cobra.Command{
@@ -117,12 +105,13 @@ can then be used to converge locally.`,
 			capturer := reporting.NewNodeCapturer(
 				chefClient.Nodes, chefClient.Roles,
 				chefClient.Environments, chefClient.Cookbooks,
+				chefClient.DataBags,
 				chefClient.PolicyGroups,
 				chefClient.Policies,
 				chefClient.CookbookArtifacts,
 				&reporting.ObjectWriter{RootDir: repoDirName},
 			)
-			nc := reporting.NewNodeCapture(nodeName, repoDirName, capturer)
+			nc := reporting.NewNodeCapture(nodeName, repoDirName, captureOpts, capturer)
 			go nc.Run()
 			for progress := range nc.Progress {
 				switch progress {
@@ -132,6 +121,8 @@ can then be used to converge locally.`,
 					fmt.Println(" - Capturing cookbooks...")
 				case reporting.FetchingRoles:
 					fmt.Println(" - Capturing roles...")
+				case reporting.FetchingDataBags:
+					fmt.Println(" - Capturing data bag items...")
 				case reporting.FetchingEnvironment:
 					fmt.Println(" - Capturing environment...")
 				case reporting.WritingKitchenConfig:
@@ -141,7 +132,8 @@ can then be used to converge locally.`,
 				case reporting.FetchingPolicyData:
 					fmt.Println(" - Capturing policy data...")
 
-				case reporting.FetchingComplete:
+				case reporting.CaptureComplete:
+					break
 				}
 			}
 			if nc.Error != nil {
@@ -176,7 +168,7 @@ can then be used to converge locally.`,
 					formatCookbooks(remainingCBs))
 			}
 
-			fmt.Print(CookbookCaptureCompleteTxt, repoDirName)
+			fmt.Printf(CookbookCaptureCompleteTxt, repoDirName)
 			return nil
 
 		},
@@ -193,6 +185,12 @@ func locksToCookbooks(locks map[string]chef.CookbookLock) []reporting.NodeCookbo
 }
 
 func init() {
+	captureCmd.PersistentFlags().BoolVarP(
+		&captureOpts.DownloadDataBags,
+		"with-data-bags",
+		"d", false,
+		"download all data bags as part of node capture",
+	)
 	addInfraFlagsToCommand(captureCmd)
 }
 

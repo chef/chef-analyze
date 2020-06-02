@@ -153,6 +153,18 @@ func TestObjectWriter_WritePolicyGroup(t *testing.T) {
 		})
 	}
 }
+func (ow *ObjectWriterMock) WriteDataBag(dataBag *chef.DataBag) error {
+	if (ow.Error) == nil {
+		ow.ReceivedObject = dataBag
+	}
+	return ow.Error
+}
+func (ow *ObjectWriterMock) WriteDataBagItem(bagName, itemName string, dataBagItem interface{}) error {
+	if (ow.Error) == nil {
+		ow.ReceivedObject = dataBagItem
+	}
+	return ow.Error
+}
 
 func TestObjectWriter_WriteRole(t *testing.T) {
 	type fields struct {
@@ -195,6 +207,53 @@ func TestObjectWriter_WriteRole(t *testing.T) {
 				assert.Equal(t, testRole, roleWritten)
 			}
 		})
+	}
+}
+
+func TestObjectWriter_WriteDataBag(t *testing.T) {
+	baseDir, err := ioutil.TempDir(os.TempDir(), "chefanalyze-unit*")
+	if err != nil {
+		panic(err)
+	}
+	defer os.RemoveAll(baseDir)
+
+	testBag := chef.DataBag{Name: "test_bag"}
+	ow := &reporting.ObjectWriter{RootDir: baseDir}
+	err = ow.WriteDataBag(&testBag)
+	if assert.Nil(t, err) {
+		content, err := ioutil.ReadFile(fmt.Sprintf("%s/data_bags/%s.json", baseDir, testBag.Name))
+		if assert.Nil(t, err) {
+			var bagWritten chef.DataBag
+			err = json.Unmarshal(content, &bagWritten)
+			assert.Nil(t, err)
+			assert.Equal(t, testBag, bagWritten)
+		}
+	}
+}
+func TestObjectWriter_WriteDataBagItem(t *testing.T) {
+	baseDir, err := ioutil.TempDir(os.TempDir(), "chefanalyze-unit*")
+	if err != nil {
+		panic(err)
+	}
+	defer os.RemoveAll(baseDir)
+
+	rawItem := map[string]interface{}{
+		"somekey": map[string]interface{}{
+			"value1": "value2",
+			"value3": true,
+		},
+	}
+
+	ow := &reporting.ObjectWriter{RootDir: baseDir}
+	err = ow.WriteDataBagItem("testbag", "testitem", &rawItem)
+	if assert.Nil(t, err) {
+		content, err := ioutil.ReadFile(fmt.Sprintf("%s/data_bags/testbag/testitem.json", baseDir))
+		if assert.Nil(t, err) {
+			var bagItemWritten chef.DataBagItem
+			err = json.Unmarshal(content, &bagItemWritten)
+			assert.Nil(t, err)
+			assert.Equal(t, rawItem, bagItemWritten)
+		}
 	}
 }
 

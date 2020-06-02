@@ -41,6 +41,7 @@ type NodeCaptureInterface interface {
 	CaptureRoleObjects([]string) error
 	CapturePolicyObject(string, string) (*chef.RevisionDetailsResponse, error)
 	CapturePolicyGroupObject(string) (*chef.PolicyGroup, error)
+	CaptureAllDataBagItems() error
 	SaveKitchenYML(node *chef.Node) error
 }
 
@@ -51,19 +52,21 @@ type NodeCapture struct {
 	capturer      NodeCaptureInterface
 	node          *chef.Node
 	repositoryDir string
+	opts          CaptureOpts
 	Progress      chan int
 	Error         error
 }
 
 type NodeCapturer struct {
-	nodes             NodesInterface
-	roles             RolesInterface
-	env               EnvironmentInterface
+	cookbookArtifacts CBAInterface
 	cookbooks         CookbookInterface
-	writer            ObjectWriterInterface
+	dataBags          DataBagInterface
+	env               EnvironmentInterface
+	nodes             NodesInterface
 	policies          PolicyInterface
 	policyGroups      PolicyGroupInterface
-	cookbookArtifacts CBAInterface
+	roles             RolesInterface
+	writer            ObjectWriterInterface
 }
 
 type NodeCookbook struct {
@@ -95,20 +98,26 @@ const (
 	FetchingPolicyData
 	FetchingEnvironment
 	FetchingRoles
+	FetchingDataBags
 	FetchingCookbooks
 	FetchingCookbookArtifacts
 	WritingKitchenConfig
-	FetchingComplete
+	CaptureComplete
 )
 
-func NewNodeCapture(name string, repositoryDir string, capturer NodeCaptureInterface) *NodeCapture {
+type CaptureOpts struct {
+	DownloadDataBags bool
+}
+
+func NewNodeCapture(name string, repositoryDir string, opts CaptureOpts, capturer NodeCaptureInterface) *NodeCapture {
 	return &NodeCapture{
 		name:          name,
 		capturer:      capturer,
 		repositoryDir: repositoryDir,
+		opts:          opts,
 		// 6 max possible events in a Run - let's not block our activity in case the caller
 		// doesn't pick them up
-		Progress: make(chan int, 6),
+		Progress: make(chan int, 7),
 	}
 }
 
@@ -121,6 +130,15 @@ func (nc *NodeCapture) Run() {
 	if err != nil {
 		nc.Error = errors.Wrapf(err, "unable to capture node '%s'", nc.name)
 		return
+	}
+
+	if nc.opts.DownloadDataBags {
+		nc.Progress <- FetchingDataBags
+		err = nc.capturer.CaptureAllDataBagItems()
+		if err != nil {
+			nc.Error = errors.Wrapf(err, "unable to capture data bag items")
+			return
+		}
 	}
 
 	if len(node.PolicyName) > 0 {
@@ -174,26 +192,31 @@ func (nc *NodeCapture) Run() {
 			return
 		}
 	}
+
 	nc.Progress <- WritingKitchenConfig
 	err = nc.capturer.SaveKitchenYML(node)
 	if err != nil {
 		nc.Error = errors.Wrapf(err, "unable to write Kitchen config")
 	}
-
-	nc.Progress <- FetchingComplete
+	nc.Progress <- CaptureComplete
 }
 
 func NewNodeCapturer(
 	nodes NodesInterface,
-	roles RolesInterface, env EnvironmentInterface,
-	cookbooks CookbookInterface, policyGroups PolicyGroupInterface,
-	policies PolicyInterface, cookbookArtifacts CBAInterface,
+	roles RolesInterface,
+	env EnvironmentInterface,
+	cookbooks CookbookInterface,
+	dataBags DataBagInterface,
+	policyGroups PolicyGroupInterface,
+	policies PolicyInterface,
+	cookbookArtifacts CBAInterface,
 	writer ObjectWriterInterface) *NodeCapturer {
 	return &NodeCapturer{
 		nodes:             nodes,
 		roles:             roles,
 		env:               env,
 		cookbooks:         cookbooks,
+		dataBags:          dataBags,
 		policies:          policies,
 		policyGroups:      policyGroups,
 		cookbookArtifacts: cookbookArtifacts,
@@ -322,6 +345,33 @@ func (nc *NodeCapturer) CaptureRoleObjects(runList []string) error {
 		err = nc.writer.WriteRole(role)
 		if err != nil {
 			return errors.Wrapf(err, "failed to save role %s. This is a bug, please report it:", roleName)
+		}
+	}
+	return nil
+}
+
+func (nc *NodeCapturer) CaptureAllDataBagItems() error {
+	bags, err := nc.dataBags.List()
+	if err != nil {
+		return errors.Wrap(err, "unable to retrieve list of data bags")
+	}
+	for name, _ := range *bags {
+		items, err := nc.dataBags.ListItems(name)
+		if err != nil {
+			return errors.Wrapf(err, "unable to retrieve data bag items for %s", name)
+		}
+
+		for itemName, _ := range *items {
+			item, err := nc.dataBags.GetItem(name, itemName)
+			if err != nil {
+				return errors.Wrapf(err, "unable to retrieve data bag item %s/%s", name, itemName)
+			}
+
+			err = nc.writer.WriteDataBagItem(name, itemName, item)
+			if err != nil {
+				return errors.Wrapf(err, "unable to save data bag item %s/%s", name, itemName)
+			}
+
 		}
 	}
 	return nil

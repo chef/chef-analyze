@@ -33,6 +33,12 @@ type CBAInterface interface {
 	DownloadTo(name, id, localDir string) error
 }
 
+type DataBagInterface interface {
+	ListItems(string) (*chef.DataBagListResult, error)
+	List() (*chef.DataBagListResult, error)
+	GetItem(databagName string, databagItem string) (chef.DataBagItem, error)
+}
+
 type PolicyGroupInterface interface {
 	List() (chef.PolicyGroupGetResponse, error)
 }
