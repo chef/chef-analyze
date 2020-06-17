@@ -96,6 +96,7 @@ The result is written to file.
 				cookbooksFlags.onlyUnused,
 				cookbooksFlags.workers,
 				reportsFlags.nodeFilter,
+				reportsFlags.anonymize,
 			)
 
 			if err != nil {
@@ -177,7 +178,7 @@ any applied policies, and the cookbooks used during the most recent chef-client 
 			}
 
 			fmt.Println("Analyzing nodes...")
-			report, err := reporting.GenerateNodesReport(chefClient.Search, reportsFlags.nodeFilter)
+			report, err := reporting.GenerateNodesReport(chefClient.Search, reportsFlags.nodeFilter, reportsFlags.anonymize)
 			if err != nil {
 				return err
 			}
@@ -219,6 +220,7 @@ any applied policies, and the cookbooks used during the most recent chef-client 
 	reportsFlags struct {
 		format     string
 		nodeFilter string
+		anonymize  bool
 	}
 )
 
@@ -253,6 +255,11 @@ func init() {
 		&cookbooksFlags.runCookstyle,
 		"verify-upgrade", "V", false,
 		"verify the upgrade compatibility of every cookbook",
+	)
+	reportCmd.PersistentFlags().BoolVarP(
+		&reportsFlags.anonymize,
+		"anonymize", "a", false,
+		"replace cookbook and node names with hash values",
 	)
 	// adds the cookbooks command as a sub-command of the report command
 	reportCmd.AddCommand(reportCookbooksCmd)

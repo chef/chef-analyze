@@ -138,7 +138,7 @@ func (nri *NodeReportItem) CookbooksList() []string {
 }
 
 // GenerateNodesReport generate a nodes report
-func GenerateNodesReport(searcher SearchInterface, filter string) ([]*NodeReportItem, error) {
+func GenerateNodesReport(searcher SearchInterface, filter string, anonymize bool) ([]*NodeReportItem, error) {
 	var (
 		query = map[string]interface{}{
 			"name":            []string{"name"},
@@ -171,7 +171,6 @@ func GenerateNodesReport(searcher SearchInterface, filter string) ([]*NodeReport
 
 		if v != nil {
 			item := &NodeReportItem{
-				Name:        safeStringFromMap(v, "name"),
 				OS:          safeStringFromMap(v, "os"),
 				OSVersion:   safeStringFromMap(v, "os_version"),
 				ChefVersion: safeStringFromMap(v, "chef_version"),
@@ -180,11 +179,23 @@ func GenerateNodesReport(searcher SearchInterface, filter string) ([]*NodeReport
 				PolicyRev:   safeStringFromMap(v, "policy_revision"),
 			}
 
+			nodeName := safeStringFromMap(v, "name")
+			if anonymize {
+				item.Name = hashString(nodeName)
+			} else {
+				item.Name = nodeName
+			}
+
 			if v["cookbooks"] != nil {
 				cookbooks := v["cookbooks"].(map[string]interface{})
 				item.CookbookVersions = make([]CookbookVersion, 0, len(cookbooks))
 				for k, v := range cookbooks {
 					cbv := CookbookVersion{Name: k, Version: safeStringFromMap(v.(map[string]interface{}), "version")}
+					if anonymize {
+						cbv.Name = hashString(k)
+					} else {
+						cbv.Name = k
+					}
 					item.CookbookVersions = append(item.CookbookVersions, cbv)
 				}
 			}
