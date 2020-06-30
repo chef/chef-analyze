@@ -96,7 +96,7 @@ The result is written to file.
 				cookbooksFlags.onlyUnused,
 				cookbooksFlags.workers,
 				reportsFlags.nodeFilter,
-				reportsFlags.anonymize,
+				toAnonyimize(),
 			)
 
 			if err != nil {
@@ -178,7 +178,7 @@ any applied policies, and the cookbooks used during the most recent chef-client 
 			}
 
 			fmt.Println("Analyzing nodes...")
-			report, err := reporting.GenerateNodesReport(chefClient.Search, reportsFlags.nodeFilter, reportsFlags.anonymize)
+			report, err := reporting.GenerateNodesReport(chefClient.Search, reportsFlags.nodeFilter, toAnonyimize())
 			if err != nil {
 				return err
 			}
@@ -352,4 +352,20 @@ func saveReport(baseName string, ext string, nodeFilter string, content string) 
 
 	fmt.Printf("%s report saved to %s\n", strings.Title(baseName), reportPath)
 	return nil
+}
+
+func toAnonyimize() bool {
+
+	c, error := reporting.NewDefault()
+	if error != nil {
+		return false
+	}
+
+	if reportsFlags.anonymize {
+		return true
+	} else if c.Config.Reports.Anonymize {
+		return true
+	}
+
+	return false
 }

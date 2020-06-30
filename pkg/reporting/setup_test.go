@@ -233,6 +233,9 @@ xyz = false
 
 [dev]
 spinner = true
+
+[reports]
+anonymize = true
 `)
 	err := ioutil.WriteFile(wsConfigToml, creds, 0666)
 	if err != nil {

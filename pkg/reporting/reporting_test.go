@@ -43,6 +43,7 @@ func TestReportingWithDefaults(t *testing.T) {
 		assert.Equal(t, "ssh", cfg.Connection.DefaultProtocol, "connection.default_protocol is not well parsed")
 		assert.Equal(t, 3, len(cfg.Features), "features is not well parsed")
 		assert.Equal(t, true, cfg.Features["foo"], "features is not well parsed")
+		assert.Equal(t, true, cfg.Reports.Anonymize)
 	}
 }
 
@@ -52,6 +53,7 @@ func TestReportingWirhOverrides(t *testing.T) {
 	cfg, err := subject.NewDefault(
 		func(c *subject.Reporting) {
 			c.NoSSLVerify = true
+			c.Reports.Anonymize = false
 		},
 	)
 	if assert.Nil(t, err) {
@@ -61,6 +63,7 @@ func TestReportingWirhOverrides(t *testing.T) {
 		assert.Contains(t, cfg.ClientKey, ".chef")
 		assert.Equal(t, "chef-server.example.com/organizations/bubu", cfg.ChefServerUrl)
 		assert.Equal(t, true, cfg.NoSSLVerify)
+		assert.Equal(t, false, cfg.Reports.Anonymize)
 	}
 }
 

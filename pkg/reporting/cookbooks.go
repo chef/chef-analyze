@@ -52,7 +52,7 @@ type CookbooksReport struct {
 	CBASearchResults      []cookbookItem
 	policyGroups          PolicyGroupInterface
 	Policies              PolicyInterface
-	anonymize             bool
+	Anonymize             bool
 }
 
 // CookbookRecord is a single cookbook that we want to download and analyze
@@ -207,7 +207,7 @@ func NewCookbooksReport(
 		CBASearchResults:      resultsCBA,
 		policyGroups:          pgi,
 		Policies:              poi,
-		anonymize:             anonymize,
+		Anonymize:             anonymize,
 	}, nil
 }
 
@@ -315,12 +315,11 @@ func (cbr *CookbooksReport) downloadCookbook(cookbookName, version string) *Cook
 		nodes, err       = cbr.nodesUsingCookbookVersion(cookbookName, version)
 		cookbookLongName = fmt.Sprintf("%v-%v", cookbookName, version)
 		cbState          = &CookbookRecord{
-			Name:    cookbookName,
 			path:    filepath.Join(cbr.cookbooksDir, cookbookLongName),
 			Version: version,
 		}
 	)
-	if cbr.anonymize {
+	if cbr.Anonymize {
 		cbState.Name = hashString(cookbookName)
 	} else {
 		cbState.Name = cookbookName
@@ -347,7 +346,7 @@ func (cbr *CookbooksReport) downloadCookbook(cookbookName, version string) *Cook
 		err = cbr.cookbooks.DownloadTo(cookbookName, version, cbr.cookbooksDir)
 		if err != nil {
 			name := ""
-			if cbr.anonymize {
+			if cbr.Anonymize {
 				name = hashString(cookbookName)
 			} else {
 				name = cookbookName
@@ -365,14 +364,22 @@ func (cbr *CookbooksReport) downloadCookbookArtifact(item cookbookItem) *Cookboo
 		nodes, err       = cbr.nodesUsingPolicy(item.PolicyGroup, item.Policy, item.PolicyRev)
 		cookbookLongName = fmt.Sprintf("%v-%v", item.Name, item.CBAIdentifier[0:20])
 		cbState          = &CookbookRecord{
-			Name:        item.Name,
-			path:        filepath.Join(cbr.cookbooksDir, cookbookLongName),
-			Identifier:  item.CBAIdentifier,
-			Policy:      item.Policy,
-			PolicyGroup: item.PolicyGroup,
-			PolicyVer:   item.PolicyRev,
+			path:       filepath.Join(cbr.cookbooksDir, cookbookLongName),
+			Identifier: item.CBAIdentifier,
+			PolicyVer:  item.PolicyRev,
 		}
 	)
+
+	if cbr.Anonymize {
+		cbState.Name = hashString(item.Name)
+		cbState.Policy = hashString(item.Policy)
+		cbState.PolicyGroup = hashString(item.PolicyGroup)
+	} else {
+		cbState.Name = item.Name
+		cbState.Policy = item.Policy
+		cbState.PolicyGroup = item.PolicyGroup
+	}
+
 	if err != nil {
 		cbState.UsageLookupError = err
 	}
@@ -393,7 +400,14 @@ func (cbr *CookbooksReport) downloadCookbookArtifact(item cookbookItem) *Cookboo
 	if cbr.RunCookstyle {
 		err = cbr.cookbookArtifacts.DownloadTo(item.Name, item.CBAIdentifier, cbr.cookbooksDir)
 		if err != nil {
-			cbState.DownloadError = errors.Wrapf(err, "unable to download cookbook %s", item.Name)
+			name := ""
+			if cbr.Anonymize {
+				name = hashString(item.Name)
+			} else {
+				name = item.Name
+			}
+
+			cbState.DownloadError = errors.Wrapf(err, "unable to download cookbook %s", name)
 		}
 	}
 
@@ -422,7 +436,7 @@ func (cbr *CookbooksReport) nodesUsingCookbookVersion(cookbook string, version s
 		v := element.(map[string]interface{})["data"].(map[string]interface{})
 		if v != nil {
 			nodeName := safeStringFromMap(v, "name")
-			if cbr.anonymize {
+			if cbr.Anonymize {
 				nodeName = hashString(nodeName)
 			}
 			results = append(results, nodeName)

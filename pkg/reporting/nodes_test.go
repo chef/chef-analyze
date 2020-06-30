@@ -29,7 +29,7 @@ func TestNodes(t *testing.T) {
 	// It's a little less verbose and a little more readable to format
 	// this as JSON then convert it where we need it than to create it as a golang map.
 	mocksearch := makeMockSearch(mockedNodesSearchRows(), nil)
-	results, err := subject.GenerateNodesReport(mocksearch, "")
+	results, err := subject.GenerateNodesReport(mocksearch, "", false)
 	// valid results don't mock an error.
 	assert.Nil(t, err)
 
@@ -68,10 +68,25 @@ func TestNodes(t *testing.T) {
 	}
 }
 
+func TestNodes_Anon(t *testing.T) {
+
+	mocksearch := makeMockSearch(mockedNodesSearchRows(), nil)
+	results, err := subject.GenerateNodesReport(mocksearch, "", true) //anonymize
+
+	// valid results don't mock an error.
+	assert.Nil(t, err)
+
+	assert.Equalf(t, 3, len(results),
+		"3 input records should give 3 output records, got %d", len(results))
+
+	assert.Equal(t, results[0].Name, "ca12f31b8cbf5f29e268ea64c20a37f3d50b539d891db0c3ebc7c0f66b1fb98a")
+
+}
+
 func TestErrorResult(t *testing.T) {
 	expectedError := fmt.Errorf("error here")
 	mocksearch := makeMockSearch("", expectedError)
-	report, err := subject.GenerateNodesReport(mocksearch, "")
+	report, err := subject.GenerateNodesReport(mocksearch, "", false)
 	if assert.NotNil(t, err) {
 		assert.Equal(t, "unable to get node(s) information: error here", err.Error())
 		assert.Nil(t, report)
@@ -422,7 +437,7 @@ func TestNodeReportItem_HasPolicyGroup(t *testing.T) {
 		want   bool
 	}{
 		// Test cases
-		{"TestHasPolicyGroupAbsent", fields{Name: "node1", ChefVersion: "16.0", OS: "Windows"}, false },
+		{"TestHasPolicyGroupAbsent", fields{Name: "node1", ChefVersion: "16.0", OS: "Windows"}, false},
 		{"TestHasPolicyGroup", fields{Name: "node2", ChefVersion: "16.0", OS: "Windows", OSVersion: "10.001", PolicyGroup: "preprod"}, true},
 		{"TestHasPolicyGroupEmpty", fields{Name: "node3", ChefVersion: "16.0", OS: "Windows", OSVersion: "10.001", PolicyGroup: ""}, false},
 	}

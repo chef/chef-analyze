@@ -73,6 +73,7 @@ type NodeReportItem struct {
 	PolicyGroup      string
 	Policy           string
 	PolicyRev        string
+	Anonymize		 bool
 }
 
 // OSVersionPretty looks nice
@@ -174,16 +175,21 @@ func GenerateNodesReport(searcher SearchInterface, filter string, anonymize bool
 				OS:          safeStringFromMap(v, "os"),
 				OSVersion:   safeStringFromMap(v, "os_version"),
 				ChefVersion: safeStringFromMap(v, "chef_version"),
-				PolicyGroup: safeStringFromMap(v, "policy_group"),
-				Policy:      safeStringFromMap(v, "policy_name"),
 				PolicyRev:   safeStringFromMap(v, "policy_revision"),
 			}
 
 			nodeName := safeStringFromMap(v, "name")
+			policyGroup := safeStringFromMap(v, "policy_group")
+			policy := safeStringFromMap(v, "policy_name")
 			if anonymize {
+				item.Anonymize = true
 				item.Name = hashString(nodeName)
+				item.PolicyGroup = hashString(policyGroup)
+				item.Policy = hashString(policy)
 			} else {
 				item.Name = nodeName
+				item.PolicyGroup = policyGroup
+				item.Policy = policy
 			}
 
 			if v["cookbooks"] != nil {
