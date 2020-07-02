@@ -400,13 +400,10 @@ func (cbr *CookbooksReport) downloadCookbookArtifact(item cookbookItem) *Cookboo
 	if cbr.RunCookstyle {
 		err = cbr.cookbookArtifacts.DownloadTo(item.Name, item.CBAIdentifier, cbr.cookbooksDir)
 		if err != nil {
-			name := ""
+			name := item.Name
 			if cbr.Anonymize {
 				name = hashString(item.Name)
-			} else {
-				name = item.Name
 			}
-
 			cbState.DownloadError = errors.Wrapf(err, "unable to download cookbook %s", name)
 		}
 	}

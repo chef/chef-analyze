@@ -55,11 +55,16 @@ type Config struct {
 	Connection    connSettings      `toml:"connection" mapstructure:"connection"`
 	Features      map[string]bool   `toml:"features" mapstructure:"features"`
 	Dev           devSettings       `toml:"dev" mapstructure:"dev"`
+	Reports       reportSettings    `toml:"reports" mapstructure:"reports"`
 }
 
 type telemetrySettings struct {
 	Enable bool `toml:"enable" mapstructure:"enable"`
 	Dev    bool `toml:"dev" mapstructure:"dev"`
+}
+
+type reportSettings struct {
+	Anonymize bool `toml:"anonymize" mapstructure:"anonymize"`
 }
 
 type logSettings struct {
