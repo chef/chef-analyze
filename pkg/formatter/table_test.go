@@ -20,10 +20,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	subject "github.com/chef/chef-analyze/pkg/formatter"
 	"github.com/chef/chef-analyze/pkg/reporting"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNodesReportSummary_Nil(t *testing.T) {
@@ -135,6 +134,46 @@ func TestNodesReportSummary_withRecordsSorted(t *testing.T) {
 		assert.Equal(t, "  Aaa                13.11   -                                 4  ", lines[6])
 		assert.Equal(t, "  aaa                13.11   -                                 2  ", lines[7])
 		assert.Equal(t, "  zzz                13.11   -                                 2  ", lines[8])
+		assert.Equal(t, "", lines[9])
+	}
+}
+
+func TestNodesReportSummary_AnonWithRecordsSorted(t *testing.T) {
+	nri := []*reporting.NodeReportItem{
+		&reporting.NodeReportItem{Name: "29447b86862d68946931b37b430dae79c7ee67fc8ac41855d1ce4e65ae07e920", ChefVersion: "13.11", OS: "", OSVersion: "", Anonymize: true,
+			CookbookVersions: []reporting.CookbookVersion{
+				reporting.CookbookVersion{Name: "yyy", Version: "1.0"},
+				reporting.CookbookVersion{Name: "ccc", Version: "9.9"},
+			},
+		},
+		&reporting.NodeReportItem{Name: "3d2e5adf7fbc2a8bdcebb02d039628380c339b3642036fbaf4c63dbf4d75e013", ChefVersion: "13.11", OS: "", OSVersion: "", Anonymize: true,
+			CookbookVersions: []reporting.CookbookVersion{
+				reporting.CookbookVersion{Name: "yyy", Version: "1.0"},
+				reporting.CookbookVersion{Name: "YYY", Version: "9.9"},
+				reporting.CookbookVersion{Name: "yyy", Version: "10.0"},
+				reporting.CookbookVersion{Name: "YYY", Version: "99.9"},
+			},
+		},
+		&reporting.NodeReportItem{Name: "725d5688de685e52b8912437dc944ebe56da220025762756fb827b7f3555fff4", ChefVersion: "13.11", OS: "", OSVersion: "", Anonymize: true,
+			CookbookVersions: []reporting.CookbookVersion{},
+		},
+		&reporting.NodeReportItem{Name: "8c8b3dc21fa80832cd22a88d33534dfad52ad5e7833f74abbdc4363aef14e287", ChefVersion: "13.11", OS: "", OSVersion: "", Anonymize: true,
+			CookbookVersions: []reporting.CookbookVersion{
+				reporting.CookbookVersion{Name: "ddd", Version: "1.0"},
+				reporting.CookbookVersion{Name: "ccc", Version: "9.9"},
+			},
+		},
+	}
+	report := subject.NodesReportSummary(nri, "")
+
+	lines := strings.Split(report.Report, "\n")
+	if assert.Equal(t, 10, len(lines)) {
+		assert.Equal(t, "-- REPORT SUMMARY (Anonymized)--", lines[1])
+		assert.Equal(t, "   Node Name     Chef Version   Operating System   Number Cookbooks  ", lines[3])
+		assert.Equal(t, "  29447b868...          13.11   -                                 2  ", lines[5])
+		assert.Equal(t, "  3d2e5adf7...          13.11   -                                 4  ", lines[6])
+		assert.Equal(t, "  725d5688d...          13.11   -                                 0  ", lines[7])
+		assert.Equal(t, "  8c8b3dc21...          13.11   -                                 2  ", lines[8])
 		assert.Equal(t, "", lines[9])
 	}
 }
@@ -378,6 +417,73 @@ func TestCookbooksReportSummary_withFilterFooter(t *testing.T) {
 		"stdout missing nodes filter footer")
 }
 
+func TestCookbooksReportSummary_Anon(t *testing.T) {
+	state := &reporting.CookbooksReport{
+		Anonymize: true,
+		Records: []*reporting.CookbookRecord{
+			&reporting.CookbookRecord{
+				Name:    "38a0963a6364b09ad867aa9a66c6d009673c21e182015461da236ec361877f77",
+				Version: "0.1.0",
+				Nodes:   []string{"123", "xyz"},
+				Files: []reporting.CookbookFile{
+					reporting.CookbookFile{
+						Path:     "metadata.rb",
+						Offenses: []reporting.CookstyleOffense{},
+					},
+				},
+			},
+		},
+		RunCookstyle: false,
+		NodeFilter:   "blah",
+	}
+	report := subject.CookbooksReportSummary(state)
+	lines := strings.Split(report.Report, "\n")
+
+	assert.Contains(t,
+		report.Report,
+		"REPORT SUMMARY (Anonymized)",
+		"stdout missing report summary header")
+
+	assert.Equal(t, "  38a0963a6...   0.1.0                             2               ", lines[5])
+	assert.Contains(t,
+		report.Report,
+		"Node Filter applied: blah",
+		"stdout missing nodes filter footer")
+
+}
+
+func TestCookbooksReportSummary_AnonWithVerify(t *testing.T) {
+	state := &reporting.CookbooksReport{
+		Anonymize: true,
+		Records: []*reporting.CookbookRecord{
+			&reporting.CookbookRecord{
+				Name:    "38a0963a6364b09ad867aa9a66c6d009673c21e182015461da236ec361877f77",
+				Version: "0.1.0",
+				Nodes:   []string{"123", "xyz"},
+				Files: []reporting.CookbookFile{
+					reporting.CookbookFile{
+						Path:     "metadata.rb",
+						Offenses: []reporting.CookstyleOffense{},
+					},
+				},
+			},
+		},
+		RunCookstyle: true,
+	}
+	report := subject.CookbooksReportSummary(state)
+	lines := strings.Split(report.Report, "\n")
+
+	assert.Contains(t,
+		report.Report,
+		"REPORT SUMMARY (Anonymized)",
+		"stdout missing report summary header")
+
+	
+	assert.Equal(t, "    Cookbook     Version   Violations   Auto-correctable   Policy Group   Policy   Nodes Affected  ", lines[3])
+	assert.Equal(t, "  38a0963a6...   0.1.0     0            0                                          2               ", lines[5])
+
+}
+
 func TestCookbooksReportSummary_withRecords_NoNodes(t *testing.T) {
 	state := &reporting.CookbooksReport{
 		Records: []*reporting.CookbookRecord{
@@ -429,5 +535,29 @@ func TestCookbooksReportSummary_withRecords_NoNodes(t *testing.T) {
 		assert.Containsf(t, report.Report, s,
 			"there is something missing in the stdout: '%s' is missing", s,
 		)
+	}
+}
+
+func Test_shortFormat(t *testing.T) {
+	type args struct {
+		name string
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		// TODO: Add test cases.
+		{"TestEmpty", args{name: ""}, ""},
+		{"TestLong", args{name: "1234567890abcdef"}, "123456789..."},
+		{"TestExact", args{name: "123456789"}, "123456789"},
+		{"TestShort", args{name: "12345"}, "12345"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := subject.ShortFormat(tt.args.name); got != tt.want {
+				t.Errorf("ShortFormat() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }

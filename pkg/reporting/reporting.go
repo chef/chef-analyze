@@ -17,6 +17,9 @@
 package reporting
 
 import (
+	"crypto/sha256"
+	"fmt"
+
 	"github.com/chef/go-libs/config"
 	"github.com/chef/go-libs/credentials"
 )
@@ -56,4 +59,13 @@ func NewDefault(overrides ...OverrideFunc) (Reporting, error) {
 	}
 
 	return rCfg, nil
+}
+
+// Converts a string to its sha256 hash value.
+// Keeps blank strings blank.
+func hashString(name string) string {
+	if name == "" {
+		return name
+	}
+	return fmt.Sprintf("%x", sha256.Sum256([]byte(name)))
 }

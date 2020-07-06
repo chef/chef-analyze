@@ -57,8 +57,14 @@ func CookbooksReportSummary(state *reporting.CookbooksReport) FormattedResult {
 		}
 	}
 
+	var buffer *bytes.Buffer
+	if state.Anonymize {
+		buffer = bytes.NewBufferString("\n-- REPORT SUMMARY (Anonymized)--\n\n")
+	} else {
+		buffer = bytes.NewBufferString("\n-- REPORT SUMMARY --\n\n")
+	}
+
 	var (
-		buffer                = bytes.NewBufferString("\n-- REPORT SUMMARY --\n\n")
 		table                 = tablewriter.NewWriter(buffer)
 		CookbooksReportHeader = []string{"Cookbook", "Version"}
 	)
@@ -86,7 +92,19 @@ func CookbooksReportSummary(state *reporting.CookbooksReport) FormattedResult {
 	sortCookbookRecords(state.Records)
 
 	for _, record := range state.Records {
-		row := []string{record.Name, record.Version}
+
+		recordName, policyGroup, policy := "", "", ""
+		if state.Anonymize {
+			recordName = ShortFormat(record.Name)
+			policyGroup = ShortFormat(record.PolicyGroup)
+			policy = ShortFormat(record.Policy)
+		} else {
+			recordName = record.Name
+			policyGroup = record.PolicyGroup
+			policy = record.Policy
+		}
+
+		row := []string{recordName, record.Version}
 
 		// only include violations if we ran cookstyle
 		if state.RunCookstyle {
@@ -96,10 +114,11 @@ func CookbooksReportSummary(state *reporting.CookbooksReport) FormattedResult {
 			)
 		}
 
-		row = append(row, record.PolicyGroup)
-		row = append(row, record.Policy)
+		row = append(row, policyGroup)
+		row = append(row, policy)
+
 		policyVer := record.PolicyVer
-		if len(record.PolicyVer) > 0 {
+		if len(record.PolicyVer) > 5 {
 			policyVer = policyVer[0:5] + "..."
 		}
 		row = append(row, strconv.Itoa(record.NumNodesAffected()))
@@ -141,11 +160,18 @@ func NodesReportSummary(records []*reporting.NodeReportItem, appliedNodesFilter 
 		}
 	}
 
+	var buffer *bytes.Buffer
+	if records[0].Anonymize {
+		buffer = bytes.NewBufferString("\n-- REPORT SUMMARY (Anonymized)--\n\n")
+	} else {
+		buffer = bytes.NewBufferString("\n-- REPORT SUMMARY --\n\n")
+	}
+
 	var (
-		buffer           = bytes.NewBufferString("\n-- REPORT SUMMARY --\n\n")
 		table            = tablewriter.NewWriter(buffer)
 		NodeReportHeader = []string{"Node Name", "Chef Version", "Operating System", "Number Cookbooks"}
 	)
+
 	if len(appliedNodesFilter) > 0 {
 		NodeReportHeader[0] = fmt.Sprintf("Node Name (filter applied: %s)", appliedNodesFilter)
 	}
@@ -166,9 +192,16 @@ func NodesReportSummary(records []*reporting.NodeReportItem, appliedNodesFilter 
 	sortNodeRecords(records)
 
 	for _, record := range records {
+
+		recordName := ""
+		if record.Anonymize {
+			recordName = ShortFormat(record.Name)
+		} else {
+			recordName = record.Name
+		}
 		table.Append(
 			[]string{
-				record.Name,
+				recordName,
 				stringOrEmptyPlaceholder(record.ChefVersion),
 				stringOrEmptyPlaceholder(record.OSVersionPretty()),
 				strconv.Itoa(len(record.CookbooksList())),
@@ -200,5 +233,16 @@ func NodesReportSummary(records []*reporting.NodeReportItem, appliedNodesFilter 
 	if len(appliedNodesFilter) > 0 {
 		fmt.Fprintf(buffer, appliedNodesFilterFmt, appliedNodesFilter)
 	}
+
 	return FormattedResult{buffer.String(), errMsg.String()}
+}
+
+func ShortFormat(name string) string {
+
+	// Shorten to 11 spaces (first 8 chars followed by 3 dots)
+	if len(name) > 10 {
+		return name[0:9] + "..."
+	}
+
+	return name
 }

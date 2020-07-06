@@ -73,6 +73,7 @@ type NodeReportItem struct {
 	PolicyGroup      string
 	Policy           string
 	PolicyRev        string
+	Anonymize        bool
 }
 
 // OSVersionPretty looks nice
@@ -138,7 +139,7 @@ func (nri *NodeReportItem) CookbooksList() []string {
 }
 
 // GenerateNodesReport generate a nodes report
-func GenerateNodesReport(searcher SearchInterface, filter string) ([]*NodeReportItem, error) {
+func GenerateNodesReport(searcher SearchInterface, filter string, anonymize bool) ([]*NodeReportItem, error) {
 	var (
 		query = map[string]interface{}{
 			"name":            []string{"name"},
@@ -180,11 +181,23 @@ func GenerateNodesReport(searcher SearchInterface, filter string) ([]*NodeReport
 				PolicyRev:   safeStringFromMap(v, "policy_revision"),
 			}
 
+			if anonymize {
+				item.Anonymize = true
+				item.Name = hashString(item.Name)
+				item.PolicyGroup = hashString(item.PolicyGroup)
+				item.Policy = hashString(item.Policy)
+			}
+
 			if v["cookbooks"] != nil {
 				cookbooks := v["cookbooks"].(map[string]interface{})
 				item.CookbookVersions = make([]CookbookVersion, 0, len(cookbooks))
 				for k, v := range cookbooks {
 					cbv := CookbookVersion{Name: k, Version: safeStringFromMap(v.(map[string]interface{}), "version")}
+					if anonymize {
+						cbv.Name = hashString(k)
+					} else {
+						cbv.Name = k
+					}
 					item.CookbookVersions = append(item.CookbookVersions, cbv)
 				}
 			}
