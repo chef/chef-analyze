@@ -239,6 +239,7 @@ func NodesReportSummary(records []*reporting.NodeReportItem, appliedNodesFilter 
 
 func ShortFormat(name string) string {
 
+	// Shorten to 11 spaces (first 8 chars followed by 3 dots)
 	if len(name) > 10 {
 		return name[0:9] + "..."
 	}

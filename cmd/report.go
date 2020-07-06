@@ -361,11 +361,6 @@ func toAnonyimize() bool {
 		return false
 	}
 
-	if reportsFlags.anonymize {
-		return true
-	} else if c.Config.Reports.Anonymize {
-		return true
-	}
+	return reportsFlags.anonymize || c.Config.Reports.Anonymize
 
-	return false
 }
