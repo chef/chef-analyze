@@ -18,12 +18,12 @@
 package reporting_test
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"testing"
 
 	chef "github.com/chef/go-chef"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 
 	subject "github.com/chef/chef-analyze/pkg/reporting"
@@ -63,12 +63,18 @@ func TestCookbooksRecordNumNodesAffected(t *testing.T) {
 }
 
 func TestCookbooksEmpty(t *testing.T) {
+
+	chefAnalyzeClient := subject.ChefAnalyzeClient{
+
+		Cookbooks:         newMockCookbook(chef.CookbookListResult{}, nil, nil),
+		CookbookArtifacts: newMockCookbookArtifact(chef.CBAGetResponse{}, nil, nil),
+		PolicyGroups:      newMockPolicyGroup(chef.PolicyGroupGetResponse{}, nil),
+		Policies:          newMockPolicy(chef.RevisionDetailsResponse{}, nil),
+		Search:            makeMockSearch("[]", nil),
+	}
+
 	cbr, err := subject.NewCookbooksReport(
-		newMockCookbook(chef.CookbookListResult{}, nil, nil),
-		newMockCookbookArtifact(chef.CBAGetResponse{}, nil, nil),
-		newMockPolicyGroup(chef.PolicyGroupGetResponse{}, nil),
-		newMockPolicy(chef.RevisionDetailsResponse{}, nil),
-		makeMockSearch("[]", nil),
+		&chefAnalyzeClient,
 		false,
 		false,
 		Workers,
@@ -137,12 +143,17 @@ func TestCookbooksInUseDisplayOnlyUnused(t *testing.T) {
 		},
 	}
 
+	chefAnalyzeClient := subject.ChefAnalyzeClient{
+
+		Cookbooks:         newMockCookbook(cookbookList, nil, nil),
+		CookbookArtifacts: newMockCookbookArtifact(CBAList, nil, nil),
+		PolicyGroups:      newMockPolicyGroup(policyGroupList, nil),
+		Policies:          newMockPolicy(policyDetail, nil),
+		Search:            makeMockSearch(mockedNodesSearchRows(), nil), // nodes are found
+	}
+
 	c, err := subject.NewCookbooksReport(
-		newMockCookbook(cookbookList, nil, nil),
-		newMockCookbookArtifact(CBAList, nil, nil),
-		newMockPolicyGroup(policyGroupList, nil),
-		newMockPolicy(policyDetail, nil),
-		makeMockSearch(mockedNodesSearchRows(), nil), // nodes are found
+		&chefAnalyzeClient,
 		false, // do not download or cookstyle
 		true,  // display only unused cookbooks
 		Workers,
@@ -158,13 +169,18 @@ func TestCookbooksInUseDisplayOnlyUnused(t *testing.T) {
 		assert.Empty(t, c.Records)
 	}
 
+	chefAnalyzeClient = subject.ChefAnalyzeClient{
+
+		Cookbooks:         newMockCookbook(cookbookList, nil, nil),
+		CookbookArtifacts: newMockCookbookArtifact(CBAList, nil, nil),
+		PolicyGroups:      newMockPolicyGroup(policyGroupList, nil),
+		Policies:          newMockPolicy(policyDetail, nil),
+		Search:            makeMockSearch(mockedNodesSearchRows(), nil), // nodes are found
+	}
+
 	// Verify that used cookbooks list is complete and correct
 	c, err = subject.NewCookbooksReport(
-		newMockCookbook(cookbookList, nil, nil),
-		newMockCookbookArtifact(CBAList, nil, nil),
-		newMockPolicyGroup(policyGroupList, nil),
-		newMockPolicy(policyDetail, nil),
-		makeMockSearch(mockedNodesSearchRows(), nil), // nodes are found
+		&chefAnalyzeClient,
 		false, // do not download or cookstyle
 		false, // display only used cookbooks, as determined by search results
 		Workers,
@@ -210,7 +226,7 @@ func TestCookbooksInUseDisplayOnlyUnused(t *testing.T) {
 	}
 }
 
-// Given a valid set of cookbooks in use by nodes 
+// Given a valid set of cookbooks in use by nodes
 // And anonymization is required
 // Verify that the result set is anonymized as expected.
 func TestCookbooksAnonymized(t *testing.T) {
@@ -222,12 +238,16 @@ func TestCookbooksAnonymized(t *testing.T) {
 		},
 	}
 
+	chefAnalyzeClient := subject.ChefAnalyzeClient{
+
+		Cookbooks:         newMockCookbook(cookbookList, nil, nil),
+		CookbookArtifacts: newMockCookbookArtifact(nil, nil, nil),
+		PolicyGroups:      newMockPolicyGroup(nil, nil),
+		Search:            makeMockSearch(mockedNodesSearchRows(), nil),
+	}
+
 	c, err := subject.NewCookbooksReport(
-		newMockCookbook(cookbookList, nil, nil),
-		newMockCookbookArtifact(nil, nil, nil),
-		newMockPolicyGroup(nil, nil),
-		nil,
-		makeMockSearch(mockedNodesSearchRows(), nil),
+		&chefAnalyzeClient,
 		false,
 		false, // display only used cookbooks
 		Workers,
@@ -275,12 +295,16 @@ func TestPolicyAnonymized(t *testing.T) {
 		},
 	}
 
+	chefAnalyzeClient := subject.ChefAnalyzeClient{
+		Cookbooks:         newMockCookbook(nil, nil, nil),
+		CookbookArtifacts: newMockCookbookArtifact(CBAList, nil, nil),
+		PolicyGroups:      newMockPolicyGroup(policyGroupList, nil),
+		Policies:          newMockPolicy(policyDetail, nil),
+		Search:            makeMockSearch(mockedNodesSearchRows(), nil), // nodes are found
+	}
+
 	c, err := subject.NewCookbooksReport(
-		newMockCookbook(nil, nil, nil),
-		newMockCookbookArtifact(CBAList, nil, nil),
-		newMockPolicyGroup(policyGroupList, nil),
-		newMockPolicy(policyDetail, nil),
-		makeMockSearch(mockedNodesSearchRows(), nil),
+		&chefAnalyzeClient,
 		false,
 		false, // display only used cookbooks
 		Workers,
@@ -353,12 +377,16 @@ func TestCookbooksNotUsedDisplayOnlyUnused(t *testing.T) {
 		},
 	}
 
+	chefAnalyzeClient := subject.ChefAnalyzeClient{
+		Cookbooks:         newMockCookbook(cookbookList, nil, nil),
+		CookbookArtifacts: newMockCookbookArtifact(CBAList, nil, nil),
+		PolicyGroups:      newMockPolicyGroup(policyGroupList, nil),
+		Policies:          newMockPolicy(policyDetail, nil),
+		Search:            makeMockSearch("[]", nil), // no nodes are returned
+	}
+
 	c, err := subject.NewCookbooksReport(
-		newMockCookbook(cookbookList, nil, nil),
-		newMockCookbookArtifact(CBAList, nil, nil),
-		newMockPolicyGroup(policyGroupList, nil),
-		newMockPolicy(policyDetail, nil),
-		makeMockSearch("[]", nil), // no nodes are returned
+		&chefAnalyzeClient,
 		false,
 		true, // display only unused cookbooks
 		Workers,
@@ -403,12 +431,16 @@ func TestCookbooksNotUsedDisplayOnlyUnused(t *testing.T) {
 		}
 	}
 
+	chefAnalyzeClient = subject.ChefAnalyzeClient{
+		Cookbooks:         newMockCookbook(cookbookList, nil, nil),
+		CookbookArtifacts: newMockCookbookArtifact(CBAList, nil, nil),
+		PolicyGroups:      newMockPolicyGroup(policyGroupList, nil),
+		Policies:          newMockPolicy(policyDetail, nil),
+		Search:            makeMockSearch("[]", nil), // no nodes are returned
+	}
+
 	c, err = subject.NewCookbooksReport(
-		newMockCookbook(cookbookList, nil, nil),
-		newMockCookbookArtifact(CBAList, nil, nil),
-		newMockPolicyGroup(policyGroupList, nil),
-		newMockPolicy(policyDetail, nil),
-		makeMockSearch("[]", nil), // no nodes are returned
+		&chefAnalyzeClient,
 		false,
 		false, // display only used cookbooks
 		Workers,
@@ -447,12 +479,16 @@ func TestCookbooks(t *testing.T) {
 		},
 	}
 
+	chefAnalyzeClient := subject.ChefAnalyzeClient{
+		Cookbooks:         newMockCookbook(cookbookList, nil, nil),
+		CookbookArtifacts: newMockCookbookArtifact(chef.CBAGetResponse{}, nil, nil),
+		PolicyGroups:      newMockPolicyGroup(chef.PolicyGroupGetResponse{}, nil),
+		Policies:          newMockPolicy(chef.RevisionDetailsResponse{}, nil),
+		Search:            makeMockSearch(mockedNodesSearchRows(), nil),
+	}
+
 	c, err := subject.NewCookbooksReport(
-		newMockCookbook(cookbookList, nil, nil),
-		newMockCookbookArtifact(chef.CBAGetResponse{}, nil, nil),
-		newMockPolicyGroup(chef.PolicyGroupGetResponse{}, nil),
-		newMockPolicy(chef.RevisionDetailsResponse{}, nil),
-		makeMockSearch(mockedNodesSearchRows(), nil),
+		&chefAnalyzeClient,
 		true,
 		false,
 		Workers,
@@ -512,12 +548,16 @@ func TestCookbooksWithNodeFilter(t *testing.T) {
 		},
 	}
 
+	chefAnalyzeClient := subject.ChefAnalyzeClient{
+		Cookbooks:         newMockCookbook(cookbookList, nil, nil),
+		CookbookArtifacts: newMockCookbookArtifact(chef.CBAGetResponse{}, nil, nil),
+		PolicyGroups:      newMockPolicyGroup(chef.PolicyGroupGetResponse{}, nil),
+		Policies:          newMockPolicy(chef.RevisionDetailsResponse{}, nil),
+		Search:            makeMockSearch(mockedNodesSearchRows(), nil),
+	}
+
 	c, err := subject.NewCookbooksReport(
-		newMockCookbook(cookbookList, nil, nil),
-		newMockCookbookArtifact(chef.CBAGetResponse{}, nil, nil),
-		newMockPolicyGroup(chef.PolicyGroupGetResponse{}, nil),
-		newMockPolicy(chef.RevisionDetailsResponse{}, nil),
-		makeMockSearch(mockedNodesSearchRows(), nil),
+		&chefAnalyzeClient,
 		true,
 		false,
 		Workers,
@@ -562,12 +602,16 @@ func TestCookbooks_ListCookbooksErrors(t *testing.T) {
 	policyGroupList := chef.PolicyGroupGetResponse{}
 	policyDetail := chef.RevisionDetailsResponse{}
 
+	chefAnalyzeClient := subject.ChefAnalyzeClient{
+		Cookbooks:         newMockCookbook(chef.CookbookListResult{}, errors.New("i/o timeout"), nil),
+		CookbookArtifacts: newMockCookbookArtifact(chef.CBAGetResponse{}, nil, nil),
+		PolicyGroups:      newMockPolicyGroup(policyGroupList, nil),
+		Policies:          newMockPolicy(policyDetail, nil),
+		Search:            makeMockSearch("[]", nil),
+	}
+
 	c, err := subject.NewCookbooksReport(
-		newMockCookbook(chef.CookbookListResult{}, errors.New("i/o timeout"), nil),
-		newMockCookbookArtifact(chef.CBAGetResponse{}, nil, nil),
-		newMockPolicyGroup(policyGroupList, nil),
-		newMockPolicy(policyDetail, nil),
-		makeMockSearch("[]", nil),
+		&chefAnalyzeClient,
 		false,
 		false,
 		Workers,
@@ -586,12 +630,15 @@ func TestCookbooks_ListAvailableVersionsError(t *testing.T) {
 	policyGroupList := chef.PolicyGroupGetResponse{}
 	policyDetail := chef.RevisionDetailsResponse{}
 
+	chefAnalyzeClient := subject.ChefAnalyzeClient{
+		Cookbooks:         newMockCookbook(cookbookList, errors.New("list error"), nil),
+		CookbookArtifacts: newMockCookbookArtifact(chef.CBAGetResponse{}, nil, nil),
+		PolicyGroups:      newMockPolicyGroup(policyGroupList, nil),
+		Policies:          newMockPolicy(policyDetail, nil),
+	}
+
 	c, err := subject.NewCookbooksReport(
-		newMockCookbook(cookbookList, errors.New("list error"), nil),
-		newMockCookbookArtifact(chef.CBAGetResponse{}, nil, nil),
-		newMockPolicyGroup(policyGroupList, nil),
-		newMockPolicy(policyDetail, nil),
-		nil,
+		&chefAnalyzeClient,
 		false,
 		false,
 		Workers,
@@ -604,12 +651,16 @@ func TestCookbooks_ListAvailableVersionsError(t *testing.T) {
 
 func TestCookbooks_NoneAvailable(t *testing.T) {
 
+	chefAnalyzeClient := subject.ChefAnalyzeClient{
+		Cookbooks:         newMockCookbook(chef.CookbookListResult{}, nil, nil),
+		CookbookArtifacts: newMockCookbookArtifact(chef.CBAGetResponse{}, nil, nil),
+		PolicyGroups:      newMockPolicyGroup(chef.PolicyGroupGetResponse{}, nil),
+		Policies:          newMockPolicy(chef.RevisionDetailsResponse{}, nil),
+		Search:            makeMockSearch(mockedEmptyNodesSearchRows(), nil),
+	}
+
 	c, err := subject.NewCookbooksReport(
-		newMockCookbook(chef.CookbookListResult{}, nil, nil),
-		newMockCookbookArtifact(chef.CBAGetResponse{}, nil, nil),
-		newMockPolicyGroup(chef.PolicyGroupGetResponse{}, nil),
-		newMockPolicy(chef.RevisionDetailsResponse{}, nil),
-		makeMockSearch(mockedEmptyNodesSearchRows(), nil),
+		&chefAnalyzeClient,
 		false,
 		false,
 		Workers,
@@ -637,12 +688,16 @@ func TestCookbooks_DownloadErrors(t *testing.T) {
 		},
 	}
 
+	chefAnalyzeClient := subject.ChefAnalyzeClient{
+		Cookbooks:         newMockCookbook(cookbookList, nil, errors.New("download error")),
+		CookbookArtifacts: newMockCookbookArtifact(chef.CBAGetResponse{}, nil, nil),
+		PolicyGroups:      newMockPolicyGroup(chef.PolicyGroupGetResponse{}, nil),
+		Policies:          newMockPolicy(chef.RevisionDetailsResponse{}, nil),
+		Search:            makeMockSearch(mockedNodesSearchRows(), nil),
+	}
+
 	c, err := subject.NewCookbooksReport(
-		newMockCookbook(cookbookList, nil, errors.New("download error")),
-		newMockCookbookArtifact(chef.CBAGetResponse{}, nil, nil),
-		newMockPolicyGroup(chef.PolicyGroupGetResponse{}, nil),
-		newMockPolicy(chef.RevisionDetailsResponse{}, nil),
-		makeMockSearch(mockedNodesSearchRows(), nil),
+		&chefAnalyzeClient,
 		true, // run cookstyle, which means that we will download the cookbooks
 		false,
 		Workers,
@@ -678,12 +733,16 @@ func TestCookbooks_UsageStatErrors(t *testing.T) {
 		},
 	}
 
+	chefAnalyzeClient := subject.ChefAnalyzeClient{
+		Cookbooks:         newMockCookbook(cookbookList, nil, nil),
+		CookbookArtifacts: newMockCookbookArtifact(chef.CBAGetResponse{}, nil, nil),
+		PolicyGroups:      newMockPolicyGroup(chef.PolicyGroupGetResponse{}, nil),
+		Policies:          newMockPolicy(chef.RevisionDetailsResponse{}, nil),
+		Search:            makeMockSearch(mockedNodesSearchRows(), errors.New("lookup error")),
+	}
+
 	c, err := subject.NewCookbooksReport(
-		newMockCookbook(cookbookList, nil, nil),
-		newMockCookbookArtifact(chef.CBAGetResponse{}, nil, nil),
-		newMockPolicyGroup(chef.PolicyGroupGetResponse{}, nil),
-		newMockPolicy(chef.RevisionDetailsResponse{}, nil),
-		makeMockSearch(mockedNodesSearchRows(), errors.New("lookup error")),
+		&chefAnalyzeClient,
 		false, // do not download or cookstyle
 		// Because the usage error makes it look like no nodes are attached to this cookbook
 		// we need to return only unused cookbooks
@@ -742,12 +801,16 @@ func TestCookbooks_withCookstyleError(t *testing.T) {
 		},
 	}
 
+	chefAnalyzeClient := subject.ChefAnalyzeClient{
+		Cookbooks:         newMockCookbook(cookbookList, nil, nil),
+		CookbookArtifacts: newMockCookbookArtifact(chef.CBAGetResponse{}, nil, nil),
+		PolicyGroups:      newMockPolicyGroup(chef.PolicyGroupGetResponse{}, nil),
+		Policies:          newMockPolicy(chef.RevisionDetailsResponse{}, nil),
+		Search:            makeMockSearch(mockedNodesSearchRows(), nil),
+	}
+
 	c, err := subject.NewCookbooksReport(
-		newMockCookbook(cookbookList, nil, nil),
-		newMockCookbookArtifact(chef.CBAGetResponse{}, nil, nil),
-		newMockPolicyGroup(chef.PolicyGroupGetResponse{}, nil),
-		newMockPolicy(chef.RevisionDetailsResponse{}, nil),
-		makeMockSearch(mockedNodesSearchRows(), nil),
+		&chefAnalyzeClient,
 		true,
 		false,
 		Workers,
@@ -789,12 +852,16 @@ func TestCookbooks_withHeavyLoad(t *testing.T) {
 
 	assert.Equal(t, TotalCookbooks, len(cookbookList))
 
+	chefAnalyzeClient := subject.ChefAnalyzeClient{
+		Cookbooks:         newMockCookbook(cookbookList, nil, nil),
+		CookbookArtifacts: newMockCookbookArtifact(chef.CBAGetResponse{}, nil, nil),
+		PolicyGroups:      newMockPolicyGroup(chef.PolicyGroupGetResponse{}, nil),
+		Policies:          newMockPolicy(chef.RevisionDetailsResponse{}, nil),
+		Search:            makeMockSearch(mockedNodesSearchRows(), nil),
+	}
+
 	c, err := subject.NewCookbooksReport(
-		newMockCookbook(cookbookList, nil, nil),
-		newMockCookbookArtifact(chef.CBAGetResponse{}, nil, nil),
-		newMockPolicyGroup(chef.PolicyGroupGetResponse{}, nil),
-		newMockPolicy(chef.RevisionDetailsResponse{}, nil),
-		makeMockSearch(mockedNodesSearchRows(), nil),
+		&chefAnalyzeClient,
 		true,
 		false,
 		Workers,

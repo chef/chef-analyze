@@ -37,8 +37,8 @@ type Reporting struct {
 // OverrideFunc to override any particular setting from the a reporting struct
 type OverrideFunc func(*Reporting)
 
-// NewDefault returns a reporting Config instance using the defaults
-func NewDefault(overrides ...OverrideFunc) (Reporting, error) {
+// LoadConfig returns a reporting Config instance using the defaults
+func LoadConfig(overrides ...OverrideFunc) (Reporting, error) {
 	rCfg := Reporting{}
 
 	creds, err := credentials.NewDefault()
