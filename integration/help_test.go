@@ -86,6 +86,7 @@ Available Commands:
   nodes       Generates a nodes-oriented report
 
 Flags:
+  -a, --anonymize                replace cookbook and node names with hash values
   -s, --chef-server-url string   Chef Infra Server URL
   -k, --client-key string        Chef Infra Server API client key
   -n, --client-name string       Chef Infra Server API client name
@@ -120,6 +121,7 @@ Flags:
   -w, --workers int      maximum number of parallel workers at once (default 50)
 
 Global Flags:
+  -a, --anonymize                replace cookbook and node names with hash values
   -s, --chef-server-url string   Chef Infra Server URL
   -k, --client-key string        Chef Infra Server API client key
   -n, --client-name string       Chef Infra Server API client name
@@ -146,6 +148,7 @@ Flags:
   -h, --help   help for nodes
 
 Global Flags:
+  -a, --anonymize                replace cookbook and node names with hash values
   -s, --chef-server-url string   Chef Infra Server URL
   -k, --client-key string        Chef Infra Server API client key
   -n, --client-name string       Chef Infra Server API client name
