@@ -157,7 +157,7 @@ type cookbookItem struct {
 }
 
 func NewCookbooksReport(
-	cbi CookbookInterface, cbai CBAInterface, pgi PolicyGroupInterface, poi PolicyInterface, searcher SearchInterface,
+	chefClient *ChefAnalyzeClient,
 	runCookstyle bool, onlyUnused bool, workers int,
 	nodeFilter string, anonymize bool,
 ) (*CookbooksReport, error) {
@@ -172,11 +172,11 @@ func NewCookbooksReport(
 	// an extension of a bad pattern...
 	//
 	cookbooksDir := filepath.Join(wsDir, analyzeCacheDir, analyzeCookbooksDir)
-	results, err := cbi.ListAvailableVersions("0")
+	results, err := chefClient.Cookbooks.ListAvailableVersions("0")
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to retrieve cookbooks")
 	}
-	resultsCBA, err := getCookbookArtifacts(pgi, poi)
+	resultsCBA, err := getCookbookArtifacts(chefClient.PolicyGroups, chefClient.Policies)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to retrieve cookbook artifacts")
 	}
@@ -196,17 +196,17 @@ func NewCookbooksReport(
 		TotalCookbooks:        totalCookbooks,
 		RunCookstyle:          runCookstyle,
 		NodeFilter:            nodeFilter,
-		cookbooks:             cbi,
-		cookbookArtifacts:     cbai,
+		cookbooks:             chefClient.Cookbooks,
+		cookbookArtifacts:     chefClient.CookbookArtifacts,
 		onlyUnused:            onlyUnused,
-		searcher:              searcher,
+		searcher:              chefClient.Search,
 		cookstyle:             NewCookstyleRunner(),
 		cookbooksDir:          cookbooksDir,
 		numWorkers:            workers,
 		cookbookSearchResults: results,
 		CBASearchResults:      resultsCBA,
-		policyGroups:          pgi,
-		Policies:              poi,
+		policyGroups:          chefClient.PolicyGroups,
+		Policies:              chefClient.Policies,
 		Anonymize:             anonymize,
 	}, nil
 }

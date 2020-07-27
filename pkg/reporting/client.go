@@ -61,3 +61,30 @@ type RolesInterface interface {
 type EnvironmentInterface interface {
 	Get(name string) (*chef.Environment, error)
 }
+
+type ChefAnalyzeClient struct {
+	Cookbooks         CookbookInterface
+	CookbookArtifacts CBAInterface
+	DataBags          DataBagInterface
+	Environments      EnvironmentInterface
+	Nodes             NodesInterface
+	Policies          PolicyInterface
+	PolicyGroups      PolicyGroupInterface
+	Roles             RolesInterface
+	Search            SearchInterface
+}
+
+func NewChefAnalyzeClient(chefClient *chef.Client) *ChefAnalyzeClient {
+
+	return &ChefAnalyzeClient{
+		Cookbooks:         chefClient.Cookbooks,
+		CookbookArtifacts: chefClient.CookbookArtifacts,
+		DataBags:          chefClient.DataBags,
+		Environments:      chefClient.Environments,
+		Nodes:             chefClient.Nodes,
+		Policies:          chefClient.Policies,
+		PolicyGroups:      chefClient.PolicyGroups,
+		Roles:             chefClient.Roles,
+		Search:            chefClient.Search,
+	}
+}

@@ -87,11 +87,7 @@ The result is written to file.
 
 			fmt.Printf("Finding available cookbooks...")
 			cookbooksState, err := reporting.NewCookbooksReport(
-				chefClient.Cookbooks,
-				chefClient.CookbookArtifacts,
-				chefClient.PolicyGroups,
-				chefClient.Policies,
-				chefClient.Search,
+				reporting.NewChefAnalyzeClient(chefClient),
 				cookbooksFlags.runCookstyle,
 				cookbooksFlags.onlyUnused,
 				cookbooksFlags.workers,
@@ -178,7 +174,7 @@ any applied policies, and the cookbooks used during the most recent chef-client 
 			}
 
 			fmt.Println("Analyzing nodes...")
-			report, err := reporting.GenerateNodesReport(chefClient.Search, reportsFlags.nodeFilter, toAnonymize())
+			report, err := reporting.GenerateNodesReport(reporting.NewChefAnalyzeClient(chefClient), reportsFlags.nodeFilter, toAnonymize())
 			if err != nil {
 				return err
 			}
@@ -356,7 +352,7 @@ func saveReport(baseName string, ext string, nodeFilter string, content string) 
 
 func toAnonymize() bool {
 
-	c, error := reporting.NewDefault()
+	c, error := reporting.LoadConfig()
 	if error != nil {
 		return false
 	}

@@ -139,7 +139,7 @@ func (nri *NodeReportItem) CookbooksList() []string {
 }
 
 // GenerateNodesReport generate a nodes report
-func GenerateNodesReport(searcher SearchInterface, filter string, anonymize bool) ([]*NodeReportItem, error) {
+func GenerateNodesReport(client *ChefAnalyzeClient, filter string, anonymize bool) ([]*NodeReportItem, error) {
 	var (
 		query = map[string]interface{}{
 			"name":            []string{"name"},
@@ -155,7 +155,7 @@ func GenerateNodesReport(searcher SearchInterface, filter string, anonymize bool
 	if filter == "" {
 		filter = "*:*"
 	}
-	pres, err := searcher.PartialExec("node", filter, query)
+	pres, err := client.Search.PartialExec("node", filter, query)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to get node(s) information")
 	}

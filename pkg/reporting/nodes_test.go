@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/chef/chef-analyze/pkg/reporting"
 	subject "github.com/chef/chef-analyze/pkg/reporting"
 	"github.com/stretchr/testify/assert"
 )
@@ -29,7 +28,7 @@ func TestNodes(t *testing.T) {
 	// It's a little less verbose and a little more readable to format
 	// this as JSON then convert it where we need it than to create it as a golang map.
 	mocksearch := makeMockSearch(mockedNodesSearchRows(), nil)
-	results, err := subject.GenerateNodesReport(mocksearch, "", false)
+	results, err := subject.GenerateNodesReport(&subject.ChefAnalyzeClient{Search: mocksearch}, "", false)
 	// valid results don't mock an error.
 	assert.Nil(t, err)
 
@@ -71,7 +70,7 @@ func TestNodes(t *testing.T) {
 func TestNodes_Anon(t *testing.T) {
 
 	mocksearch := makeMockSearch(mockedNodesSearchRows(), nil)
-	results, err := subject.GenerateNodesReport(mocksearch, "", true) //anonymize
+	results, err := subject.GenerateNodesReport(&subject.ChefAnalyzeClient{Search: mocksearch}, "", true) //anonymize
 
 	// valid results don't mock an error.
 	assert.Nil(t, err)
@@ -86,7 +85,7 @@ func TestNodes_Anon(t *testing.T) {
 func TestErrorResult(t *testing.T) {
 	expectedError := fmt.Errorf("error here")
 	mocksearch := makeMockSearch("", expectedError)
-	report, err := subject.GenerateNodesReport(mocksearch, "", false)
+	report, err := subject.GenerateNodesReport(&subject.ChefAnalyzeClient{Search: mocksearch}, "", false)
 	if assert.NotNil(t, err) {
 		assert.Equal(t, "unable to get node(s) information: error here", err.Error())
 		assert.Nil(t, report)
@@ -304,7 +303,7 @@ func TestNodeReportItem_GetPolicyGroup(t *testing.T) {
 		ChefVersion      string
 		OS               string
 		OSVersion        string
-		CookbookVersions []reporting.CookbookVersion
+		CookbookVersions []subject.CookbookVersion
 		PolicyGroup      string
 		Policy           string
 		PolicyRev        string
@@ -321,7 +320,7 @@ func TestNodeReportItem_GetPolicyGroup(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			nri := &reporting.NodeReportItem{
+			nri := &subject.NodeReportItem{
 				Name:             tt.fields.Name,
 				ChefVersion:      tt.fields.ChefVersion,
 				OS:               tt.fields.OS,
@@ -344,7 +343,7 @@ func TestNodeReportItem_GetPolicy(t *testing.T) {
 		ChefVersion      string
 		OS               string
 		OSVersion        string
-		CookbookVersions []reporting.CookbookVersion
+		CookbookVersions []subject.CookbookVersion
 		PolicyGroup      string
 		Policy           string
 		PolicyRev        string
@@ -362,7 +361,7 @@ func TestNodeReportItem_GetPolicy(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			nri := &reporting.NodeReportItem{
+			nri := &subject.NodeReportItem{
 				Name:             tt.fields.Name,
 				ChefVersion:      tt.fields.ChefVersion,
 				OS:               tt.fields.OS,
@@ -385,7 +384,7 @@ func TestNodeReportItem_GetPolicyWithRev(t *testing.T) {
 		ChefVersion      string
 		OS               string
 		OSVersion        string
-		CookbookVersions []reporting.CookbookVersion
+		CookbookVersions []subject.CookbookVersion
 		PolicyGroup      string
 		Policy           string
 		PolicyRev        string
@@ -403,7 +402,7 @@ func TestNodeReportItem_GetPolicyWithRev(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			nri := &reporting.NodeReportItem{
+			nri := &subject.NodeReportItem{
 				Name:             tt.fields.Name,
 				ChefVersion:      tt.fields.ChefVersion,
 				OS:               tt.fields.OS,
@@ -426,7 +425,7 @@ func TestNodeReportItem_HasPolicyGroup(t *testing.T) {
 		ChefVersion      string
 		OS               string
 		OSVersion        string
-		CookbookVersions []reporting.CookbookVersion
+		CookbookVersions []subject.CookbookVersion
 		PolicyGroup      string
 		Policy           string
 		PolicyRev        string
@@ -443,7 +442,7 @@ func TestNodeReportItem_HasPolicyGroup(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			nri := &reporting.NodeReportItem{
+			nri := &subject.NodeReportItem{
 				Name:             tt.fields.Name,
 				ChefVersion:      tt.fields.ChefVersion,
 				OS:               tt.fields.OS,

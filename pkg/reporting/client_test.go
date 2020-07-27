@@ -21,7 +21,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
+	"testing"
 
+	subject "github.com/chef/chef-analyze/pkg/reporting"
 	chef "github.com/chef/go-chef"
 )
 
@@ -221,4 +224,26 @@ func (em EnvMock) Get(name string) (*chef.Environment, error) {
 		return nil, em.Error
 	}
 	return em.Env, nil
+}
+
+func TestNewChefAnalyzeClient(t *testing.T) {
+	type args struct {
+		chefClient *chef.Client
+	}
+	chefCookbook := chef.CookbookService{}
+
+	tests := []struct {
+		name string
+		args args
+		want *subject.ChefAnalyzeClient
+	}{
+		{"TestWithCookbookService", args{chefClient: &chef.Client{Cookbooks: &chefCookbook}}, &subject.ChefAnalyzeClient{Cookbooks: &chefCookbook}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := subject.NewChefAnalyzeClient(tt.args.chefClient); !reflect.DeepEqual(got.Cookbooks, tt.want.Cookbooks) {
+				t.Errorf("NewChefAnalyzeClient() = %v, want %v", got, tt.want)
+			}
+		})
+	}
 }

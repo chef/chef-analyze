@@ -27,7 +27,7 @@ import (
 
 func TestNewChefClientWithDefaults(t *testing.T) {
 	defer os.RemoveAll(createCredentialsConfig(t))
-	cfg, err := subject.NewDefault()
+	cfg, err := subject.LoadConfig()
 	if assert.Nil(t, err) {
 		client, err := subject.NewChefClient(&cfg)
 		assert.Nil(t, err)
@@ -47,7 +47,7 @@ func TestNewChefClientWithouAnySettings(t *testing.T) {
 func TestNewChefClientCredsWithEmptyKey(t *testing.T) {
 	defer os.RemoveAll(createCredentialsConfig(t))
 
-	cfg, err := subject.NewDefault()
+	cfg, err := subject.LoadConfig()
 	if assert.Nil(t, err) {
 		assert.NotNil(t, cfg)
 
@@ -67,7 +67,7 @@ func TestNewChefClientCredsWithEmptyKey(t *testing.T) {
 func TestNewChefClientCredsWithInlinedKey(t *testing.T) {
 	defer os.RemoveAll(createCredentialsConfig(t))
 
-	cfg, err := subject.NewDefault()
+	cfg, err := subject.LoadConfig()
 	if assert.Nil(t, err) {
 		assert.NotNil(t, cfg)
 

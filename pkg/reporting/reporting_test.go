@@ -29,7 +29,7 @@ func TestReportingWithDefaults(t *testing.T) {
 	defer os.RemoveAll(createCredentialsConfig(t))
 	defer os.RemoveAll(createConfigToml(t))
 
-	cfg, err := subject.NewDefault()
+	cfg, err := subject.LoadConfig()
 	if assert.Nil(t, err) {
 		assert.Equal(t, "foo", cfg.ClientName)
 		// the key should contain .chef/foo.pem
@@ -50,7 +50,7 @@ func TestReportingWithDefaults(t *testing.T) {
 func TestReportingWirhOverrides(t *testing.T) {
 	defer os.RemoveAll(createCredentialsConfig(t))
 
-	cfg, err := subject.NewDefault(
+	cfg, err := subject.LoadConfig(
 		func(c *subject.Reporting) {
 			c.NoSSLVerify = true
 			c.Reports.Anonymize = false
@@ -69,7 +69,7 @@ func TestReportingWirhOverrides(t *testing.T) {
 
 // NOTE: @afiune we don't report an error if we were unable to load the config.toml
 func TestReportingNewDefaultErrorWithoutCredentials(t *testing.T) {
-	cfg, err := subject.NewDefault()
+	cfg, err := subject.LoadConfig()
 
 	if assert.NotNil(t, err) {
 		assert.Contains(t, err.Error(), "credentials file not found")
