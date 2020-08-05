@@ -2,9 +2,8 @@ module github.com/chef/chef-analyze
 
 go 1.13
 
-
 require (
-	github.com/aws/aws-sdk-go v1.32.7
+	github.com/aws/aws-sdk-go v1.33.19
 	github.com/chef/go-chef v0.4.2
 	github.com/chef/go-libs v0.4.1
 	github.com/cheggaaa/pb/v3 v3.0.4
@@ -36,4 +35,3 @@ require (
 	gopkg.in/ini.v1 v1.57.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776 // indirect
 )
-
