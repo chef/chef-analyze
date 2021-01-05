@@ -12,6 +12,7 @@ steps:
         docker:
           privileged: true
           environment:
+            - HAB_LICENSE=accept-no-persist
             - HAB_STUDIO_SUP=false
             - HAB_NONINTERACTIVE=true
   - label: ":linux: go-unit-code-coverage"
@@ -39,7 +40,10 @@ steps:
       - hab studio run './scripts/integration_tests.ps1; Exit \$LastExitCode'
     expeditor:
       executor:
-        windows:
+        docker:
+          host_os: windows
+          shell: [ "powershell", "-Command" ]
           environment:
+            - HAB_LICENSE=accept-no-persist
             - HAB_STUDIO_SUP=false
             - HAB_NONINTERACTIVE=true
