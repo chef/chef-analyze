@@ -96,7 +96,7 @@ func NewCookstyleRunner() *CookstyleRunner {
 	return &CookstyleRunner{
 		Opts: []string{
 			"--format", "json",
-			"--only", "ChefDeprecations,ChefCorrectness",
+			"--only", "Chef/Deprecations,Chef/Correctness",
 			"--force-default-config"},
 	}
 }

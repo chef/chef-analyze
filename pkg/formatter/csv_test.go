@@ -103,14 +103,14 @@ func TestMakeCookbooksReportCSV_WithVerifiedRecords(t *testing.T) {
 				Files: []reporting.CookbookFile{
 					reporting.CookbookFile{Path: "/path/to/file.rb",
 						Offenses: []reporting.CookstyleOffense{
-							reporting.CookstyleOffense{CopName: "ChefDeprecations/Blah", Message: "some description", Correctable: true},
+							reporting.CookstyleOffense{CopName: "Chef/Deprecations/Blah", Message: "some description", Correctable: true},
 						}}}}}}
 
 	actual := subject.MakeCookbooksReportCSV(&cbStatus)
 	lines := strings.Split(actual.Report, "\n")
 	assert.Equal(t, 3, len(lines))
 	assert.Equal(t, "Cookbook Name,Version,Policy Group,Policy,Policy Revision,File,Offense,Automatically Correctable,Message,Nodes", lines[0])
-	assert.Equal(t, "my-cookbook,1.0,,,,/path/to/file.rb,ChefDeprecations/Blah,Y,some description,node-1 node-2", lines[1])
+	assert.Equal(t, "my-cookbook,1.0,,,,/path/to/file.rb,Chef/Deprecations/Blah,Y,some description,node-1 node-2", lines[1])
 	assert.Equal(t, "", lines[2])
 }
 
@@ -123,14 +123,14 @@ func TestMakeCookbooksReportCSV_WithVerifiedRecordsAndFilter(t *testing.T) {
 				Files: []reporting.CookbookFile{
 					reporting.CookbookFile{Path: "/path/to/file.rb",
 						Offenses: []reporting.CookstyleOffense{
-							reporting.CookstyleOffense{CopName: "ChefDeprecations/Blah", Message: "some description", Correctable: true},
+							reporting.CookstyleOffense{CopName: "Chef/Deprecations/Blah", Message: "some description", Correctable: true},
 						}}}}}}
 
 	actual := subject.MakeCookbooksReportCSV(&cbStatus)
 	lines := strings.Split(actual.Report, "\n")
 	assert.Equal(t, 3, len(lines))
 	assert.Equal(t, "Cookbook Name,Version,Policy Group,Policy,Policy Revision,File,Offense,Automatically Correctable,Message,Nodes (filtered: name:node-1)", lines[0])
-	assert.Equal(t, "my-cookbook,1.0,,,,/path/to/file.rb,ChefDeprecations/Blah,Y,some description,node-1 node-2", lines[1])
+	assert.Equal(t, "my-cookbook,1.0,,,,/path/to/file.rb,Chef/Deprecations/Blah,Y,some description,node-1 node-2", lines[1])
 	assert.Equal(t, "", lines[2])
 }
 
@@ -171,12 +171,12 @@ func TestMakeCookbooksReportCSV_WithMultipleRecords(t *testing.T) {
 				Files: []reporting.CookbookFile{
 					reporting.CookbookFile{Path: "/path/to/file.rb",
 						Offenses: []reporting.CookstyleOffense{
-							reporting.CookstyleOffense{CopName: "ChefDeprecations/Blah", Message: "some description", Correctable: true},
+							reporting.CookstyleOffense{CopName: "Chef/Deprecations/Blah", Message: "some description", Correctable: true},
 						}},
 					reporting.CookbookFile{Path: "/path/to/other_file.rb",
 						Offenses: []reporting.CookstyleOffense{
-							reporting.CookstyleOffense{CopName: "ChefDeprecations/Blah1", Message: "some description1", Correctable: true},
-							reporting.CookstyleOffense{CopName: "ChefDeprecations/Blah2", Message: "some description2", Correctable: false},
+							reporting.CookstyleOffense{CopName: "Chef/Deprecations/Blah1", Message: "some description1", Correctable: true},
+							reporting.CookstyleOffense{CopName: "Chef/Deprecations/Blah2", Message: "some description2", Correctable: false},
 						}},
 				}}}}
 
@@ -184,9 +184,9 @@ func TestMakeCookbooksReportCSV_WithMultipleRecords(t *testing.T) {
 	lines := strings.Split(actual.Report, "\n")
 	assert.Equal(t, 5, len(lines))
 	assert.Equal(t, "Cookbook Name,Version,Policy Group,Policy,Policy Revision,File,Offense,Automatically Correctable,Message,Nodes", lines[0])
-	assert.Contains(t, lines, "my-cookbook,1.0,,,,/path/to/file.rb,ChefDeprecations/Blah,Y,some description,node-1 node-2")
-	assert.Contains(t, lines, "my-cookbook,1.0,,,,/path/to/other_file.rb,ChefDeprecations/Blah1,Y,some description1,node-1 node-2")
-	assert.Contains(t, lines, "my-cookbook,1.0,,,,/path/to/other_file.rb,ChefDeprecations/Blah2,N,some description2,node-1 node-2")
+	assert.Contains(t, lines, "my-cookbook,1.0,,,,/path/to/file.rb,Chef/Deprecations/Blah,Y,some description,node-1 node-2")
+	assert.Contains(t, lines, "my-cookbook,1.0,,,,/path/to/other_file.rb,Chef/Deprecations/Blah1,Y,some description1,node-1 node-2")
+	assert.Contains(t, lines, "my-cookbook,1.0,,,,/path/to/other_file.rb,Chef/Deprecations/Blah2,N,some description2,node-1 node-2")
 	assert.Equal(t, "", lines[4])
 }
 
