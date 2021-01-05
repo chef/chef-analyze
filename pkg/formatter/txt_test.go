@@ -87,7 +87,7 @@ func TestMakeCookbooksReportTXT_WithVerifiedRecords(t *testing.T) {
 				Files: []reporting.CookbookFile{
 					reporting.CookbookFile{Path: "/path/to/file.rb",
 						Offenses: []reporting.CookstyleOffense{
-							reporting.CookstyleOffense{CopName: "ChefDeprecations/Blah", Message: "some description", Correctable: true},
+							reporting.CookstyleOffense{CopName: "Chef/Deprecations/Blah", Message: "some description", Correctable: true},
 						}}}}}}
 
 	actual := subject.MakeCookbooksReportTXT(&cbStatus)
@@ -97,7 +97,7 @@ func TestMakeCookbooksReportTXT_WithVerifiedRecords(t *testing.T) {
 	assert.Contains(t, actual.Report, "Files and offenses:")
 	assert.Contains(t, actual.Report, "path/to/file.rb:")
 	assert.Contains(t, actual.Report, "Policy Group: none")
-	assert.Contains(t, actual.Report, "\tChefDeprecations/Blah (true) some description")
+	assert.Contains(t, actual.Report, "\tChef/Deprecations/Blah (true) some description")
 
 	lines := strings.Split(actual.Report, "\n")
 	assert.Equal(t, 9, len(lines))
@@ -112,7 +112,7 @@ func TestMakeCookbooksReportTXT_WithVerifiedPolicyRecords(t *testing.T) {
 				Files: []reporting.CookbookFile{
 					reporting.CookbookFile{Path: "/path/to/file.rb",
 						Offenses: []reporting.CookstyleOffense{
-							reporting.CookstyleOffense{CopName: "ChefDeprecations/Blah", Message: "some description", Correctable: true},
+							reporting.CookstyleOffense{CopName: "Chef/Deprecations/Blah", Message: "some description", Correctable: true},
 						}}}}}}
 
 	actual := subject.MakeCookbooksReportTXT(&cbStatus)
@@ -123,7 +123,7 @@ func TestMakeCookbooksReportTXT_WithVerifiedPolicyRecords(t *testing.T) {
 	assert.Contains(t, actual.Report, "path/to/file.rb:")
 	assert.Contains(t, actual.Report, "Policy Group: my-policygroup")
 	assert.Contains(t, actual.Report, "my-cookbook (policy my-policy, revision 123xyzx)")
-	assert.Contains(t, actual.Report, "\tChefDeprecations/Blah (true) some description")
+	assert.Contains(t, actual.Report, "\tChef/Deprecations/Blah (true) some description")
 
 	lines := strings.Split(actual.Report, "\n")
 	assert.Equal(t, 9, len(lines))
