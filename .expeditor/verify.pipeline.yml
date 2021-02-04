@@ -23,7 +23,7 @@ steps:
     expeditor:
       secrets:
         GITHUB_TOKEN:
-          account: github
+          account: github/chef
           field: token
       executor:
         docker:
