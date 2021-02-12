@@ -6,7 +6,7 @@ require (
 	github.com/aws/aws-sdk-go v1.34.3
 	github.com/chef/go-chef v0.4.2
 	github.com/chef/go-libs v0.4.1
-	github.com/cheggaaa/pb/v3 v3.0.5
+	github.com/cheggaaa/pb/v3 v3.0.6
 	github.com/fatih/color v1.9.0 // indirect
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/kr/pretty v0.2.0 // indirect
