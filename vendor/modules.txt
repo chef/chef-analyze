@@ -2,7 +2,7 @@
 github.com/BurntSushi/toml
 # github.com/VividCortex/ewma v1.1.1
 github.com/VividCortex/ewma
-# github.com/aws/aws-sdk-go v1.38.28
+# github.com/aws/aws-sdk-go v1.38.50
 github.com/aws/aws-sdk-go/aws
 github.com/aws/aws-sdk-go/aws/arn
 github.com/aws/aws-sdk-go/aws/awserr
