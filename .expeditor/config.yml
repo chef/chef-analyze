@@ -17,21 +17,6 @@ github:
   major_bump_labels:
     - "Expeditor: Bump Version Major"
 
-merge_actions:
-  - built_in:bump_version:
-      ignore_labels:
-        - "Expeditor: Skip Version Bump"
-        - "Expeditor: Skip All"
-  - trigger_pipeline:habitat/build:
-      ignore_labels:
-        - "Expeditor: Skip Habitat"
-        - "Expeditor: Skip All"
-      only_if: built_in:bump_version
-  - trigger_pipeline:code_coverage:
-      ignore_labels:
-        - "Expeditor: Skip Code Coverage"
-        - "Expeditor: Skip All"
-
 pipelines:
   - verify:
       description: Pull Request validation tests
@@ -40,15 +25,31 @@ pipelines:
       description: Generate code coverage reports
       definition: .expeditor/coverage.pipeline.yml
 
-promote:
-  channels:
-    - unstable
-    - stable
+artifact_channels:
+  - unstable
+  - stable
 
 subscriptions:
   - workload: buildkite_build_passed:{{agent_id}}:code_coverage:*
     actions:
       - bash:.expeditor/update_coverage.sh
+
   - workload: project_promoted:{{agent_id}}:*
     actions:
       - built_in:promote_habitat_packages
+
+  - workload: 
+    actions:
+      - built_in:bump_version:
+          ignore_labels:
+            - "Expeditor: Skip Version Bump"
+            - "Expeditor: Skip All"
+      - trigger_pipeline:habitat/build:
+          ignore_labels:
+            - "Expeditor: Skip Habitat"
+            - "Expeditor: Skip All"
+          only_if: built_in:bump_version
+      - trigger_pipeline:code_coverage:
+          ignore_labels:
+            - "Expeditor: Skip Code Coverage"
+            - "Expeditor: Skip All"
