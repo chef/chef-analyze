@@ -38,7 +38,7 @@ subscriptions:
     actions:
       - built_in:promote_habitat_packages
 
-  - workload: 
+  - workload: pull_request_merged:{{github_repo}}:{{release_branch}}:*
     actions:
       - built_in:bump_version:
           ignore_labels:
