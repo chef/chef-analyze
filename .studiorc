@@ -5,6 +5,8 @@
 hab pkg install chef/studio-common >/dev/null
 source "$(hab pkg path chef/studio-common)/bin/studio-common"
 
+unit_out="coverage/unit.pkg"
+
 # when updating these output files, update 'scripts/code_coverage.sh' as well
 coverage_out="coverage/coverage.raw"
 coverage_txt="coverage/coverage.txt"
@@ -65,6 +67,33 @@ function gocode_generation() {
   )
 }
 
+document "static_tests" <<DOC
+  Run static code tests
+DOC
+function static_tests() {
+  install_if_missing core/go gofmt
+
+  ( cd /src || return 1
+    local gofiles
+    gofiles=$(find ./ -maxdepth 3 -name '*.go')
+    [ -z "$gofiles" ] && return 0
+
+    unformatted=$(gofmt -l $gofiles)
+    if [ -z "$unformatted" ]
+    then
+      log_line "Passed!!"
+      return 0
+    fi
+
+    echo >&2 "Failure: Go files must be formatted with gofmt. Please run:"
+    for fn in $unformatted; do
+      echo >&2 "  gofmt -w $PWD/$fn"
+    done
+
+    return $(wc -w <<< "$unformatted")
+  )
+}
+
 document "unit_tests" <<DOC
   Run unit tests (go-based)
 DOC
@@ -77,9 +106,11 @@ function unit_tests() {
   ( cd /src || return 1
     mkdir -p coverage/
     GO_PACKAGES=$(go list ./... | grep -v integration)
-    go test \
+    results=$(go test \
       -coverprofile=$coverage_out \
-      -covermode=atomic $GO_PACKAGES || return 1
+      -covermode=atomic $GO_PACKAGES)
+    echo "$results"
+    return $(echo "$results" | grep -c 'FAIL:')
   )
 }
 
@@ -99,7 +130,9 @@ function code_coverage() {
   )
 }
 
-# run integraiton tests
+document "integration_tests" <<DOC
+  Run integration tests (go-based)
+DOC
 function integration_tests() {
   install_if_missing core/go go
   install_if_missing core/gcc gcc
@@ -109,7 +142,9 @@ function integration_tests() {
 
   log_line "Running integration tests (github.com/chef/chef-analyze/integration)"
   ( cd /src || return 1
-    go test github.com/chef/chef-analyze/integration -v
+    results=$(go test github.com/chef/chef-analyze/integration -v)
+    echo "$results"
+    return $(echo "$results" | grep -c 'FAIL:')
   )
 }
 
@@ -126,4 +161,101 @@ function install_cookstyle() {
   gem install cookstyle
   RUBY_BIN="$(hab pkg path core/ruby)/bin"
   export PATH="$RUBY_BIN:$PATH"
+}
+
+document "pre_commit_verify" <<DOC
+  Runs all verify steps on local code before commiting or creating pr.
+DOC
+function pre_commit_verify() {
+  ( cd /src || return 1
+    log_line "Running Static Tests..."
+    static_errors=$(static_tests 2>&1 > /dev/null)
+    static_offenses=$?
+    
+    echo -en "\033[1A\033[14C\033[0KStatic Tests:\033[6C"
+    if [ $static_offenses -eq 0 ]
+    then
+      echo -e "$(green Passed!!)"
+    else
+      echo -e "$(red "Failed: $static_offenses offending files")"
+    fi
+
+    log_line "Running Unit Tests..."
+    unit_tests=$(unit_tests)
+    unit_failures=$?
+    
+    echo -en "\033[1A\033[14C\033[0KUnit Tests:\033[8C"
+    if [ $unit_failures -eq 0 ]
+    then
+      echo -e "$(green Passed!!)"
+    else
+      echo -e "$(red "Failed: $unit_failures failing tests")"
+    fi
+
+    log_line "Generating Code Coverage Reports..."
+    go tool cover -func=$coverage_out -o $coverage_txt
+    go tool cover -html=$coverage_out -o $coverage_html
+    coverage=$(grep -w total: coverage/coverage.txt| awk '{print $NF}' | sed -e 's/%//')
+    coverage_master=$(cat CODE_COVERAGE)
+
+    case $coverage in
+      100) color=green ;;
+      9[0-9]*) color=green ;;
+      8[0-9]*) color=green ;;
+      7[0-9]*) color=yellow ;;
+      6[0-9]*) color=yellow ;;
+      5[0-9]*) color=yellow ;;
+      *) color=red ;;
+    esac
+
+    echo -en "\033[1A\033[14C\033[0KCode Coverage:\033[5C"
+    local coverage_failed=$(( $(awk 'BEGIN {print ('$coverage_master' > '$coverage')}') ))
+    if [ $coverage_failed -eq 0 ]
+    then
+      coverage_diff=$(awk 'BEGIN { print '$coverage' - '$coverage_master' }')
+      echo -e "$(green "Passed: ")$($color "$coverage% ↑ $coverage_diff%")"
+    else
+      coverage_diff=$(awk 'BEGIN { print '$coverage_master' - '$coverage' }')
+      echo -e "$(red "Failed: $coverage% ↓ $coverage_diff%")"
+    fi
+    
+    log_line "Running Integration Tests..."
+    integration_tests=$(integration_tests)
+    integration_failures=$?
+
+    echo -en "\033[1A\033[14C\033[0KIntegration Tests: "
+    if [ $integration_failures -eq 0 ]
+    then
+      echo -e "$(green Passed!!)"
+    else
+      echo -e "$(red "Failed: $integration_failures failing tests")"
+    fi
+
+    if [ $static_offenses -ne 0 ]
+    then
+      log_line "Static Test Report:"
+      echo "$static_errors"
+    fi
+
+    if [ $unit_failures -ne 0 ]
+    then
+      log_line "Unit Test Report:"
+      awk 'NR>1' <<< "$unit_tests"
+    fi
+
+    if [ $coverage_failed -ne 0 ]
+    then
+      log_line "Coverage Report:"
+      cat $coverage_txt
+
+      echo ""
+      echo "HTML output written to '$(yellow /src/$coverage_html)' (open file with a web browser)"
+    fi
+
+    if [ $integration_failures -ne 0 ]
+    then
+      log_line "Integration Test Report:"
+      awk 'NR>10' <<< "$integration_tests"
+    fi
+  )
 }
