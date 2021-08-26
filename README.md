@@ -1,16 +1,16 @@
 # chef-analyze
-[![Build status](https://badge.buildkite.com/a5dfa44b20a6ec189a93bcbda031db452f1d964fa6836f7065.svg?branch=master)](https://buildkite.com/chef/chef-chef-analyze-master-verify)
-[![Code coverage](https://img.shields.io/badge/coverage-95.0%25-brightgreen)](https://buildkite.com/chef/chef-chef-analyze-master-verify)
+[![Build status](https://badge.buildkite.com/a5dfa44b20a6ec189a93bcbda031db452f1d964fa6836f7065.svg?branch=main)](https://buildkite.com/chef/chef-chef-analyze-main-verify)
+[![Code coverage](https://img.shields.io/badge/coverage-95.0%25-brightgreen)](https://buildkite.com/chef/chef-chef-analyze-main-verify)
 
 A CLI to analyze artifacts from a Chef Infra Server.
 
-**Umbrella Project**: [Chef Workstation](https://github.com/chef/chef-oss-practices/blob/master/projects/chef-workstation.md)
+**Umbrella Project**: [Chef Workstation](https://github.com/chef/chef-oss-practices/blob/main/projects/chef-workstation.md)
 
-**Project State**: [Prototyping](https://github.com/chef/chef-oss-practices/blob/master/repo-management/repo-states.md#prototyping)
+**Project State**: [Prototyping](https://github.com/chef/chef-oss-practices/blob/main/repo-management/repo-states.md#prototyping)
 
-**Issues [Response Time Maximum](https://github.com/chef/chef-oss-practices/blob/master/repo-management/repo-states.md)**: Not yet defined
+**Issues [Response Time Maximum](https://github.com/chef/chef-oss-practices/blob/main/repo-management/repo-states.md)**: Not yet defined
 
-**Pull Request [Response Time Maximum](https://github.com/chef/chef-oss-practices/blob/master/repo-management/repo-states.md)**: Not yet defined
+**Pull Request [Response Time Maximum](https://github.com/chef/chef-oss-practices/blob/main/repo-management/repo-states.md)**: Not yet defined
 
 ## Installation
 
@@ -76,7 +76,7 @@ run `chef-analyze` or `chef analyze` to use the top-level chef wrapper.
 
 ## Contributing
 
-For information on contributing to this project please see our [Contributing Documentation](https://github.com/chef/chef/blob/master/CONTRIBUTING.md)
+For information on contributing to this project please see our [Contributing Documentation](https://github.com/chef/chef/blob/main/CONTRIBUTING.md)
 
 ## License & Copyright
 
