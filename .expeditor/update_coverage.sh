@@ -11,7 +11,7 @@ COVERAGE=$(grep -w total: coverage/coverage.txt| awk '{print $NF}' | sed -e 's/%
 COVERAGE_MASTER=$(cat CODE_COVERAGE)
 
 if [ "$COVERAGE_MASTER" == "$COVERAGE" ]; then
-  echo "This change neither increased nor decreased the code coverage from master. (${COVERAGE_MASTER}%)"
+  echo "This change neither increased nor decreased the code coverage from main. (${COVERAGE_MASTER}%)"
   echo "TIP: Add the GH tag 'Expeditor: Skip Code Coverage' to avoid triggering this task."
   exit 0
 fi
@@ -33,4 +33,4 @@ echo "$COVERAGE" > CODE_COVERAGE
 git add CODE_COVERAGE
 
 git commit --message "Update code coverage to ${COVERAGE}%"
-git push origin master
+git push origin main
