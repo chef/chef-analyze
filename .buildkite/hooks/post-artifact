@@ -22,7 +22,7 @@ COVERAGE_HTML="coverage/coverage.html"
 REPO_NAME=$(echo $BUILDKITE_REPO | cut -d/ -f5 | cut -d. -f1)
 
 # variables used to compare current coverage VS main
-COVERAGE_MASTER=$(cat CODE_COVERAGE)
+COVERAGE_MAIN=$(cat CODE_COVERAGE)
 COVERAGE_PR=$(grep -w total: $COVERAGE_TXT | awk '{print $NF}' | sed -e 's/%//')
 
 # Github API to comment back to the open pull request
@@ -35,14 +35,14 @@ EOF
 }
 
 function code_coverage_table() {
-  if [ "$COVERAGE_MASTER" == "$COVERAGE_PR" ]; then
-    echo "\\n :arrows_counterclockwise: This change neither increases nor decreases the code coverage. (**main ${COVERAGE_MASTER}%**)"
+  if [ "$COVERAGE_MAIN" == "$COVERAGE_PR" ]; then
+    echo "\\n :arrows_counterclockwise: This change neither increases nor decreases the code coverage. (**main ${COVERAGE_MAIN}%**)"
     echo "\\n ## 0% Increase! :sweat_smile:"
   elif [ "$(is_coverage_degraded)" == "true" ]; then
-    echo "\\n :x: The code coverage is decreased. (**main ${COVERAGE_MASTER}%**)"
+    echo "\\n :x: The code coverage is decreased. (**main ${COVERAGE_MAIN}%**)"
     echo "\\n ## $(coverage_decrease)% Decrease! :thinking:"
   else
-    echo "\\n :white_check_mark: The code coverage is increased. (**main ${COVERAGE_MASTER}%**)"
+    echo "\\n :white_check_mark: The code coverage is increased. (**main ${COVERAGE_MAIN}%**)"
     echo "\\n ## $(coverage_increase)% Increase! :rocket:"
   fi
 
@@ -54,15 +54,15 @@ EOF
 }
 
 function coverage_decrease() {
-  awk 'BEGIN { print '$COVERAGE_MASTER' - '$COVERAGE_PR' }'
+  awk 'BEGIN { print '$COVERAGE_MAIN' - '$COVERAGE_PR' }'
 }
 
 function coverage_increase() {
-  awk 'BEGIN { print '$COVERAGE_PR' - '$COVERAGE_MASTER' }'
+  awk 'BEGIN { print '$COVERAGE_PR' - '$COVERAGE_MAIN' }'
 }
 
 function is_coverage_degraded() {
-  awk 'BEGIN { if ('$COVERAGE_MASTER' > '$COVERAGE_PR') print "true"; else print "false" }'
+  awk 'BEGIN { if ('$COVERAGE_MAIN' > '$COVERAGE_PR') print "true"; else print "false" }'
 }
 
 function buildkite_artifacts_url() {
@@ -73,15 +73,15 @@ function buildkite_artifacts_url() {
 
 curl -H "Authorization: token $GITHUB_TOKEN" "$COMMENTS_URL" -d "$(post_data)" >/dev/null
 
-if [ "$COVERAGE_MASTER" == "$COVERAGE_PR" ]; then
+if [ "$COVERAGE_MAIN" == "$COVERAGE_PR" ]; then
   cat << EOF | buildkite-agent annotate --style "info"
-  This change neither increases nor decreases the code coverage from main. (${COVERAGE_MASTER}%)
+  This change neither increases nor decreases the code coverage from main. (${COVERAGE_MAIN}%)
 
   Read the <a href="artifact://coverage/coverage.html">uploaded HTML coverage report</a>
 EOF
 elif [ "$(is_coverage_degraded)" == "true" ]; then
   cat << EOF | buildkite-agent annotate --style "error"
-  The code coverage will decrease from ${COVERAGE_MASTER}% to ${COVERAGE_PR}%
+  The code coverage will decrease from ${COVERAGE_MAIN}% to ${COVERAGE_PR}%
 
   Take a look at the <a href="artifact://coverage/coverage.html">uploaded HTML coverage report</a>
 EOF
@@ -90,7 +90,7 @@ EOF
   exit 7
 else
   cat << EOF | buildkite-agent annotate --style "success"
-  The code coverage will increase from ${COVERAGE_MASTER}% to ${COVERAGE_PR}%
+  The code coverage will increase from ${COVERAGE_MAIN}% to ${COVERAGE_PR}%
 
   Read the <a href="artifact://coverage/coverage.html">uploaded HTML coverage report</a>
 EOF
