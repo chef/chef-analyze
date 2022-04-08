@@ -3,7 +3,7 @@ module github.com/chef/chef-analyze
 go 1.13
 
 require (
-	github.com/aws/aws-sdk-go v1.43.34
+	github.com/aws/aws-sdk-go v1.43.35
 	github.com/chef/go-chef v0.4.2
 	github.com/chef/go-libs v0.4.1
 	github.com/cheggaaa/pb/v3 v3.0.8
