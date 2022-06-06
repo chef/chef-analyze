@@ -130,7 +130,7 @@ github.com/spf13/viper/internal/encoding/javaproperties
 github.com/spf13/viper/internal/encoding/json
 github.com/spf13/viper/internal/encoding/toml
 github.com/spf13/viper/internal/encoding/yaml
-# github.com/stretchr/testify v1.7.1
+# github.com/stretchr/testify v1.7.2
 github.com/stretchr/testify/assert
 # github.com/subosito/gotenv v1.3.0
 github.com/subosito/gotenv
@@ -150,5 +150,5 @@ golang.org/x/text/unicode/norm
 gopkg.in/ini.v1
 # gopkg.in/yaml.v2 v2.4.0
 gopkg.in/yaml.v2
-# gopkg.in/yaml.v3 v3.0.0
+# gopkg.in/yaml.v3 v3.0.1
 gopkg.in/yaml.v3
