@@ -6,7 +6,7 @@ require (
 	github.com/aws/aws-sdk-go v1.44.50
 	github.com/chef/go-chef v0.4.2
 	github.com/chef/go-libs v0.4.1
-	github.com/cheggaaa/pb/v3 v3.0.8
+	github.com/cheggaaa/pb/v3 v3.1.0
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/pkg/errors v0.9.1

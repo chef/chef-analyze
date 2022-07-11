@@ -60,7 +60,7 @@ github.com/chef/go-chef
 github.com/chef/go-libs/config
 github.com/chef/go-libs/credentials
 github.com/chef/go-libs/distgen
-# github.com/cheggaaa/pb/v3 v3.0.8
+# github.com/cheggaaa/pb/v3 v3.1.0
 github.com/cheggaaa/pb/v3
 github.com/cheggaaa/pb/v3/termutil
 # github.com/davecgh/go-spew v1.1.1
