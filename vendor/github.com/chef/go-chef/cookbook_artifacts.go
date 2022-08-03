@@ -86,4 +86,3 @@ func (c *CBAService) GetVersion(name, id string) (data CBADetail, err error) {
 	err = c.client.magicRequestDecoder("GET", url, nil, &data)
 	return
 }
-
