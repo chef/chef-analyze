@@ -1,7 +1,9 @@
 package chef
 
-import "fmt"
-import "sort"
+import (
+	"fmt"
+	"sort"
+)
 
 // Environment has a Reader, hey presto
 type EnvironmentService struct {
@@ -14,7 +16,7 @@ type EnvironmentResult map[string]string
 type Environment struct {
 	Name               string            `json:"name"`
 	Description        string            `json:"description"`
-	ChefType           string            `json:"chef_type"`
+	ChefType           string            `json:"chef_type,omitempty"`
 	Attributes         interface{}       `json:"attributes,omitempty"`
 	DefaultAttributes  interface{}       `json:"default_attributes,omitempty"`
 	OverrideAttributes interface{}       `json:"override_attributes,omitempty"`
@@ -23,6 +25,8 @@ type Environment struct {
 }
 
 type EnvironmentCookbookResult map[string]CookbookVersions
+
+type EnvironmentRecipesResult []string
 
 func strMapToStr(e map[string]string) (out string) {
 	keys := make([]string, len(e))
@@ -67,7 +71,12 @@ func (e *EnvironmentService) Create(environment *Environment) (data *Environment
 
 // Delete an environment from the Chef server.
 //
-// Chef API docs: https://docs.chef.io/api_chef_server.html#environments-name
+// Chef API docs: https://docs.chef.io/api_chef_server/#delete-9
+func (e *EnvironmentService) Delete(name string) (data *Environment, err error) {
+	path := fmt.Sprintf("environments/%s", name)
+	err = e.client.magicRequestDecoder("DELETE", path, nil, &data)
+	return
+}
 
 // Get gets an environment from the Chef server.
 //
@@ -81,6 +90,7 @@ func (e *EnvironmentService) Get(name string) (data *Environment, err error) {
 // Write an environment to the Chef server.
 //
 // Chef API docs: https://docs.chef.io/api_chef_server.html#environments-name
+// TODO: Fix the name restriction. The parms should be name, environment
 func (e *EnvironmentService) Put(environment *Environment) (data *Environment, err error) {
 	path := fmt.Sprintf("environments/%s", environment.Name)
 	body, err := JSONReader(environment)
@@ -101,6 +111,15 @@ func (e *EnvironmentService) ListCookbooks(name string, numVersions string) (dat
 	return
 }
 
+// ListRecipes get the recipes list of recipes available to a given environment.
+//
+// Chef API docs: https://docs.chef.io/api_chef_server/#get-33
+func (e *EnvironmentService) ListRecipes(name string) (data EnvironmentRecipesResult, err error) {
+	path := fmt.Sprintf("environments/%s/recipes", name)
+	err = e.client.magicRequestDecoder("GET", path, nil, &data)
+	return
+}
+
 // Get a hash of cookbooks and cookbook versions (including all dependencies) that
 // are required by the run_list array. Version constraints may be specified using
 // the @ symbol after the cookbook name as a delimiter. Version constraints may also
@@ -108,7 +127,9 @@ func (e *EnvironmentService) ListCookbooks(name string, numVersions string) (dat
 // or when dependencies are specified by a cookbook.
 //
 // Chef API docs: https://docs.chef.io/api_chef_server.html#cookbooks
+// TODO: Write this
 
 // Get a list of cookbooks and cookbook versions that are available to the specified environment.
 //
 // Chef API docs: https://docs.chef.io/api_chef_server.html#environments-name-cookbooks
+// TODO: Write this

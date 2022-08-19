@@ -23,8 +23,8 @@ import (
 	"strings"
 	"sync"
 
-	chef "github.com/chef/go-chef"
 	"github.com/chef/go-libs/config"
+	"github.com/go-chef/chef"
 	"github.com/pkg/errors"
 )
 

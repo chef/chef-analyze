@@ -29,7 +29,7 @@ import (
 	"strings"
 	"text/template"
 
-	chef "github.com/chef/go-chef"
+	"github.com/go-chef/chef"
 	"github.com/pkg/errors"
 )
 

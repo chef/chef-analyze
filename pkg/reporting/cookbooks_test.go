@@ -22,7 +22,7 @@ import (
 	"os"
 	"testing"
 
-	chef "github.com/chef/go-chef"
+	"github.com/go-chef/chef"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 
@@ -493,7 +493,7 @@ func TestCookbooks(t *testing.T) {
 		false,
 		Workers,
 		"",    // no filter
-		false, //anonymize
+		false, // anonymize
 	)
 	assert.Nil(t, err)
 	if assert.NotNil(t, c) {

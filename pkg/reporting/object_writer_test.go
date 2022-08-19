@@ -9,7 +9,7 @@ import (
 
 	"github.com/chef/chef-analyze/pkg/reporting"
 	subject "github.com/chef/chef-analyze/pkg/reporting"
-	chef "github.com/chef/go-chef"
+	"github.com/go-chef/chef"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -97,7 +97,7 @@ func TestObjectWriter_WritePolicyRevision(t *testing.T) {
 			ow := &reporting.ObjectWriter{
 				RootDir: tt.fields.RootDir,
 			}
-			if err := ow.WritePolicyRevision(tt.args.revision); (err != nil) != tt.wantErr { //Unexpected Error
+			if err := ow.WritePolicyRevision(tt.args.revision); (err != nil) != tt.wantErr { // Unexpected Error
 				t.Errorf("ObjectWriter.PolicyRevision() error = %v, wantErr %v", err, tt.wantErr)
 			} else {
 				content, err := ioutil.ReadFile(fmt.Sprintf("%s/policies/%s-%s.json", baseDir, testRevision.Name, testRevision.RevisionID))
@@ -140,7 +140,7 @@ func TestObjectWriter_WritePolicyGroup(t *testing.T) {
 			ow := &reporting.ObjectWriter{
 				RootDir: tt.fields.RootDir,
 			}
-			if err := ow.WritePolicyGroup(tt.args.pname, tt.args.pgroup); (err != nil) != tt.wantErr { //Unexpected Error
+			if err := ow.WritePolicyGroup(tt.args.pname, tt.args.pgroup); (err != nil) != tt.wantErr { // Unexpected Error
 				t.Errorf("ObjectWriter.WritePolicyGroup() error = %v, wantErr %v", err, tt.wantErr)
 			} else {
 				content, err := ioutil.ReadFile(fmt.Sprintf("%s/policy_groups/%s.json", baseDir, tt.args.pname))
@@ -196,7 +196,7 @@ func TestObjectWriter_WriteRole(t *testing.T) {
 			ow := &reporting.ObjectWriter{
 				RootDir: tt.fields.RootDir,
 			}
-			if err := ow.WriteRole(tt.args.role); (err != nil) != tt.wantErr { //Unexpected Error
+			if err := ow.WriteRole(tt.args.role); (err != nil) != tt.wantErr { // Unexpected Error
 				t.Errorf("ObjectWriter.WriteRole() error = %v, wantErr %v", err, tt.wantErr)
 			} else {
 				content, err := ioutil.ReadFile(fmt.Sprintf("%s/roles/%s.json", baseDir, testRole.Name))

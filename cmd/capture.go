@@ -25,8 +25,8 @@ import (
 	"strings"
 
 	"github.com/chef/chef-analyze/pkg/reporting"
-	chef "github.com/chef/go-chef"
 	"github.com/chef/go-libs/credentials"
+	"github.com/go-chef/chef"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
