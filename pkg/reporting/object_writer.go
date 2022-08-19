@@ -22,7 +22,7 @@ import (
 	"io/ioutil"
 	"os"
 
-	chef "github.com/chef/go-chef"
+	"github.com/go-chef/chef"
 	"github.com/pkg/errors"
 )
 

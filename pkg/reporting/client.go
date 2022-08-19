@@ -16,7 +16,7 @@
 
 package reporting
 
-import chef "github.com/chef/go-chef"
+import "github.com/go-chef/chef"
 
 // These interfaces map to chef.Client.* implementations.
 // Using an interface allows us inject our own mock implementations for testing

@@ -25,7 +25,7 @@ import (
 	"testing"
 
 	subject "github.com/chef/chef-analyze/pkg/reporting"
-	chef "github.com/chef/go-chef"
+	"github.com/go-chef/chef"
 )
 
 // This module contains mocks implementations for the client interfaces

@@ -54,8 +54,6 @@ github.com/aws/aws-sdk-go/service/sso
 github.com/aws/aws-sdk-go/service/sso/ssoiface
 github.com/aws/aws-sdk-go/service/sts
 github.com/aws/aws-sdk-go/service/sts/stsiface
-# github.com/chef/go-chef v0.4.2
-github.com/chef/go-chef
 # github.com/chef/go-libs v0.4.1
 github.com/chef/go-libs/config
 github.com/chef/go-libs/credentials
@@ -69,6 +67,8 @@ github.com/davecgh/go-spew/spew
 github.com/fatih/color
 # github.com/fsnotify/fsnotify v1.5.4
 github.com/fsnotify/fsnotify
+# github.com/go-chef/chef v0.27.0 => github.com/chef/go-chef v0.4.5
+github.com/go-chef/chef
 # github.com/hashicorp/hcl v1.0.0
 github.com/hashicorp/hcl
 github.com/hashicorp/hcl/hcl/ast

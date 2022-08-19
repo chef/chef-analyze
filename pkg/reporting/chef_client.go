@@ -19,7 +19,8 @@ package reporting
 import (
 	"io/ioutil"
 	"strings"
-	chef "github.com/chef/go-chef"
+
+	"github.com/go-chef/chef"
 	"github.com/pkg/errors"
 )
 
@@ -30,7 +31,7 @@ func NewChefClient(cfg *Reporting) (*chef.Client, error) {
 	if strings.Contains(cfg.ClientKey, "BEGIN RSA PRIVATE KEY") {
 		// Key was directly placed in credentials file
 		key = cfg.ClientKey
-	}	else {
+	} else {
 		// cfg.ClientKey is a path to a key file
 		keyBytes, err := ioutil.ReadFile(cfg.ClientKey)
 		if err != nil {
