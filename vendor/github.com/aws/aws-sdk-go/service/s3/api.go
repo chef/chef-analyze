@@ -40885,6 +40885,9 @@ const (
 	// BucketLocationConstraintApSoutheast2 is a BucketLocationConstraint enum value
 	BucketLocationConstraintApSoutheast2 = "ap-southeast-2"
 
+	// BucketLocationConstraintApSoutheast3 is a BucketLocationConstraint enum value
+	BucketLocationConstraintApSoutheast3 = "ap-southeast-3"
+
 	// BucketLocationConstraintCaCentral1 is a BucketLocationConstraint enum value
 	BucketLocationConstraintCaCentral1 = "ca-central-1"
 
@@ -40948,6 +40951,7 @@ func BucketLocationConstraint_Values() []string {
 		BucketLocationConstraintApSouth1,
 		BucketLocationConstraintApSoutheast1,
 		BucketLocationConstraintApSoutheast2,
+		BucketLocationConstraintApSoutheast3,
 		BucketLocationConstraintCaCentral1,
 		BucketLocationConstraintCnNorth1,
 		BucketLocationConstraintCnNorthwest1,
@@ -41700,6 +41704,9 @@ const (
 
 	// ObjectStorageClassGlacierIr is a ObjectStorageClass enum value
 	ObjectStorageClassGlacierIr = "GLACIER_IR"
+
+	// ObjectStorageClassSnow is a ObjectStorageClass enum value
+	ObjectStorageClassSnow = "SNOW"
 )
 
 // ObjectStorageClass_Values returns all elements of the ObjectStorageClass enum
@@ -41714,6 +41721,7 @@ func ObjectStorageClass_Values() []string {
 		ObjectStorageClassDeepArchive,
 		ObjectStorageClassOutposts,
 		ObjectStorageClassGlacierIr,
+		ObjectStorageClassSnow,
 	}
 }
 
@@ -41991,6 +41999,9 @@ const (
 
 	// StorageClassGlacierIr is a StorageClass enum value
 	StorageClassGlacierIr = "GLACIER_IR"
+
+	// StorageClassSnow is a StorageClass enum value
+	StorageClassSnow = "SNOW"
 )
 
 // StorageClass_Values returns all elements of the StorageClass enum
@@ -42005,6 +42016,7 @@ func StorageClass_Values() []string {
 		StorageClassDeepArchive,
 		StorageClassOutposts,
 		StorageClassGlacierIr,
+		StorageClassSnow,
 	}
 }
 
