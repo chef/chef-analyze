@@ -19,6 +19,7 @@ github:
 
 pipelines:
   - verify:
+      public: true
       description: Pull Request validation tests
   - habitat/build
   - code_coverage:
