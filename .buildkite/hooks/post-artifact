@@ -71,7 +71,10 @@ function buildkite_artifacts_url() {
   echo "$payload" | cut -d, -f5 | cut -d\" -f4
 }
 
-curl -H "Authorization: token $GITHUB_TOKEN" "$COMMENTS_URL" -d "$(post_data)" >/dev/null
+# Only post to GitHub if GITHUB_TOKEN is available
+if [ -n "${GITHUB_TOKEN:-}" ]; then
+  curl -H "Authorization: token $GITHUB_TOKEN" "$COMMENTS_URL" -d "$(post_data)" >/dev/null
+fi
 
 if [ "$COVERAGE_MAIN" == "$COVERAGE_PR" ]; then
   cat << EOF | buildkite-agent annotate --style "info"

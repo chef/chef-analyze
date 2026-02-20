@@ -21,10 +21,10 @@ steps:
     artifact_paths:
       - "coverage/*"
     expeditor:
-      secrets:
-        GITHUB_TOKEN:
-          account: github/chef
-          field: token
+      # secrets:
+      #   GITHUB_TOKEN:
+      #     account: github/chef
+      #     field: token
       executor:
         docker:
           privileged: true
