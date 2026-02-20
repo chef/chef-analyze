@@ -1,4 +1,5 @@
 # Order is important. The last matching pattern has the most precedence.
 
 *                           @chef/chef-workstation-owners @chef/chef-workstation-approvers @chef/chef-workstation-reviewers
-.expeditor/                 @chef/jex-team
+.expeditor/                 @chef/build-engineering-systems-team
+.github/                    @chef/build-engineering-systems-team
