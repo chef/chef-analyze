@@ -3,9 +3,8 @@ pkg_origin=chef
 pkg_description="A CLI to analyze artifacts from a Chef Infra Server"
 pkg_maintainer="Chef Software Inc. <support@chef.io>"
 pkg_bin_dirs=(bin)
-pkg_deps=(core/glibc)
-pkg_scaffolding=core/scaffolding-go
-scaffolding_go_module=on
+pkg_deps=(core/glibc core/go25 core/gcc)
+
 
 pkg_version() {
   cat "$SRC_PATH/VERSION"
@@ -24,4 +23,18 @@ do_prepare() {
   ( cd "$SRC_PATH" || exit_with "unable to cd into source directory" 1
     go generate ./...
   )
+}
+do_build() {
+  echo "Building $pkg_name"
+  go build -o "$pkg_name"
+}
+
+do_install() {
+  echo "installing $pkg_name"
+  cp "$pkg_name" "$pkg_prefix/bin/$pkg_name"
+}
+
+do_check() {
+  export CHEF_FEAT_ANALYZE="true"
+  "$pkg_prefix/bin/$pkg_name" version | grep "^Analyze your Chef Infra Server artifacts"
 }

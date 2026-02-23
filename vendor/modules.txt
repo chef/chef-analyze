@@ -501,8 +501,8 @@ github.com/sagikazarmark/locafero/internal/queue
 ## explicit
 # github.com/shirou/w32 v0.0.0-20160930032740-bb4de0191aa4
 ## explicit
-# github.com/sirupsen/logrus v1.6.0
-## explicit; go 1.13
+# github.com/sirupsen/logrus v1.9.4
+## explicit; go 1.17
 # github.com/smartystreets/assertions v1.1.1
 ## explicit; go 1.13
 # github.com/smartystreets/goconvey v1.6.4
