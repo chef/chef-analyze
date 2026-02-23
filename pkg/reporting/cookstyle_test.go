@@ -29,7 +29,13 @@ import (
 )
 
 func TestRunCookstyleError(t *testing.T) {
-	result, err := subject.RunCookstyle("/foo")
+	// Ensure cookstyle is not on PATH so the command lookup fails
+	savedPath := os.Getenv("PATH")
+	os.Setenv("PATH", "")
+	defer os.Setenv("PATH", savedPath)
+
+	dir := t.TempDir()
+	result, err := subject.RunCookstyle(dir)
 	if assert.NotNil(t, err) {
 		assert.Contains(t, err.Error(), "\"cookstyle\": executable file not found")
 	}

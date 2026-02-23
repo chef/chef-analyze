@@ -77,7 +77,9 @@ function unit_tests() {
   # Avoid running integration tests inside unit tests
   ( cd /src || return 1
     mkdir -p coverage/
-    GO_PACKAGES=$(go list ./... | grep -v integration)
+    # Only include packages that have test files to avoid 0% coverage
+    # from packages with no tests (Go 1.20+ merges all profiles)
+    GO_PACKAGES=$(go list -f '{{if or .TestGoFiles .XTestGoFiles}}{{.ImportPath}}{{end}}' ./... | grep -v integration)
     go test \
       -coverprofile=$coverage_out \
       -covermode=atomic $GO_PACKAGES || return 1
