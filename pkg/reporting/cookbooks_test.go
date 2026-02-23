@@ -785,6 +785,11 @@ func TestCookbookRecord_ErrorsWhenEmpty(t *testing.T) {
 }
 
 func TestCookbooks_withCookstyleError(t *testing.T) {
+	// Ensure cookstyle is not on PATH so the command lookup fails
+	savedPath := os.Getenv("PATH")
+	os.Setenv("PATH", "")
+	defer os.Setenv("PATH", savedPath)
+
 	defer os.RemoveAll(createConfigToml(t))
 	cookbookList := chef.CookbookListResult{
 		"foo": chef.CookbookVersions{

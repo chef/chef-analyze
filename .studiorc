@@ -23,8 +23,9 @@ document "build_cross_platform" <<DOC
   Build the $pkg_name binary for all supported platforms
 DOC
 function build_cross_platform() {
-  install_if_missing core/go go
+  install_if_missing core/go25 go
   install_if_missing core/gox gox
+  install_if_missing core/gcc gcc
   ( cd /src || return 1
     gox -output="bin/{{.Dir}}_{{.OS}}_{{.Arch}}" \
         -os="darwin linux windows" \
@@ -47,7 +48,7 @@ document "update_deps" <<DOC
   update_deps github.com/chef/go-libs@main
 DOC
 function update_deps() {
-  install_if_missing core/go go
+  install_if_missing core/go25 go
   install_if_missing core/git git
   ( cd /src || return 1
     GOFLAGS="" go get -u "$@"
@@ -59,7 +60,7 @@ document "gocode_generation" <<DOC
   Run 'go generate' for code generation
 DOC
 function gocode_generation() {
-  install_if_missing core/go go
+  install_if_missing core/go25 go
   ( cd /src || return 1
     go generate ./...
   )
@@ -69,14 +70,16 @@ document "unit_tests" <<DOC
   Run unit tests (go-based)
 DOC
 function unit_tests() {
-  install_if_missing core/go go
+  install_if_missing core/go25 go
   install_if_missing core/gcc gcc
 
   log_line "Running unit tests"
   # Avoid running integration tests inside unit tests
   ( cd /src || return 1
     mkdir -p coverage/
-    GO_PACKAGES=$(go list ./... | grep -v integration)
+    # Only include packages that have test files to avoid 0% coverage
+    # from packages with no tests (Go 1.20+ merges all profiles)
+    GO_PACKAGES=$(go list -f '{{if or .TestGoFiles .XTestGoFiles}}{{.ImportPath}}{{end}}' ./... | grep -v integration)
     go test \
       -coverprofile=$coverage_out \
       -covermode=atomic $GO_PACKAGES || return 1
@@ -101,7 +104,7 @@ function code_coverage() {
 
 # run integraiton tests
 function integration_tests() {
-  install_if_missing core/go go
+  install_if_missing core/go25 go
   install_if_missing core/gcc gcc
 
   log_line "Building cross-platform binaries"

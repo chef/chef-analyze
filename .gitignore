@@ -1,7 +1,7 @@
 # vim
 *.swp
 *.swo
-
+.idea
 # Habitat
 results/
 coverage/

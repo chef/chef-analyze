@@ -130,10 +130,10 @@ func TestNodesReportSummary_withRecordsSorted(t *testing.T) {
 	if assert.Equal(t, 10, len(lines)) {
 		assert.Equal(t, "-- REPORT SUMMARY --", lines[1])
 		assert.Equal(t, "  Node Name   Chef Version   Operating System   Number Cookbooks  ", lines[3])
-		assert.Equal(t, "        123          13.11   -                                 0  ", lines[5])
-		assert.Equal(t, "  Aaa                13.11   -                                 4  ", lines[6])
-		assert.Equal(t, "  aaa                13.11   -                                 2  ", lines[7])
-		assert.Equal(t, "  zzz                13.11   -                                 2  ", lines[8])
+		assert.Equal(t, "  123         13.11          -                  0                 ", lines[5])
+		assert.Equal(t, "  Aaa         13.11          -                  4                 ", lines[6])
+		assert.Equal(t, "  aaa         13.11          -                  2                 ", lines[7])
+		assert.Equal(t, "  zzz         13.11          -                  2                 ", lines[8])
 		assert.Equal(t, "", lines[9])
 	}
 }
@@ -170,10 +170,10 @@ func TestNodesReportSummary_AnonWithRecordsSorted(t *testing.T) {
 	if assert.Equal(t, 10, len(lines)) {
 		assert.Equal(t, "-- REPORT SUMMARY (Anonymized)--", lines[1])
 		assert.Equal(t, "   Node Name     Chef Version   Operating System   Number Cookbooks  ", lines[3])
-		assert.Equal(t, "  29447b868...          13.11   -                                 2  ", lines[5])
-		assert.Equal(t, "  3d2e5adf7...          13.11   -                                 4  ", lines[6])
-		assert.Equal(t, "  725d5688d...          13.11   -                                 0  ", lines[7])
-		assert.Equal(t, "  8c8b3dc21...          13.11   -                                 2  ", lines[8])
+		assert.Equal(t, "  29447b868...   13.11          -                  2                 ", lines[5])
+		assert.Equal(t, "  3d2e5adf7...   13.11          -                  4                 ", lines[6])
+		assert.Equal(t, "  725d5688d...   13.11          -                  0                 ", lines[7])
+		assert.Equal(t, "  8c8b3dc21...   13.11          -                  2                 ", lines[8])
 		assert.Equal(t, "", lines[9])
 	}
 }

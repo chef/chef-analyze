@@ -25,7 +25,9 @@ import (
 	"strings"
 
 	"github.com/olekukonko/tablewriter"
-	"golang.org/x/crypto/ssh/terminal"
+	"github.com/olekukonko/tablewriter/pkg/twwidth"
+	"github.com/olekukonko/tablewriter/tw"
+	"golang.org/x/term"
 
 	"github.com/chef/chef-analyze/pkg/reporting"
 )
@@ -64,10 +66,7 @@ func CookbooksReportSummary(state *reporting.CookbooksReport) FormattedResult {
 		buffer = bytes.NewBufferString("\n-- REPORT SUMMARY --\n\n")
 	}
 
-	var (
-		table                 = tablewriter.NewWriter(buffer)
-		CookbooksReportHeader = []string{"Cookbook", "Version"}
-	)
+	CookbooksReportHeader := []string{"Cookbook", "Version"}
 
 	if state.RunCookstyle {
 		CookbooksReportHeader = append(CookbooksReportHeader, "Violations", "Auto-correctable")
@@ -77,17 +76,42 @@ func CookbooksReportSummary(state *reporting.CookbooksReport) FormattedResult {
 	CookbooksReportHeader = append(CookbooksReportHeader, "Policy")
 	CookbooksReportHeader = append(CookbooksReportHeader, "Nodes Affected")
 
-	table.SetAutoWrapText(true)
-	table.SetReflowDuringAutoWrap(true)
-	table.SetHeader(CookbooksReportHeader)
-	table.SetAutoFormatHeaders(false) // don't make our headers capitalized
-	table.SetRowLine(false)           // don't show row seps
-	table.SetColumnSeparator(" ")
-	table.SetBorder(false)
-
 	// sets max for each col to 30 chars, this is not strictly enforced.
 	// unwrappable content will expand beyond this limit.
-	table.SetColWidth(MinTermWidth / len(CookbooksReportHeader))
+	table := tablewriter.NewTable(buffer,
+		tablewriter.WithHeaderAutoFormat(tw.Off),  // don't make our headers capitalized
+		tablewriter.WithRowAlignment(tw.AlignLeft),
+		tablewriter.WithHeaderAutoWrap(tw.WrapNormal),
+		tablewriter.WithRowAutoWrap(tw.WrapNormal),
+		tablewriter.WithRendition(tw.Rendition{
+			Borders: tw.Border{
+				Left:   tw.On,
+				Right:  tw.On,
+				Top:    tw.Off,
+				Bottom: tw.Off,
+			},
+			Settings: tw.Settings{
+				Separators: tw.Separators{
+					BetweenRows:    tw.Off,
+					BetweenColumns: tw.On,
+				},
+				Lines: tw.Lines{
+					ShowTop:        tw.Off,
+					ShowBottom:     tw.Off,
+					ShowHeaderLine: tw.On,
+					ShowFooterLine: tw.Off,
+				},
+			},
+			Symbols: tw.NewSymbolCustom("legacy").
+				WithColumn(" ").
+				WithRow("-").
+				WithCenter(" ").
+				WithHeaderLeft(" ").
+				WithHeaderMid(" ").
+				WithHeaderRight(" "),
+		}),
+	)
+	table.Header(CookbooksReportHeader)
 
 	sortCookbookRecords(state.Records)
 
@@ -126,15 +150,14 @@ func CookbooksReportSummary(state *reporting.CookbooksReport) FormattedResult {
 		table.Append(row)
 	}
 
-	table.SetAlignment(tablewriter.ALIGN_LEFT)
 	table.Render()
 
 	var (
 		errMsg            strings.Builder
 		bufStr            = buffer.String()
 		lines             = strings.SplitN(bufStr, "\n", 2)
-		width             = tablewriter.DisplayWidth(lines[0])
-		termWidth, _, err = terminal.GetSize(int(os.Stdout.Fd()))
+		width             = twwidth.Width(lines[0])
+		termWidth, _, err = term.GetSize(int(os.Stdout.Fd()))
 	)
 	if err != nil {
 		termWidth = MinTermWidth
@@ -167,27 +190,47 @@ func NodesReportSummary(records []*reporting.NodeReportItem, appliedNodesFilter 
 		buffer = bytes.NewBufferString("\n-- REPORT SUMMARY --\n\n")
 	}
 
-	var (
-		table            = tablewriter.NewWriter(buffer)
-		NodeReportHeader = []string{"Node Name", "Chef Version", "Operating System", "Number Cookbooks"}
-	)
+	NodeReportHeader := []string{"Node Name", "Chef Version", "Operating System", "Number Cookbooks"}
 
 	if len(appliedNodesFilter) > 0 {
 		NodeReportHeader[0] = fmt.Sprintf("Node Name (filter applied: %s)", appliedNodesFilter)
 	}
 
-	// Let's look at content to pre-determine the best column widths
-	table.SetAutoWrapText(true)
-	table.SetReflowDuringAutoWrap(true)
-	table.SetHeader(NodeReportHeader)
-	table.SetAutoFormatHeaders(false) // don't make our headers capitalized
-	table.SetRowLine(false)           // don't show row seps
-	table.SetColumnSeparator(" ")
-	table.SetBorder(false)
-
 	// sets max for each col to 30 chars, this is not strictly enforced
 	// unwrappable content will expand beyond this limit
-	table.SetColWidth(MinTermWidth / len(NodeReportHeader))
+	table := tablewriter.NewTable(buffer,
+		tablewriter.WithHeaderAutoFormat(tw.Off),  // don't make our headers capitalized
+		tablewriter.WithHeaderAutoWrap(tw.WrapNormal),
+		tablewriter.WithRowAutoWrap(tw.WrapNormal),
+		tablewriter.WithRendition(tw.Rendition{
+			Borders: tw.Border{
+				Left:   tw.On,
+				Right:  tw.On,
+				Top:    tw.Off,
+				Bottom: tw.Off,
+			},
+			Settings: tw.Settings{
+				Separators: tw.Separators{
+					BetweenRows:    tw.Off,
+					BetweenColumns: tw.On,
+				},
+				Lines: tw.Lines{
+					ShowTop:        tw.Off,
+					ShowBottom:     tw.Off,
+					ShowHeaderLine: tw.On,
+					ShowFooterLine: tw.Off,
+				},
+			},
+			Symbols: tw.NewSymbolCustom("legacy").
+				WithColumn(" ").
+				WithRow("-").
+				WithCenter(" ").
+				WithHeaderLeft(" ").
+				WithHeaderMid(" ").
+				WithHeaderRight(" "),
+		}),
+	)
+	table.Header(NodeReportHeader)
 
 	sortNodeRecords(records)
 
@@ -219,8 +262,8 @@ func NodesReportSummary(records []*reporting.NodeReportItem, appliedNodesFilter 
 		errMsg            strings.Builder
 		bufStr            = buffer.String()
 		lines             = strings.SplitN(bufStr, "\n", 2)
-		width             = tablewriter.DisplayWidth(lines[0])
-		termWidth, _, err = terminal.GetSize(int(os.Stdout.Fd()))
+		width             = twwidth.Width(lines[0])
+		termWidth, _, err = term.GetSize(int(os.Stdout.Fd()))
 	)
 	if err != nil {
 		termWidth = MinTermWidth

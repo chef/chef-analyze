@@ -41,11 +41,11 @@ var (
 func Execute() error {
 	msg := fmt.Sprintf("Please use the '%s' executable to access Upgrade Lab features.\n", dist.CLIWrapperExec)
 	rootCmd.RunE = func(_ *cobra.Command, args []string) error {
-		fmt.Printf(msg)
+		fmt.Print(msg)
 		return nil
 	}
 	if isHelpCommand() {
-		fmt.Printf(msg)
+		fmt.Print(msg)
 		return nil
 	}
 	return rootCmd.Execute()
