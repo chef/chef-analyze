@@ -27,7 +27,7 @@ import (
 	"github.com/olekukonko/tablewriter"
 	"github.com/olekukonko/tablewriter/pkg/twwidth"
 	"github.com/olekukonko/tablewriter/tw"
-	"golang.org/x/crypto/ssh/terminal"
+	"golang.org/x/term"
 
 	"github.com/chef/chef-analyze/pkg/reporting"
 )
@@ -157,7 +157,7 @@ func CookbooksReportSummary(state *reporting.CookbooksReport) FormattedResult {
 		bufStr            = buffer.String()
 		lines             = strings.SplitN(bufStr, "\n", 2)
 		width             = twwidth.Width(lines[0])
-		termWidth, _, err = terminal.GetSize(int(os.Stdout.Fd()))
+		termWidth, _, err = term.GetSize(int(os.Stdout.Fd()))
 	)
 	if err != nil {
 		termWidth = MinTermWidth
@@ -263,7 +263,7 @@ func NodesReportSummary(records []*reporting.NodeReportItem, appliedNodesFilter 
 		bufStr            = buffer.String()
 		lines             = strings.SplitN(bufStr, "\n", 2)
 		width             = twwidth.Width(lines[0])
-		termWidth, _, err = terminal.GetSize(int(os.Stdout.Fd()))
+		termWidth, _, err = term.GetSize(int(os.Stdout.Fd()))
 	)
 	if err != nil {
 		termWidth = MinTermWidth

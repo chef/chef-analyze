@@ -3,7 +3,7 @@ $pkg_origin="chef"
 $pkg_description="A CLI to analyze artifacts from a Chef Infra Server"
 $pkg_maintainer="Chef Software Inc. <support@chef.io>"
 $pkg_bin_dirs=@("bin")
-$pkg_build_deps=@("core/go")
+$pkg_build_deps=@("core/go25")
 
 function pkg_version {
   Get-Content "$SRC_PATH/VERSION"
