@@ -270,8 +270,8 @@ github.com/goccy/go-json/internal/runtime
 ## explicit; go 1.11
 # github.com/gopherjs/gopherjs v0.0.0-20200217142428-fce0ec30dd00
 ## explicit
-# github.com/gorilla/websocket v1.4.0
-## explicit
+# github.com/gorilla/websocket v1.5.3
+## explicit; go 1.12
 # github.com/grpc-ecosystem/go-grpc-middleware v1.0.0
 ## explicit
 # github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
