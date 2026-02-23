@@ -25,6 +25,7 @@ DOC
 function build_cross_platform() {
   install_if_missing core/go25 go
   install_if_missing core/gox gox
+  install_if_missing core/gcc gcc
   ( cd /src || return 1
     gox -output="bin/{{.Dir}}_{{.OS}}_{{.Arch}}" \
         -os="darwin linux windows" \

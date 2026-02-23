@@ -5,7 +5,7 @@ $ErrorActionPreference = "Stop"
 $Env:GOFLAGS = "-mod=vendor"
 
 ECHO "-- Installing Golang"
-hab pkg install -b core/go
+hab pkg install -b core/go25
 If ($LastExitCode -ne 0) { Exit $LastExitCode }
 
 ECHO "-- Building chef-analyze EXE"
