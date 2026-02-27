@@ -5,7 +5,7 @@
 # Habitat
 results/
 coverage/
-
+.go
 # VScode
 .vscode
 

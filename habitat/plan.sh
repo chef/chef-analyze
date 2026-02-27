@@ -3,7 +3,7 @@ pkg_origin=chef
 pkg_description="A CLI to analyze artifacts from a Chef Infra Server"
 pkg_maintainer="Chef Software Inc. <support@chef.io>"
 pkg_bin_dirs=(bin)
-pkg_deps=(core/glibc core/go25 core/gcc)
+pkg_deps=(core/glibc core/go26 core/gcc)
 
 
 pkg_version() {
