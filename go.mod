@@ -1,10 +1,10 @@
 module github.com/chef/chef-analyze
 
-go 1.25.6
+go 1.26
 
 require (
 	github.com/aws/aws-sdk-go v1.55.8
-	github.com/chef/go-libs v0.4.2
+	github.com/chef/go-libs v0.4.3
 	github.com/cheggaaa/pb/v3 v3.1.7
 	github.com/go-chef/chef v0.27.0
 	github.com/olekukonko/tablewriter v1.1.3

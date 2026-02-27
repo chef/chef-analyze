@@ -113,8 +113,8 @@ github.com/aws/aws-sdk-go/service/sts/stsiface
 # github.com/cespare/xxhash/v2 v2.3.0
 ## explicit; go 1.11
 github.com/cespare/xxhash/v2
-# github.com/chef/go-libs v0.4.2
-## explicit; go 1.18
+# github.com/chef/go-libs v0.4.3
+## explicit; go 1.26
 github.com/chef/go-libs/config
 github.com/chef/go-libs/credentials
 github.com/chef/go-libs/distgen
