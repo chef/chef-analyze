@@ -18,17 +18,19 @@
 package cmd
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path"
 	"path/filepath"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/endpoints"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
-	"github.com/aws/aws-sdk-go/service/sts"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	awsconfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/chef/go-libs/config"
 	"github.com/cheggaaa/pb/v3"
 	"github.com/pkg/errors"
@@ -51,25 +53,27 @@ func UploadToS3(bucket, filePath string) error {
 	}
 
 	// default to the aws region where we, at Chef, will create the S3 buckets
-	region := endpoints.UsEast1RegionID
+	region := "us-east-1"
 	if envRegion := os.Getenv("AWS_REGION"); envRegion != "" {
 		region = envRegion
 	}
 
 	// Load the default credential chain. Such as the environment,
 	// shared credentials (~/.aws/credentials), or EC2 Instance Role
-	awsSession := session.Must(session.NewSession(&aws.Config{
-		Region: aws.String(region),
-	}))
+	cfg, err := awsconfig.LoadDefaultConfig(context.TODO(), awsconfig.WithRegion(region))
+	if err != nil {
+		return errors.Wrap(err, "unable to load AWS config")
+	}
 
 	var (
-		fileName = path.Base(filePath)
-		uploader = s3manager.NewUploader(awsSession)
-		progress = pb.StartNew(int(fileInfo.Size()))
-		reader   = progress.NewProxyReader(file)
+		fileName  = path.Base(filePath)
+		s3Client  = s3.NewFromConfig(cfg)
+		uploader  = manager.NewUploader(s3Client)
+		progress  = pb.StartNew(int(fileInfo.Size()))
+		reader    = progress.NewProxyReader(file)
 	)
 
-	_, err = uploader.Upload(&s3manager.UploadInput{
+	_, err = uploader.Upload(context.TODO(), &s3.PutObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(fileName),
 		Body:   reader,
@@ -84,15 +88,19 @@ func UploadToS3(bucket, filePath string) error {
 }
 
 func GetSessionToken(minDuration int64) error {
+	cfg, err := awsconfig.LoadDefaultConfig(context.TODO())
+	if err != nil {
+		return errors.Wrap(err, "unable to load AWS config")
+	}
+
 	var (
-		awsSession = session.Must(session.NewSession())
-		svc        = sts.New(awsSession)
-		input      = &sts.GetSessionTokenInput{
-			DurationSeconds: aws.Int64(minDuration * 60),
+		svc   = sts.NewFromConfig(cfg)
+		input = &sts.GetSessionTokenInput{
+			DurationSeconds: aws.Int32(int32(minDuration * 60)),
 		}
 	)
 
-	result, err := svc.GetSessionToken(input)
+	result, err := svc.GetSessionToken(context.TODO(), input)
 	if err != nil {
 		return err
 	}
@@ -133,7 +141,11 @@ func saveSessionToken(token *sts.GetSessionTokenOutput, min int64) error {
 	if err != nil {
 		return errors.Wrap(err, "unable to save session token")
 	}
-	sessionFile.WriteString(token.String())
+	tokenJSON, err := json.MarshalIndent(token, "", "  ")
+	if err != nil {
+		return errors.Wrap(err, "unable to marshal session token")
+	}
+	sessionFile.Write(tokenJSON)
 	sessionFile.Close()
 	fmt.Printf("Token payload saved to %s\n", sessionToken)
 
