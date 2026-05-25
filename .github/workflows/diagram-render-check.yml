@@ -1,0 +1,41 @@
+name: Diagram render check
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - 'release/**'
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  mermaid-render:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+
+      - name: Install Chromium for Mermaid CLI
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y chromium-browser || sudo apt-get install -y chromium
+
+      - name: Configure browser path
+        run: |
+          if command -v chromium-browser >/dev/null 2>&1; then
+            echo "PUPPETEER_EXECUTABLE_PATH=$(command -v chromium-browser)" >> "$GITHUB_ENV"
+          elif command -v chromium >/dev/null 2>&1; then
+            echo "PUPPETEER_EXECUTABLE_PATH=$(command -v chromium)" >> "$GITHUB_ENV"
+          else
+            echo "Could not find chromium executable" >&2
+            exit 1
+          fi
+
+      - name: Validate Mermaid diagrams in markdown
+        run: bash scripts/validate_mermaid.sh .
