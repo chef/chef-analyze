@@ -5,6 +5,30 @@ ROOT_DIR="${1:-.}"
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
+PUPPETEER_CFG="$TMP_DIR/puppeteer-config.json"
+if [[ -n "${PUPPETEER_EXECUTABLE_PATH:-}" ]]; then
+  cat > "$PUPPETEER_CFG" <<EOF
+{
+  "executablePath": "${PUPPETEER_EXECUTABLE_PATH}",
+  "args": [
+    "--no-sandbox",
+    "--disable-setuid-sandbox",
+    "--disable-dev-shm-usage"
+  ]
+}
+EOF
+else
+  cat > "$PUPPETEER_CFG" <<EOF
+{
+  "args": [
+    "--no-sandbox",
+    "--disable-setuid-sandbox",
+    "--disable-dev-shm-usage"
+  ]
+}
+EOF
+fi
+
 block_count=0
 
 # Find markdown files outside vendor and .git directories.
@@ -37,6 +61,7 @@ while IFS= read -r md_file; do
       npx --yes @mermaid-js/mermaid-cli@11.4.1 \
         -i "$out_file" \
         -o "$TMP_DIR/diagram_${block_count}.svg" \
+        -p "$PUPPETEER_CFG" \
         -q
       in_mermaid=0
       continue
