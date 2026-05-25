@@ -60,6 +60,28 @@ From within a Chef Habitat Studio, you can run both, unit and integration tests:
     __NOTE:__ The integration tests require a binary to test against, this helper automatically triggers
     a cross-platform build and uses the generated binary for the running platform.
 
+### Contract Tests and Golden Updates
+
+Formatter contract tests validate boundary output using golden fixtures in
+`pkg/formatter/testdata/`.
+
+Run contract tests only:
+
+```bash
+go test ./pkg/formatter -run '^TestContract_'
+```
+
+Golden update process:
+
+1. Change formatter behavior intentionally.
+2. Run `go test ./pkg/formatter` and inspect failing contract diff output.
+3. Update the specific golden fixture(s) in `pkg/formatter/testdata/`.
+4. Re-run `go test ./pkg/formatter -run '^TestContract_'` until green.
+5. Include rationale for the fixture change in the PR description.
+
+For API-subsystem TODO and edge sweep notes, see
+`docs/API_SUBSYSTEM_SWEEP.md`.
+
 ### Capture log hook verification
 
 The capture command emits a sourcing summary log line with attempts, resolved,

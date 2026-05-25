@@ -1,0 +1,7 @@
+Node Filter Applied: name:policy-boundary-node
+> Node: policy-boundary-node
+  Chef Version: unknown
+  Operating System: unknown
+  Policy Group: staging
+  Policy: seven-zip (rev 99999xxxx99999)
+  Cookbooks Applied (alphanumeric order): mycookbook, test
