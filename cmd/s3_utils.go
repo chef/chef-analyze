@@ -23,8 +23,8 @@ import (
 	"fmt"
 	"math"
 	"os"
-	"path"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -52,6 +52,11 @@ func sessionDurationSeconds(minDuration int64) (int32, error) {
 }
 
 func UploadToS3(bucket, filePath string) error {
+	bucket = strings.TrimSpace(bucket)
+	if bucket == "" {
+		return errors.New("bucket name is required")
+	}
+
 	// #nosec G304 -- filePath is an explicit CLI argument; opening it is required for upload semantics.
 	file, err := os.Open(filePath)
 	if err != nil {
@@ -77,8 +82,12 @@ func UploadToS3(bucket, filePath string) error {
 		return errors.Wrap(err, "unable to load AWS config")
 	}
 
+	fileName, err := safeUploadObjectKey(filePath)
+	if err != nil {
+		return err
+	}
+
 	var (
-		fileName  = path.Base(filePath)
 		s3Client  = s3.NewFromConfig(cfg)
 		uploader  = manager.NewUploader(s3Client)
 		progress  = pb.StartNew(int(fileInfo.Size()))
@@ -154,42 +163,72 @@ func saveSessionToken(token *sts.GetSessionTokenOutput, min int64) error {
 		return errors.Wrapf(err, "unable to create %s/ directory", analyzeTokensDir)
 	}
 
-	// #nosec G304 -- sessionToken path is generated from ChefWorkstationDir and controlled filename segments.
-	sessionFile, err := os.Create(sessionToken)
-	if err != nil {
-		return errors.Wrap(err, "unable to save session token")
-	}
 	tokenJSON, err := json.MarshalIndent(token, "", "  ")
 	if err != nil {
 		return errors.Wrap(err, "unable to marshal session token")
 	}
-	sessionFile.Write(tokenJSON)
-	sessionFile.Close()
+	err = writePrivateFile(sessionToken, tokenJSON)
+	if err != nil {
+		return errors.Wrap(err, "unable to save session token")
+	}
 	fmt.Printf("Token payload saved to %s\n", sessionToken)
 
-	// #nosec G304 -- shFileName path is generated from ChefWorkstationDir and controlled filename segments.
-	shFile, err := os.Create(shFileName)
+	err = writePrivateFile(shFileName, []byte(awsCredentialsToUnixVariables(token)))
 	if err != nil {
 		return errors.Wrap(err, "unable to save .sh file")
 	}
-	shFile.WriteString(awsCredentialsToUnixVariables(token))
-	shFile.Close()
 	fmt.Printf("Unix shell file saved to %s\n", shFileName)
 
-	// #nosec G304 -- ps1FileName path is generated from ChefWorkstationDir and controlled filename segments.
-	ps1File, err := os.Create(ps1FileName)
+	err = writePrivateFile(ps1FileName, []byte(awsCredentialsToPowershellVariables(token)))
 	if err != nil {
 		return errors.Wrap(err, "unable to save .ps1 file")
 	}
-	ps1File.WriteString(awsCredentialsToPowershellVariables(token))
-	ps1File.Close()
 	fmt.Printf("Powershell file saved to %s\n", ps1FileName)
 
 	return nil
 }
 
+func safeUploadObjectKey(filePath string) (string, error) {
+	base := filepath.Base(filepath.Clean(filePath))
+	if base == "" || base == "." || base == string(filepath.Separator) {
+		return "", errors.New("invalid file path: unable to determine file name")
+	}
+	return base, nil
+}
+
+func writePrivateFile(filePath string, data []byte) (retErr error) {
+	// #nosec G304 -- filePath is generated from ChefWorkstationDir and controlled filename segments.
+	f, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		closeErr := f.Close()
+		if retErr == nil && closeErr != nil {
+			retErr = closeErr
+		}
+	}()
+
+	_, err = f.Write(data)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func hasValidSessionCredentials(token *sts.GetSessionTokenOutput) bool {
+	if token == nil || token.Credentials == nil {
+		return false
+	}
+
+	c := token.Credentials
+	return c.AccessKeyId != nil && c.SecretAccessKey != nil && c.SessionToken != nil
+}
+
 func awsCredentialsToUnixVariables(token *sts.GetSessionTokenOutput) string {
-	if token == nil {
+	if !hasValidSessionCredentials(token) {
 		return ""
 	}
 	return fmt.Sprintf(
@@ -198,7 +237,7 @@ func awsCredentialsToUnixVariables(token *sts.GetSessionTokenOutput) string {
 }
 
 func awsCredentialsToPowershellVariables(token *sts.GetSessionTokenOutput) string {
-	if token == nil {
+	if !hasValidSessionCredentials(token) {
 		return ""
 	}
 	return fmt.Sprintf(

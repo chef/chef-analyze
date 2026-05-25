@@ -141,6 +141,24 @@ This command updates:
 - `docs/ARCHITECTURE_CHANGE_SUMMARY.md` (what changed since baseline)
 - `docs/architecture/last_edges.txt` (the baseline edge snapshot)
 
+### Security Patch Set Automation
+
+Run strict security checks and optional curated minor dependency updates with:
+
+```bash
+bash scripts/security_alert_patchset.sh --apply-minor
+```
+
+To auto-push current branch and open a PR (requires authenticated `gh` CLI):
+
+```bash
+bash scripts/security_alert_patchset.sh --apply-minor --create-pr --pr-title "Security hygiene patch set"
+```
+
+The script runs strict `gosec` parity checks for `cmd/s3_utils.go`, executes
+core validation tests, and can apply the curated dependency patch set used in
+this repository.
+
 ### Patching a local Chef Workstation Install
 You can override the `chef-analyze` binary that comes inside your local Chef Workstation install by
 running `make patch_local_workstation` at the top level folder of this repository. Then just simply
