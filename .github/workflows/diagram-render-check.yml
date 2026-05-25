@@ -24,21 +24,12 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Install Chromium for Mermaid CLI
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y chromium-browser || sudo apt-get install -y chromium
+      - name: Setup Chrome
+        id: chrome
+        uses: browser-actions/setup-chrome@v1
 
       - name: Configure browser path
-        run: |
-          if command -v chromium-browser >/dev/null 2>&1; then
-            echo "PUPPETEER_EXECUTABLE_PATH=$(command -v chromium-browser)" >> "$GITHUB_ENV"
-          elif command -v chromium >/dev/null 2>&1; then
-            echo "PUPPETEER_EXECUTABLE_PATH=$(command -v chromium)" >> "$GITHUB_ENV"
-          else
-            echo "Could not find chromium executable" >&2
-            exit 1
-          fi
+        run: echo "PUPPETEER_EXECUTABLE_PATH=${{ steps.chrome.outputs.chrome-path }}" >> "$GITHUB_ENV"
 
       - name: Validate Mermaid diagrams in markdown
         run: bash scripts/validate_mermaid.sh .
