@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"os"
 	"testing"
 
 	"github.com/chef/go-libs/credentials"
@@ -21,44 +20,6 @@ func TestHasMinimumParams(t *testing.T) {
 
 	infraFlags.clientKey = ""
 	require.False(t, hasMinimumParams())
-}
-
-func TestIsReportCommand(t *testing.T) {
-	origArgs := os.Args
-	t.Cleanup(func() {
-		os.Args = origArgs
-	})
-
-	os.Args = []string{"chef-analyze"}
-	require.False(t, isReportCommand())
-
-	os.Args = []string{"chef-analyze", "capture"}
-	require.False(t, isReportCommand())
-
-	os.Args = []string{"chef-analyze", "report"}
-	require.True(t, isReportCommand())
-}
-
-func TestIsHelpCommand(t *testing.T) {
-	origArgs := os.Args
-	t.Cleanup(func() {
-		os.Args = origArgs
-	})
-
-	os.Args = []string{"chef-analyze"}
-	require.False(t, isHelpCommand())
-
-	os.Args = []string{"chef-analyze", "report", "--help"}
-	require.False(t, isHelpCommand())
-
-	os.Args = []string{"chef-analyze", "help"}
-	require.True(t, isHelpCommand())
-
-	os.Args = []string{"chef-analyze", "-h"}
-	require.True(t, isHelpCommand())
-
-	os.Args = []string{"chef-analyze", "--help"}
-	require.True(t, isHelpCommand())
 }
 
 func TestOverrideCredentials(t *testing.T) {

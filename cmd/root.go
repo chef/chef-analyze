@@ -113,20 +113,14 @@ func hasMinimumParams() bool {
 	return false
 }
 func isReportCommand() bool {
-	if len(os.Args) <= 1 {
-		return false
-	}
-	return os.Args[1] == "report"
+	return isReportCommandArgs(os.Args)
 }
 
 // returns true if this is a top-level request for help.
 // Will return false if not help-related, or is a subcommand help option
 // eg chef-analyze reports help
 func isHelpCommand() bool {
-	if len(os.Args) != 2 {
-		return false
-	}
-	return os.Args[1] == "help" || os.Args[1] == "-h" || os.Args[1] == "--help"
+	return isTopLevelHelpArgs(os.Args)
 }
 
 // overrides the credentials from the viper bound flags
