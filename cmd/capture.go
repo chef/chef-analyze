@@ -25,7 +25,6 @@ import (
 	"strings"
 
 	"github.com/chef/chef-analyze/pkg/reporting"
-	"github.com/chef/go-libs/credentials"
 	"github.com/go-chef/chef"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -45,29 +44,12 @@ var (
 		Long: `Captures a node's state as a local chef-repo, which
 can then be used to converge locally.`,
 		RunE: func(_ *cobra.Command, args []string) error {
-			creds, err := credentials.FromViper(
-				infraFlags.profile,
-				overrideCredentials(),
-			)
+			chefClient, err := setupChefClientFromFlags()
 			if err != nil {
 				return err
 			}
 
 			nodeName := args[0]
-			err = createOutputDirectories()
-			if err != nil {
-				return err
-			}
-
-			cfg := &reporting.Reporting{Credentials: creds}
-			if infraFlags.noSSLverify {
-				cfg.NoSSLVerify = true
-			}
-
-			chefClient, err := reporting.NewChefClient(cfg)
-			if err != nil {
-				return err
-			}
 
 			repoName := fmt.Sprintf("node-%s-repo", nodeName)
 			// TODO - future iteration - give option to set the destination path.

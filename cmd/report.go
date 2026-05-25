@@ -25,7 +25,6 @@ import (
 	"time"
 
 	"github.com/chef/go-libs/config"
-	"github.com/chef/go-libs/credentials"
 	"github.com/cheggaaa/pb/v3"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -61,26 +60,7 @@ upgrade compatibility errors and node cookbook usage.
 The result is written to file.
 `,
 		RunE: func(_ *cobra.Command, _ []string) error {
-			creds, err := credentials.FromViper(
-				infraFlags.profile,
-				overrideCredentials(),
-			)
-
-			if err != nil {
-				return err
-			}
-
-			err = createOutputDirectories()
-			if err != nil {
-				return err
-			}
-
-			cfg := &reporting.Reporting{Credentials: creds}
-			if infraFlags.noSSLverify {
-				cfg.NoSSLVerify = true
-			}
-
-			chefClient, err := reporting.NewChefClient(cfg)
+			chefClient, err := setupChefClientFromFlags()
 			if err != nil {
 				return err
 			}
@@ -149,26 +129,7 @@ The result is written to file.
 any applied policies, and the cookbooks used during the most recent chef-client run`,
 		Args: cobra.NoArgs,
 		RunE: func(_ *cobra.Command, _ []string) error {
-			creds, err := credentials.FromViper(
-				infraFlags.profile,
-				overrideCredentials(),
-			)
-
-			if err != nil {
-				return err
-			}
-
-			err = createOutputDirectories()
-			if err != nil {
-				return err
-			}
-
-			cfg := &reporting.Reporting{Credentials: creds}
-			if infraFlags.noSSLverify {
-				cfg.NoSSLVerify = true
-			}
-
-			chefClient, err := reporting.NewChefClient(cfg)
+			chefClient, err := setupChefClientFromFlags()
 			if err != nil {
 				return err
 			}
