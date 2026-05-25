@@ -105,6 +105,20 @@ Evidence
     - Source: `coverage/coverage.txt` (line starts with `total:`)
 ```
 
+### Architecture Diagram Updates
+
+To regenerate the architecture diagram and update the dependency-change summary:
+
+```bash
+make update-architecture
+```
+
+This command updates:
+
+- `docs/DESIGN.md` (auto-generated architecture Mermaid block)
+- `docs/ARCHITECTURE_CHANGE_SUMMARY.md` (what changed since baseline)
+- `docs/architecture/last_edges.txt` (the baseline edge snapshot)
+
 ### Patching a local Chef Workstation Install
 You can override the `chef-analyze` binary that comes inside your local Chef Workstation install by
 running `make patch_local_workstation` at the top level folder of this repository. Then just simply

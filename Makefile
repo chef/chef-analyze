@@ -31,6 +31,9 @@ clean:
 	rm -rf results/
 	rm -rf coverage/
 
+update-architecture:
+	bash scripts/update_architecture_diagram.sh
+
 edit:
 	$(EDITOR) Makefile
 

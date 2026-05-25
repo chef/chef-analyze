@@ -1,0 +1,5 @@
+cmd -> pkg/dist
+cmd -> pkg/formatter
+cmd -> pkg/reporting
+pkg/formatter -> pkg/reporting
+root -> cmd

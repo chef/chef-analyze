@@ -9,21 +9,21 @@ documentation of this tool in an early stage.
 The architecture map below uses real repository paths so each node maps to
 code that exists in this project.
 
+<!-- BEGIN AUTO-GENERATED:ARCHITECTURE -->
 ```mermaid
-flowchart TD
-  A[CLI Entry\nmain.go] --> B[Command Router\ncmd/root.go]
-  B --> C[Report Commands\ncmd/report.go]
-  B --> D[Capture Command\ncmd/capture.go]
-  C --> E[Reporting Service\npkg/reporting/*.go]
-  C --> F[Formatters\npkg/formatter/*.go]
-  C --> G[Report Output Writer\ncmd/report.go saveReport/saveErrorReport]
-  D --> E
-  E --> H[Chef API Adapter\npkg/reporting/client.go]
-  E --> I[Snapshot Writer\npkg/reporting/object_writer.go]
-  E --> J[Cookstyle Runner\npkg/reporting/cookstyle.go]
-  G --> K[Chef Workstation Filesystem\n$HOME/.chef-workstation/reports and errors]
-  I --> L[Captured Node Repo\n./node-<name>-repo]
+flowchart LR
+  cmd["cmd/ (CLI commands)"]
+  pkg_dist["pkg/dist"]
+  pkg_formatter["pkg/formatter (TXT/CSV/table output)"]
+  pkg_reporting["pkg/reporting (report generation and capture)"]
+  root["main.go (root)"]
+  cmd --> pkg_dist
+  cmd --> pkg_formatter
+  cmd --> pkg_reporting
+  pkg_formatter --> pkg_reporting
+  root --> cmd
 ```
+<!-- END AUTO-GENERATED:ARCHITECTURE -->
 
 ### Data Flows
 
