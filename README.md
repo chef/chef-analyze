@@ -69,6 +69,26 @@ $ hab studio enter
 ```
 For details about the code coverage open the generated HTML report located at `coverage/coverage.html`.
 
+The `code_coverage` helper also writes a text report to `coverage/coverage.txt` and prints it to stdout.
+The final `total:` line in that file is the overall coverage percentage.
+
+To extract only the total line for PR evidence:
+
+```bash
+$ grep '^total:' coverage/coverage.txt
+total:                                  (statements)    95.0%
+```
+
+PR snippet template (includes total percentage):
+
+```text
+Evidence
+- Tests/logs/metrics: `unit_tests` and/or `integration_tests`
+- Coverage:
+    - Total: <XX.X%>
+    - Source: `coverage/coverage.txt` (line starts with `total:`)
+```
+
 ### Patching a local Chef Workstation Install
 You can override the `chef-analyze` binary that comes inside your local Chef Workstation install by
 running `make patch_local_workstation` at the top level folder of this repository. Then just simply
