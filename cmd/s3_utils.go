@@ -52,6 +52,7 @@ func sessionDurationSeconds(minDuration int64) (int32, error) {
 }
 
 func UploadToS3(bucket, filePath string) error {
+	// #nosec G304 -- filePath is an explicit CLI argument; opening it is required for upload semantics.
 	file, err := os.Open(filePath)
 	if err != nil {
 		return err
@@ -148,11 +149,12 @@ func saveSessionToken(token *sts.GetSessionTokenOutput, min int64) error {
 		shFileName   = filepath.Join(tokensDir, fmt.Sprintf("%s.sh", tokenName))
 		ps1FileName  = filepath.Join(tokensDir, fmt.Sprintf("%s.ps1", tokenName))
 	)
-	err = os.MkdirAll(tokensDir, os.ModePerm)
+	err = os.MkdirAll(tokensDir, 0o700)
 	if err != nil {
 		return errors.Wrapf(err, "unable to create %s/ directory", analyzeTokensDir)
 	}
 
+	// #nosec G304 -- sessionToken path is generated from ChefWorkstationDir and controlled filename segments.
 	sessionFile, err := os.Create(sessionToken)
 	if err != nil {
 		return errors.Wrap(err, "unable to save session token")
@@ -165,6 +167,7 @@ func saveSessionToken(token *sts.GetSessionTokenOutput, min int64) error {
 	sessionFile.Close()
 	fmt.Printf("Token payload saved to %s\n", sessionToken)
 
+	// #nosec G304 -- shFileName path is generated from ChefWorkstationDir and controlled filename segments.
 	shFile, err := os.Create(shFileName)
 	if err != nil {
 		return errors.Wrap(err, "unable to save .sh file")
@@ -173,6 +176,7 @@ func saveSessionToken(token *sts.GetSessionTokenOutput, min int64) error {
 	shFile.Close()
 	fmt.Printf("Unix shell file saved to %s\n", shFileName)
 
+	// #nosec G304 -- ps1FileName path is generated from ChefWorkstationDir and controlled filename segments.
 	ps1File, err := os.Create(ps1FileName)
 	if err != nil {
 		return errors.Wrap(err, "unable to save .ps1 file")
