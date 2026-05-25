@@ -96,7 +96,9 @@ run `chef-analyze` or `chef analyze` to use the top-level chef wrapper.
 
 ## Contributing
 
-For information on contributing to this project please see our [Contributing Documentation](https://github.com/chef/chef/blob/main/CONTRIBUTING.md)
+For information on contributing to this project, see [CONTRIBUTING.md](CONTRIBUTING.md).
+
+For Walk onboarding, see [docs/WALK_ONBOARDING_PROMPT.md](docs/WALK_ONBOARDING_PROMPT.md).
 
 ## License & Copyright
 
