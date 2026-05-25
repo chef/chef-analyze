@@ -21,6 +21,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"os"
 	"path"
 	"path/filepath"
@@ -39,6 +40,16 @@ import (
 )
 
 const analyzeTokensDir = "tokens" // Used for $HOME/.chef-workstation/tokens
+
+func sessionDurationSeconds(minDuration int64) (int32, error) {
+	if minDuration <= 0 {
+		return 0, errors.New("session duration in minutes must be greater than zero")
+	}
+	if minDuration > math.MaxInt32/60 {
+		return 0, errors.New("session duration is too large")
+	}
+	return int32(minDuration * 60), nil
+}
 
 func UploadToS3(bucket, filePath string) error {
 	file, err := os.Open(filePath)
@@ -88,6 +99,11 @@ func UploadToS3(bucket, filePath string) error {
 }
 
 func GetSessionToken(minDuration int64) error {
+	durationSeconds, err := sessionDurationSeconds(minDuration)
+	if err != nil {
+		return err
+	}
+
 	cfg, err := awsconfig.LoadDefaultConfig(context.TODO())
 	if err != nil {
 		return errors.Wrap(err, "unable to load AWS config")
@@ -96,7 +112,7 @@ func GetSessionToken(minDuration int64) error {
 	var (
 		svc   = sts.NewFromConfig(cfg)
 		input = &sts.GetSessionTokenInput{
-			DurationSeconds: aws.Int32(int32(minDuration * 60)),
+			DurationSeconds: aws.Int32(durationSeconds),
 		}
 	)
 
