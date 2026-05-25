@@ -1,0 +1,89 @@
+name: CI evidence summary (non-blocking)
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - 'release/**'
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  evidence-summary:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Run cmd tests with coverage (non-blocking)
+        id: cmd_tests
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          mkdir -p coverage
+          go test ./cmd -coverprofile=coverage/cmd.out -covermode=atomic 2>&1 | tee coverage/cmd-test.log
+
+      - name: Install gosec (non-blocking)
+        id: install_gosec
+        continue-on-error: true
+        run: go install github.com/securego/gosec/v2/cmd/gosec@latest
+
+      - name: Run lightweight security scan (non-blocking)
+        id: gosec_scan
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          "$(go env GOPATH)/bin/gosec" -include=G115 ./cmd/... 2>&1 | tee coverage/gosec.log
+
+      - name: Build CI evidence summary
+        if: always()
+        run: |
+          {
+            echo "## CI Evidence Summary"
+            echo
+            echo "This job is intentionally non-blocking and does not gate merges."
+            echo
+            echo "| Check | Outcome |"
+            echo "|---|---|"
+            echo "| cmd tests with coverage | ${{ steps.cmd_tests.outcome }} |"
+            echo "| install gosec | ${{ steps.install_gosec.outcome }} |"
+            echo "| gosec G115 scan | ${{ steps.gosec_scan.outcome }} |"
+            echo
+
+            if [[ -f coverage/cmd.out ]]; then
+              total_line=$(go tool cover -func=coverage/cmd.out | grep '^total:' || true)
+              if [[ -n "$total_line" ]]; then
+                echo "### Coverage"
+                echo
+                echo "- \\`$total_line\\`"
+                echo
+              fi
+            fi
+
+            if [[ -f coverage/cmd-test.log ]]; then
+              echo "### cmd test log (tail)"
+              echo
+              echo '\`\`\`text'
+              tail -n 20 coverage/cmd-test.log || true
+              echo '\`\`\`'
+              echo
+            fi
+
+            if [[ -f coverage/gosec.log ]]; then
+              echo "### gosec G115 log (tail)"
+              echo
+              echo '\`\`\`text'
+              tail -n 20 coverage/gosec.log || true
+              echo '\`\`\`'
+              echo
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
