@@ -1,5 +1,8 @@
 name: Diagram render check
 
+permissions:
+  contents: read
+
 on:
   push:
     branches:
