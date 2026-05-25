@@ -19,6 +19,7 @@ package reporting
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 )
@@ -140,6 +141,13 @@ func (nri *NodeReportItem) CookbooksList() []string {
 
 // GenerateNodesReport generate a nodes report
 func GenerateNodesReport(client *ChefAnalyzeClient, filter string, anonymize bool) ([]*NodeReportItem, error) {
+	start := time.Now()
+	originalFilter := filter
+	emitMetric("reporting.nodes.generate.start", 1)
+	defer func() {
+		emitMetric("reporting.nodes.generate.duration_ms", time.Since(start).Milliseconds())
+	}()
+
 	var (
 		query = map[string]interface{}{
 			"name":            []string{"name"},
@@ -155,8 +163,15 @@ func GenerateNodesReport(client *ChefAnalyzeClient, filter string, anonymize boo
 	if filter == "" {
 		filter = "*:*"
 	}
+	emitLog("reporting.nodes.generate.query", "filter", filter)
+	if originalFilter == "" {
+		emitMetric("reporting.nodes.generate.default_filter", 1)
+	}
+
 	pres, err := client.Search.PartialExec("node", filter, query)
 	if err != nil {
+		emitMetric("reporting.nodes.generate.error", 1)
+		emitLog("reporting.nodes.generate.error", "error", err.Error())
 		return nil, errors.Wrap(err, "unable to get node(s) information")
 	}
 
@@ -204,6 +219,8 @@ func GenerateNodesReport(client *ChefAnalyzeClient, filter string, anonymize boo
 			results = append(results, item)
 		}
 	}
+	emitMetric("reporting.nodes.generate.result_count", int64(len(results)))
+	emitLog("reporting.nodes.generate.done", "results", fmt.Sprintf("%d", len(results)))
 	return results, nil
 }
 

@@ -40,9 +40,12 @@ type OverrideFunc func(*Reporting)
 // LoadConfig returns a reporting Config instance using the defaults
 func LoadConfig(overrides ...OverrideFunc) (Reporting, error) {
 	rCfg := Reporting{}
+	emitLog("reporting.load_config.start")
 
 	creds, err := credentials.NewDefault()
 	if err != nil {
+		emitMetric("reporting.load_config.error", 1, "stage", "credentials")
+		emitLog("reporting.load_config.error", "stage", "credentials", "error", err.Error())
 		return rCfg, err
 	}
 	rCfg.Credentials = creds
@@ -51,12 +54,19 @@ func LoadConfig(overrides ...OverrideFunc) (Reporting, error) {
 	// so we won't error if that happens
 	if cfg, err := config.New(); err == nil {
 		rCfg.Config = cfg
-		// TODO @afiune log a debug message
+		emitMetric("reporting.load_config.config_present", 1)
+		emitLog("reporting.load_config.config_present")
+	} else {
+		emitMetric("reporting.load_config.config_missing", 1)
+		emitLog("reporting.load_config.config_missing", "error", err.Error())
 	}
 
 	for _, f := range overrides {
 		f(&rCfg)
 	}
+
+	emitMetric("reporting.load_config.success", 1)
+	emitLog("reporting.load_config.success")
 
 	return rCfg, nil
 }

@@ -22,6 +22,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/chef/go-libs/config"
 	"github.com/go-chef/chef"
@@ -212,6 +213,15 @@ func NewCookbooksReport(
 }
 
 func (cbr *CookbooksReport) Generate() {
+	start := time.Now()
+	emitMetric("reporting.cookbooks.generate.start", 1)
+	emitMetric("reporting.cookbooks.generate.total", int64(cbr.TotalCookbooks))
+	emitLog("reporting.cookbooks.generate.start", "total_cookbooks", fmt.Sprintf("%d", cbr.TotalCookbooks))
+	defer func() {
+		emitMetric("reporting.cookbooks.generate.duration_ms", time.Since(start).Milliseconds())
+		emitMetric("reporting.cookbooks.generate.records", int64(len(cbr.Records)))
+		emitLog("reporting.cookbooks.generate.done", "records", fmt.Sprintf("%d", len(cbr.Records)))
+	}()
 
 	var (
 		downloadCh = make(chan cookbookItem, cbr.TotalCookbooks)
@@ -226,6 +236,7 @@ func (cbr *CookbooksReport) Generate() {
 		// the maximum allowed, set it to the maximum
 		numWorkers = cbr.numWorkers
 	}
+	emitMetric("reporting.cookbooks.generate.workers", int64(numWorkers))
 
 	// launch jobs that will be read by the workers (goroutines)
 	go cbr.triggerJobs(downloadCh)

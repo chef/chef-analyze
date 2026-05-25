@@ -28,6 +28,7 @@ import (
 	"os"
 	"strings"
 	"text/template"
+	"time"
 
 	"github.com/go-chef/chef"
 	"github.com/pkg/errors"
@@ -123,7 +124,21 @@ func NewNodeCapture(name string, repositoryDir string, opts CaptureOpts, capture
 
 // Initialize a NodeCapture. Creates a Progress channel that callers can monitor for updates
 func (nc *NodeCapture) Run() {
+	start := time.Now()
+	emitMetric("reporting.capture.run.start", 1, "node", nc.name)
+	emitLog("reporting.capture.run.start", "node", nc.name)
+
 	defer func() { close(nc.Progress) }()
+	defer func() {
+		emitMetric("reporting.capture.run.duration_ms", time.Since(start).Milliseconds(), "node", nc.name)
+		if nc.Error != nil {
+			emitMetric("reporting.capture.run.error", 1, "node", nc.name)
+			emitLog("reporting.capture.run.error", "node", nc.name, "error", nc.Error.Error())
+			return
+		}
+		emitMetric("reporting.capture.run.success", 1, "node", nc.name)
+		emitLog("reporting.capture.run.success", "node", nc.name)
+	}()
 
 	nc.Progress <- FetchingNode
 	node, err := nc.capturer.CaptureNodeObject(nc.name)

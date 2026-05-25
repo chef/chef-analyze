@@ -159,6 +159,12 @@ The script runs strict `gosec` parity checks for `cmd/s3_utils.go`, executes
 core validation tests, and can apply the curated dependency patch set used in
 this repository.
 
+### Reporting Logging and Metrics Validation
+
+For the `pkg/reporting` logging/metrics pattern and validation commands, see:
+
+- `docs/REPORTING_OBSERVABILITY.md`
+
 ### Patching a local Chef Workstation Install
 You can override the `chef-analyze` binary that comes inside your local Chef Workstation install by
 running `make patch_local_workstation` at the top level folder of this repository. Then just simply
