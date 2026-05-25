@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Scripted security patch set:
-# 1) Run strict gosec checks used by CI.
+# 1) Run strict gosec checks used by CI for cmd/.
 # 2) Optionally apply curated minor dependency security updates.
 # 3) Optionally create a PR from current branch (requires gh auth).
 
@@ -42,29 +42,30 @@ done
 cd "$ROOT_DIR"
 mkdir -p coverage
 
-echo "[1/4] Running strict gosec scan parity for cmd/s3_utils.go"
+echo "[1/4] Running strict gosec scan parity for cmd folder"
 "$GO_BIN" install github.com/securego/gosec/v2/cmd/gosec@latest
-"$($GO_BIN env GOPATH)/bin/gosec" -fmt=json -no-fail -include=G115,G301,G304 ./cmd/... > coverage/gosec.json
+"$($GO_BIN env GOPATH)/bin/gosec" -fmt=json -no-fail -include=G104,G115,G204,G301,G304 ./cmd/... > coverage/gosec.json
 
 python3 - <<'PY'
 import json
-import pathlib
 import sys
 
 with open('coverage/gosec.json', 'r', encoding='utf-8') as f:
     data = json.load(f)
 
 issues = data.get('Issues') or []
-target = pathlib.PurePosixPath('/cmd/s3_utils.go')
-target_issues = [i for i in issues if str(i.get('file', '')).endswith(str(target))]
+target_issues = [
+  i for i in issues
+  if '/cmd/' in str(i.get('file', '')).replace('\\\\', '/')
+]
 
 if target_issues:
-    print('Strict-path gosec issues found in cmd/s3_utils.go:')
+    print('Strict-path gosec issues found in cmd folder:')
     for item in target_issues:
         print(f"- {item.get('rule_id')} at {item.get('file')}:{item.get('line')}: {item.get('details')}")
     sys.exit(1)
 
-print('No strict-path gosec issues found in cmd/s3_utils.go')
+print('No strict-path gosec issues found in cmd folder')
 print(f'Total gosec issues in cmd scan: {len(issues)}')
 PY
 

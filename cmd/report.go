@@ -242,14 +242,36 @@ func createOutputDirectories() error {
 		errorsDir  = filepath.Join(wsDir, analyzeErrorsDir)
 	)
 
-	err = os.MkdirAll(reportsDir, os.ModePerm)
+	err = os.MkdirAll(reportsDir, 0o750)
 	if err != nil {
 		return errors.Wrapf(err, "unable to create %s/ directory", analyzeReportsDir)
 	}
-	err = os.MkdirAll(errorsDir, os.ModePerm)
+	err = os.MkdirAll(errorsDir, 0o750)
 	if err != nil {
 		return errors.Wrapf(err, "unable to create %s/ directory", analyzeErrorsDir)
 	}
+	return nil
+}
+
+func writeReportFile(reportPath string, content string) (retErr error) {
+	// #nosec G304 -- reportPath is derived from ChefWorkstationDir and controlled filename segments.
+	f, err := os.OpenFile(reportPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		closeErr := f.Close()
+		if retErr == nil && closeErr != nil {
+			retErr = closeErr
+		}
+	}()
+
+	_, err = f.WriteString(content)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -268,13 +290,10 @@ func saveErrorReport(baseName string, content string) error {
 		reportName = fmt.Sprintf("%s-%s.%s", baseName, timestamp, "err")
 		reportPath = filepath.Join(errorsDir, reportName)
 	)
-	reportFile, err := os.Create(reportPath)
+	err = writeReportFile(reportPath, content)
 	if err != nil {
 		return errors.Wrap(err, "unable to save errors report")
 	}
-
-	reportFile.WriteString(content)
-	reportFile.Close()
 
 	fmt.Printf("Error report saved to %s\n", reportPath)
 	return nil
@@ -299,13 +318,10 @@ func saveReport(baseName string, ext string, nodeFilter string, content string) 
 		reportName = fmt.Sprintf("%s-%s%s.%s", baseName, timestamp, filtered, ext)
 		reportPath = filepath.Join(reportsDir, reportName)
 	)
-	reportFile, err := os.Create(reportPath) // create a new report file
+	err = writeReportFile(reportPath, content)
 	if err != nil {
 		return errors.Wrapf(err, "unable to save %s report", baseName)
 	}
-
-	reportFile.WriteString(content)
-	reportFile.Close()
 
 	fmt.Printf("%s report saved to %s\n", strings.Title(baseName), reportPath)
 	return nil

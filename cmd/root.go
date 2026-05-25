@@ -89,7 +89,9 @@ func initConfig() {
 
 			if !hasMinimumParams() && isReportCommand() {
 				fmt.Printf("Error: %s\n", MissingMinimumParametersErr)
-				rootCmd.Usage()
+				if usageErr := rootCmd.Usage(); usageErr != nil {
+					fmt.Fprintf(os.Stderr, "unable to print usage: %v\n", usageErr)
+				}
 				os.Exit(-1)
 			}
 			//debug("Unable to file credentials:  %s", err.Error())

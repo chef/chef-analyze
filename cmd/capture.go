@@ -22,6 +22,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -33,6 +34,7 @@ import (
 
 var (
 	captureOpts reporting.CaptureOpts
+	validCaptureNodeName = regexp.MustCompile(`^[A-Za-z0-9._-]+$`)
 
 	// Possible options (future)
 	// --node-repo-dir -> dir to create for the the special node repository.
@@ -51,6 +53,9 @@ can then be used to converge locally.`,
 			}
 
 			nodeName := args[0]
+			if !validCaptureNodeName.MatchString(nodeName) {
+				return errors.New("node name contains unsupported characters")
+			}
 
 			repoName := fmt.Sprintf("node-%s-repo", nodeName)
 			// TODO - future iteration - give option to set the destination path.
@@ -68,6 +73,7 @@ can then be used to converge locally.`,
 			}
 
 			fmt.Println(" - Setting up local repository")
+			// #nosec G204 -- nodeName is validated against a strict allowlist before use.
 			cmd := exec.Command("chef", "generate", "repo", repoName)
 			_, err = cmd.Output()
 			if err != nil {
@@ -209,7 +215,9 @@ func requestGatherSources(repoPath string) {
 func promptUser(msg string) string {
 	fmt.Print(msg)
 	var answer string
-	fmt.Scanf("%s\n", &answer)
+	if _, err := fmt.Scanf("%s\n", &answer); err != nil {
+		return ""
+	}
 	fmt.Println("") // Blank linke after taking input separates any response we may write
 	return answer
 }
