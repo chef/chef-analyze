@@ -52,6 +52,18 @@ grep '^total:' coverage/coverage.txt
    - risk and rollback statement
 4. Keep PR scope focused and avoid unrelated changes.
 
+## Doc-With-Code Requirement
+
+Documentation must be updated in the same PR when code behavior,
+extension points, or operational expectations change.
+
+Minimum expectations:
+
+1. Update subsystem docs for changed code paths (for example
+   `docs/SUBSYSTEM_CMD_ROUTING.md` for root command argument routing changes).
+2. Include risk notes describing likely regressions and mitigations.
+3. Keep docs and tests aligned with current behavior before requesting review.
+
 ## Suggested Walk Sequence
 
 1. Analyze current code and identify the smallest safe change.

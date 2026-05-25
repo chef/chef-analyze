@@ -25,6 +25,21 @@ flowchart LR
 ```
 <!-- END AUTO-GENERATED:ARCHITECTURE -->
 
+## Subsystem Documentation
+
+- Command routing and top-level argument classification:
+  [docs/SUBSYSTEM_CMD_ROUTING.md](SUBSYSTEM_CMD_ROUTING.md)
+
+### Extension and Risk Notes
+
+When extending top-level CLI behavior in `cmd/`, keep argument
+classification logic in `cmd/argv.go`, keep root wrappers in `cmd/root.go`
+thin, and update subsystem docs in the same PR.
+
+Known risks in this area include accidental broadening of top-level help
+detection and behavior/docs drift when command semantics change without
+documentation updates.
+
 ### Data Flows
 
 1. Nodes report flow
