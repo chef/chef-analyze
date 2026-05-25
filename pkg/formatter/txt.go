@@ -114,6 +114,8 @@ func MakeNodesReportTXT(records []*reporting.NodeReportItem, nodeFilter string) 
 	sortNodeRecords(records)
 
 	for _, record := range records {
+		cookbooksList := record.CookbooksList()
+
 		strBuilder.WriteString(fmt.Sprintf("> Node: %s\n", record.Name))
 		strBuilder.WriteString(
 			fmt.Sprintf("  Chef Version: %s\n",
@@ -134,13 +136,13 @@ func MakeNodesReportTXT(records []*reporting.NodeReportItem, nodeFilter string) 
 				stringOrUnknownPlaceholder(record.GetPolicyWithRev())),
 		)
 
-		if len(record.CookbooksList()) == 0 {
+		if len(cookbooksList) == 0 {
 			strBuilder.WriteString("  Cookbooks Applied: none\n")
 		} else {
 			strBuilder.WriteString("  Cookbooks Applied (alphanumeric order): ")
-			cookbooksString := strings.Join(record.CookbooksList(), ", ")
+			cookbooksString := strings.Join(cookbooksList, ", ")
 			if record.HasPolicyGroup() {
-				cookbooksString = stringReplace(`\([\d,.]+\)`, cookbooksString, "")
+				cookbooksString = stripCookbookVersions(cookbooksString)
 			}
 			strBuilder.WriteString(cookbooksString)
 			strBuilder.WriteString("\n")

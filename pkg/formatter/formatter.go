@@ -35,6 +35,8 @@ const (
 	unknownValuePlaceholder = "unknown"
 )
 
+var cookbookVersionPattern = regexp.MustCompile(`\([\d,.]+\)`)
+
 func stringOrEmptyPlaceholder(s string) string {
 	return stringOrPlaceholder(s, emptyValuePlaceholder)
 }
@@ -71,4 +73,8 @@ func sortNodeRecords(records []*reporting.NodeReportItem) {
 func stringReplace(regex string, input string, replace string) string {
 	re := regexp.MustCompile(regex)
 	return re.ReplaceAllString(input, replace)
+}
+
+func stripCookbookVersions(input string) string {
+	return cookbookVersionPattern.ReplaceAllString(input, "")
 }

@@ -247,7 +247,7 @@ func NodesReportSummary(records []*reporting.NodeReportItem, appliedNodesFilter 
 				recordName,
 				stringOrEmptyPlaceholder(record.ChefVersion),
 				stringOrEmptyPlaceholder(record.OSVersionPretty()),
-				strconv.Itoa(len(record.CookbooksList())),
+				strconv.Itoa(len(record.CookbookVersions)),
 			},
 		)
 	}
