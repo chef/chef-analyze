@@ -203,7 +203,7 @@ func promptUser(msg string) string {
 }
 
 func formatCookbooks(cookbooks []reporting.NodeCookbook) string {
-	var cbNames []string
+	cbNames := make([]string, 0, len(cookbooks))
 	for _, cb := range cookbooks {
 		// TODO - do we want the hash shown for cookbook artifacts? Does it matter?
 		cbNames = append(cbNames, fmt.Sprintf("  - %s (v%s)", cb.Name, cb.Version))
