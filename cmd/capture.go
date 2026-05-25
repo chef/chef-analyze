@@ -23,6 +23,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/chef/chef-analyze/pkg/reporting"
 	"github.com/go-chef/chef"
@@ -131,19 +132,30 @@ can then be used to converge locally.`,
 				remainingCBs = locksToCookbooks(nc.Policy.CookbookLocks)
 				cookbookDirName = "cookbook_artifacts"
 			}
+			initialCookbookCount := len(remainingCBs)
 
 			// Try to gather sources for all cookbooks; stop when we've found
 			// them all or the operator provides a blank input when asked for a new
 			// path.
+			sourceResolutionStart := time.Now()
+			sourcePathAttempts := 0
 			requestGatherSources(repoDirName)
 			baseUserPath := requestCookbookPath(remainingCBs)
 			for len(remainingCBs) > 0 && baseUserPath != "" {
+				sourcePathAttempts++
 				remainingCBs, err = resolveCookbooks(cookbookDirName, remainingCBs, repoDirName, baseUserPath)
 				if err != nil {
 					return err
 				}
 				baseUserPath = requestCookbookPath(remainingCBs)
 			}
+			resolvedCookbooks := initialCookbookCount - len(remainingCBs)
+			fmt.Printf(" - Capture sourcing summary: attempts=%d resolved=%d unresolved=%d elapsed_ms=%d\n",
+				sourcePathAttempts,
+				resolvedCookbooks,
+				len(remainingCBs),
+				time.Since(sourceResolutionStart).Milliseconds(),
+			)
 
 			if len(remainingCBs) > 0 {
 				fmt.Printf(CookbooksNotSourcedTxt, fmt.Sprintf("%s/%s", repoDirName, cookbookDirName),

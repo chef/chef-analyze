@@ -60,6 +60,22 @@ From within a Chef Habitat Studio, you can run both, unit and integration tests:
     __NOTE:__ The integration tests require a binary to test against, this helper automatically triggers
     a cross-platform build and uses the generated binary for the running platform.
 
+### Capture log hook verification
+
+The capture command emits a sourcing summary log line with attempts, resolved,
+unresolved, and elapsed time in milliseconds.
+
+Example verification flow:
+
+1. Run a capture:
+    ```
+    $ chef-analyze capture NODE-NAME
+    ```
+2. Confirm the output contains:
+    ```
+    - Capture sourcing summary: attempts=<n> resolved=<n> unresolved=<n> elapsed_ms=<n>
+    ```
+
 ### Code coverage
 This repository requires any change to always increase, or at least, maintain the percentage of code
 coverage, to execute the current coverage run:
